@@ -11,7 +11,8 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 0 | Startbarer Server, lokale Demo-Stadt, Rohstoffe, Ausbau, Speichern, Tests | Implementiert |
 | 1 | Stadtkarte, feste Bauplätze, Errichten/Ausbauen und Warteschlange | Implementiert |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
-| 3 | Weltkarte, NPC-Städte mit Stufen und Nahrungsvorräten, Entfernungen, Bewegung und Erkundung | Geplant |
+| 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Als Nächstes; abgestimmt |
+| 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | Geplant; nach Einführung der Truppen |
 | 4a | Forschung, Truppen und Generäle mit Erfahrung, Leveln, Aufwertungen und Truppenzuweisung | Geplant |
 | 4b | Kämpfe, NPC-Farmzüge, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
@@ -59,9 +60,20 @@ Datenbank, Passwortwiederherstellung, E-Mail-Verifikation und produktiver Mehrpr
 - Dezentralisierung soll wie bei Matrix funktionieren; das Matrix-Protokoll darf dafür eingesetzt werden.
 - Codex und GitHub werden für die Weiterentwicklung verwendet. Gewähltes Repository: https://github.com/bavxhack/War2glory. Der Nutzer richtet die zusätzliche Codex-Umgebung selbst ein; deren Einrichtung wurde hier nicht überprüft.
 
-## Vorgeschlagene Spielregeln, noch abzustimmen
+## Bestätigte Weltkartenregeln vom 27.09.2026
 
-**NPC-Städte:** Stufe, Garnison, Nahrungsvorrat und begrenzte Regeneration. Farmzüge brauchen Marschzeit, Kampfauswertung, Traglast und Rückkehr. Nahrung wird erst nach erfolgreicher Rückkehr gutgeschrieben. Gleichzeitige Angriffe dürfen denselben Vorrat nicht mehrfach plündern. Weitere Rohstoffe als Beute bleiben eine offene Entscheidung.
+- Quadratische Felder mit Koordinaten.
+- Gelände und Stadtpositionen sind von Anfang an vollständig sichtbar.
+- Genaue Informationen zu fremden Städten werden erst in einer späteren Etappe durch Aufklärung zugänglich. Sie dürfen vorher auch nicht in öffentlichen Serverantworten enthalten sein.
+- Alle Spieler einer Welt teilen dieselben NPC-Städte und deren Ressourcenbestände.
+- Nach späteren Farmangriffen füllen sich diese Bestände allmählich bis zu einer Obergrenze wieder auf.
+- Nächster Auftrag: Weltkarte, dauerhafte Stadtpositionen, öffentliche Detailansichten und gemeinsame NPC-Identitäten. Aufklärung, Märsche, Kämpfe, Beuteentnahme und aktive Regeneration folgen nach Einführung der benötigten Truppen-/Generalsysteme.
+- Eine gemeinsame Karte pro Serverwelt dient als Ausgangspunkt. Die spätere Verbindung von Welten über Matrix ist damit noch nicht festgelegt.
+- In diesem Planungschat entstehen nur Codex-Anweisungen; die Umsetzung und ihre Prüfungen übernimmt Codex.
+
+## Weitere vorgeschlagene Spielregeln, noch abzustimmen
+
+**NPC-Städte:** Gemeinsame Nutzung und allmähliche Ressourcenregeneration nach dem Farmen sind bestätigt. Stufen, Garnisonen, konkrete Vorratsgrößen und Regenerationsraten bleiben auszugestalten. Farmzüge brauchen Marschzeit, Kampfauswertung, Traglast und Rückkehr. Nahrung wird erst nach erfolgreicher Rückkehr gutgeschrieben. Gleichzeitige Angriffe dürfen denselben Vorrat nicht mehrfach plündern. Weitere Rohstoffe als Beute bleiben eine offene Entscheidung.
 
 **Generäle:** Rekrutierung, Name, Erfahrungspunkte, Level, Attribute und Zuweisung zu einer Armee. Vorgeschlagene Attribute: Führung, Angriff und Verteidigung. Eine vorgeschlagene Führungskapazität begrenzt die befehligten Truppen. Ein General kann nur einen aktiven Marsch gleichzeitig befehligen. Erfahrungsbelohnungen werden aus bestätigten Gefechten abgeleitet und nur einmal vergeben. Levelkurve, Obergrenze, Attributpunkte, Verwundung und Niederlagenfolgen sind offen; keine Originalwerte werden behauptet.
 
