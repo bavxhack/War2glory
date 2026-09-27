@@ -1,136 +1,116 @@
-# Codex-Auftrag 2: Stadtansicht, WebSocket und eigene Spielerstädte
+# Codex-Auftrag 3: Gemeinsame Weltkarte und NPC-Städte
 
-## Arbeitsaufteilung und Auftrag
+## Arbeitsweise und Ausgangspunkt
 
-Dieser Text ist der Implementierungsauftrag an Codex. Im begleitenden Planungschat werden auf Wunsch des Nutzers ausschließlich Anforderungen und Codex-Anweisungen erstellt. Codex übernimmt die Programmierung, Tests und den Pull Request.
+Dieser Text ist ein Implementierungsauftrag an Codex. Der begleitende Planungschat erstellt ausschließlich Anforderungen und Anweisungen; Codex programmiert, prüft und öffnet einen Pull Request.
 
-Arbeite im Repository bavxhack/War2glory auf dem aktuellen Stand von main. Lies zuerst AGENTS.md, README.md, docs/PROJECT.md, docs/FEDERATION.md und docs/DEVELOPMENT.md. Prüfe vorhandene Änderungen und offene Pull Requests. Erhalte fremde Arbeit.
+Arbeite im Repository bavxhack/War2glory auf dem aktuellen Stand von main. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/FEDERATION.md. Prüfe vorhandene Änderungen und offene Pull Requests. Erhalte fremde Arbeit.
 
-Dieser Auftrag ersetzt den bisherigen Startauftrag für Etappe 1. Die dortige Einschränkung, noch keine Konten anzulegen, ist für diesen neuen Auftrag aufgehoben. Implementiere die nachfolgend beschriebene Etappe vollständig.
+Laut aktuellem Projektplan sind Stadtansicht, Bauplätze, Bauwarteschlange, Konten mit eigenen Städten, WebSocket-Spielkommunikation und getrennte JSON-Spielstände umgesetzt. Prüfe den Code und die vorhandenen Tests selbst. Dieser Auftrag ersetzt Auftrag 2 und baut auf dessen Ergebnis auf.
 
-## Ausgangspunkt
+## Vom Nutzer bestätigte Spielentscheidungen
 
-Bei der Prüfung am 27.09.2026 war main auf Commit 69a18e7ede2d46648eb21c4279ee0e4b043ecd9e. Etappe 1 ist bereits zusammengeführt: neun Bauplätze, Errichten und Ausbauen, eine sequenzielle Warteschlange mit maximal drei Aufträgen, serverseitige Angebote und Migration älterer Spielstände. Es existieren Dockerfile, Compose-Konfiguration und eine Container-Pipeline. Prüfe den tatsächlichen Stand erneut; diese Beschreibung ersetzt keine Codeprüfung.
+- Die Weltkarte besteht aus quadratischen Feldern.
+- Gelände und Stadtpositionen sind von Anfang an vollständig sichtbar. Es gibt keinen Erkundungsnebel, der Teile der Karte verdeckt.
+- Genaue Informationen über fremde Städte erhält ein Spieler erst durch Aufklärung in einer späteren Etappe.
+- NPC-Städte werden von allen Spielern derselben Welt gemeinsam genutzt. Es gibt keine persönlichen Kopien und keine getrennten Nahrungsvorräte pro Angreifer.
+- Nach späteren Farmangriffen füllen sich die NPC-Ressourcen allmählich bis zu einer Obergrenze wieder auf.
+- Zunächst existiert eine gemeinsame Karte pro Serverwelt. Wie Karten später über Matrix verbunden werden, bleibt offen.
 
-Der bisherige Bildschirm wirkt wie ein Dashboard: dunkler Hintergrund, Rohstoffkarten, ein Raster aus Gebäudekacheln mit Buchstaben und eine Warteschlangenliste. Der Nutzer möchte eine anschauliche Stadt statt dieses abstrakten Rasters.
+## Ziel dieser Etappe
 
-Verwende ausschließlich den Repository-Stand als Implementierungsbasis. Im Planungschat begonnene, unveröffentlichte Codeentwürfe sind keine fertige Grundlage.
+Ein Spieler kann zwischen seiner Stadt und einer gemeinsamen Weltkarte wechseln, seine Stadt verorten, andere Spieler- und NPC-Städte auswählen und öffentliche Informationen sowie Entfernungen ansehen. Neue und bestehende Konten erhalten dauerhaft eindeutige Stadtpositionen.
 
-## Ziele dieser Etappe
+Angriffe, Aufklärung, Truppenmärsche und das tatsächliche Farmen gehören noch nicht zu diesem Auftrag. Bereite das Datenmodell dafür vor, ohne zusätzliche Spielsysteme vorzeitig einzubauen.
 
-1. Eine deutlich schönere, als Stadt erkennbare Spielansicht.
-2. Sämtliche dynamische Kommunikation zwischen Spielclient und Spielserver über WebSocket-Ereignisse.
-3. Mehrere Benutzer auf derselben Serverinstanz, jeweils mit einer eigenen Stadt.
-4. Dauerhafte serverseitige JSON-Spielstände pro Benutzer und verlässlicher Wiederbeitritt.
+## 1. Gemeinsame, dauerhafte Welt
 
-## A. Stadtbild und Bedienung
+- Erstelle ein endliches quadratisches Koordinatenraster mit nachvollziehbarem Koordinatensystem und festen Grenzen. Es gibt zunächst keinen Kartenrand-Umbruch.
+- Verwalte Kartengröße, NPC-Dichte und technische Generierungsparameter zentral. Wähle handhabbare vorläufige Standardwerte und dokumentiere sie ausdrücklich als eigene Prototypwerte.
+- Erzeuge die Karte einmal je Welt und speichere sie in deren serverseitigem JSON-Verzeichnis. Ein Neustart oder erneuter Login darf sie nicht neu würfeln.
+- Vergib stabile IDs an Städte und NPCs; Koordinaten allein ersetzen keine Identität.
+- Verhindere doppelt belegte Stadtfelder. Neue Spieler erhalten serverseitig einen freien, geeigneten Standort. Ein Client darf seinen Standort nicht frei setzen.
+- Berücksichtige gleichzeitige Registrierungen und eine volle Karte. Fehler dürfen weder Doppelbelegung noch unbrauchbare halbfertige Konten hinterlassen.
+- Ordne vorhandenen Spielern beim ersten Laden einmalig einen Standort zu. Erhalte dabei Konten, Sitzungen, Ressourcen, Gebäude, Aufträge und bisherige Identitäten.
+- Definiere die verbindliche Quelle der Stadtpositionen. Wenn Daten in Welt- und Spielerdateien zusammenhängen, verhindere oder repariere inkonsistente Zwischenstände nach einem Abbruch.
+- Versioniere das neue Format und sichere bestehende Daten vor der Migration. Unbekannte Versionen oder beschädigte Dateien werden verständlich abgewiesen und nicht stillschweigend ersetzt.
+- Behalte den Betrieb mit genau einem Schreibprozess pro Welt und JSON-Persistenz bei.
 
-Gestalte eine zusammenhängende Landschaft in stilisierter Vogelperspektive oder isometrischer Ansicht. Bestehende Bauplätze und Spielregeln bleiben erhalten.
+## 2. Darstellung und Bedienung
 
-- Stelle Sägewerk, Steinbruch und Bauernhof mit unterschiedlichen, erkennbaren Gebäudegrafiken dar: beispielsweise Dächer und Holzstapel, Felsflächen und Abbaugeräte sowie Scheune und Felder.
-- Verbinde die Stadt visuell durch Wege, Grünflächen, Bäume und klare Grundstücksgrenzen. Freie Bauplätze sollen tatsächlich wie bebaubare Grundstücke aussehen.
-- Verwende eigene Grafiken oder nachvollziehbar lizenzierte Assets und dokumentiere deren Herkunft. Einfache eigene SVG-/CSS-Grafiken sind ausreichend, wenn das Gesamtbild überzeugend ist.
-- Zeige aktive Baustellen, wartende Aufträge und Gebäudestufen direkt an den betreffenden Plätzen. Dekoration darf keine nicht vorhandenen Spielfunktionen vortäuschen.
-- Halte Rohstoffe, Produktion, ausgewähltes Gebäude, Baukosten, Dauer und Warteschlange gut lesbar. Gebäudeauswahl soll eine verständliche Detailansicht öffnen.
-- Verwende eine kompakte Kopfzeile, damit die Stadt den größten Teil des sichtbaren Spielbereichs einnimmt.
-- Unterstütze Desktop und Smartphone: ausreichend große Bedienflächen, keine abgeschnittenen Bedienelemente und eine zugängliche Detailansicht.
-- Erhalte Tastaturbedienbarkeit, sichtbare Fokusmarkierungen, sinnvolle Beschriftungen und ausreichenden Kontrast. Regelmäßige Zustandsereignisse dürfen den Tastaturfokus nicht verlieren lassen.
-- Zeige den eigenen Kommandantennamen, Stadtnamen und Verbindungsstatus. Nicht implementierte Weltkarte, Generäle und Bündnisse höchstens eindeutig als geplant kennzeichnen.
+- Ergänze eine funktionierende Navigation zwischen Stadtansicht und Weltkarte.
+- Stelle quadratische Felder, Gelände und Städte deutlich erkennbar dar. Eigene Stadt, fremde Spielerstädte und NPC-Städte müssen unterscheidbar sein.
+- Nutze das vorhandene Erscheinungsbild und eigene oder nachvollziehbar lizenzierte Grafiken. Die Karte soll eine Landschaft darstellen, keine große Tabelle aus Textfeldern.
+- Ermögliche Verschieben, Vergrößern/Verkleinern, Koordinatensuche und „Zur eigenen Stadt“. Begrenze Bewegung und Zoom sinnvoll.
+- Zeige Koordinaten und eine verständliche Legende. Ein ausgewähltes Feld öffnet eine Detailansicht.
+- Unterstütze Desktop, Touchbedienung und Tastatur. Auswahl und Fokus dürfen durch Serverereignisse nicht verloren gehen.
+- Die vollständige Karte ist für angemeldete Spieler zugänglich. Ein Laden nach sichtbarem Kartenausschnitt ist zur Begrenzung der Datenmenge erlaubt und darf keine Erkundungsfreischaltung voraussetzen.
+- Vermeide das Rendern unnötig vieler unsichtbarer DOM-Elemente. Wähle eine einfache, nachvollziehbare Darstellung ohne pauschalen Frameworkwechsel.
+- Halte die bestehende Stadtansicht, Bauwarteschlange und Rückkehr zur eigenen Stadt funktionsfähig.
 
-Die Ansicht muss mit echten Serverdaten funktionieren. Eine reine Bildvorlage oder kosmetisch umgefärbte Kacheln erfüllen den Auftrag nicht.
+## 3. Öffentliche und geheime Informationen
 
-## B. Ereignisbasierte Spielkommunikation
+Öffentlich dürfen angezeigt und übertragen werden:
+- Koordinaten und Geländetyp.
+- Stadt-ID, Stadtname und Typ: eigene Stadt, Spielerstadt oder NPC.
+- Bei Spielerstädten der bereits öffentliche Kommandantenname.
+- Bei NPCs eine allgemeine Schwierigkeitsstufe.
+- Entfernung von der eigenen Stadt.
 
-Ersetze die bisherigen REST-Aufrufe für Spielzustand und Bauaufträge sowie das HTTP-Polling durch eine WebSocket-Verbindung. Anmeldung, Registrierung, Wiederaufnahme, Abmeldung, Bauaufträge, Bestätigungen, Fehler und Zustandsänderungen laufen darüber.
+Vor späterer Aufklärung bleiben bei fremden Spieler- und NPC-Städten verborgen:
+- Genaue Ressourcenbestände und Lagerkapazitäten.
+- Exakte Garnison, Truppenzusammensetzung und Verteidigungswerte.
+- Interne Produktions-/Regenerationswerte und Zeitstempel, aus denen sich verborgene Bestände ableiten lassen.
+- Private Gebäude-, Bauauftrags-, Konto- und Sitzungsdaten.
 
-HTML, CSS, JavaScript und Grafiken dürfen zum Laden der Anwendung weiterhin über HTTP(S) ausgeliefert werden. Auch ein technischer Healthcheck und die bestehende Föderationsbeschreibung dürfen HTTP-Endpunkte bleiben. Sie dürfen keine privaten Spielstände offenlegen. Die WebSocket-Verbindung zum Browser ist unabhängig von der späteren Matrix-Föderation.
+Diese Trennung muss der Server durchsetzen. Verborgene Daten dürfen nicht lediglich in der Oberfläche ausgeblendet werden und nicht über Detailereignisse, Fehlermeldungen oder abgeleitete Metadaten nach außen gelangen. Daten der eigenen Stadt bleiben im bestehenden authentifizierten Stadtkanal verfügbar.
 
-Dokumentiere ein versioniertes Ereignisformat mit Ereignistyp, eindeutiger Anfrage-/Befehls-ID, Nutzdaten und zuordenbarer Antwort. Folgende Namen sind ein Vorschlag, keine vorhandene Implementierung:
+Beschrifte noch unbekannte Details verständlich mit „Aufklärung erforderlich“. Es gibt in dieser Etappe weder eine funktionierende Aufklärungsaktion noch ausgedachte Aufklärungsberichte.
 
-| Richtung | Ereignis | Zweck |
-| --- | --- | --- |
-| Client → Server | auth.register / auth.login | Konto erstellen oder anmelden |
-| Client → Server | auth.resume / auth.logout | Sitzung wiederaufnehmen oder beenden |
-| Client → Server | construction.enqueue | Bauauftrag einreichen |
-| Client → Server | city.sync | Einmaligen vollständigen Abgleich anfordern |
-| Server → Client | auth.success / auth.required | Identität bestätigen oder Anmeldung anfordern |
-| Server → Client | city.snapshot / city.updated | Eigenen Zustand oder Änderungen senden |
-| Server → Client | construction.completed | Abgeschlossenen Bau melden |
-| Server → Client | command.ok / command.error | Befehl bestätigen oder verständlich ablehnen |
+## 4. Gemeinsame NPCs und spätere Regeneration vorbereiten
 
-Anforderungen:
+- Erzeuge mehrere gemeinsam sichtbare NPC-Städte mit stabiler Identität, Position und vorläufiger Schwierigkeitsstufe.
+- Lege ihre verbindlichen Daten in der gemeinsamen Weltablage ab, nicht in privaten Kopien je Spieler.
+- Bereite ein versioniertes internes Modell für gemeinsam geteilte Ressourcenbestände, Obergrenzen und zeitbasierte Regeneration vor. Nahrung ist der erste vorgesehene Farmrohstoff; weitere Beutearten sind noch nicht entschieden.
+- Halte diese internen Werte aus öffentlichen Kartendaten heraus.
+- Dokumentiere die spätere Regel: nach einer Plünderung allmähliche Auffüllung bis zur Obergrenze, auch während Serverausfall oder Abwesenheit zeitlich korrekt nachberechenbar. Kein sofortiger vollständiger Reset.
+- Lege spätere Beuteentnahme als serverseitigen, serialisierten Vorgang an einer gemeinsamen NPC-Identität konzeptionell fest, damit derselbe Vorrat nicht mehrfach vergeben werden kann.
+- Implementiere jetzt keine Plünderungsfunktion, keine Beutegutschrift und keinen künstlichen Farmknopf. Eine aktive Regenerations-/Kampfmechanik folgt mit dem Farmzug-System.
 
-- Der Server entscheidet weiterhin über Identität, Eigentum, Rohstoffe, Kosten, Zeiten und zulässige Zustandsänderungen.
-- Push-Nachrichten gehen nur an die berechtigten Verbindungen. Sitzungen desselben Spielers dürfen dessen Änderungen gemeinsam erhalten.
-- Verwende für Ressourcen und Bauzeiten serverseitige Ereignisse bzw. geeignete Ticks. Es gibt keine regelmäßigen Client-Anfragen als Ersatz-Polling.
-- Nach Verbindungsabbruch automatisch mit begrenztem Backoff erneut verbinden, Sitzung prüfen und vollständig synchronisieren.
-- Wiederholte Bauaufträge dürfen niemals doppelte Kosten oder doppelte Bauausführung verursachen. Definiere und teste die Aufbewahrungs-/Ablaufregeln für Befehls-IDs. Eine ID mit verändertem Inhalt muss abgelehnt werden.
-- Ein bereits bestätigter Auftrag bleibt nach Verbindungsabbruch und Serverneustart erhalten. Bei unklarer Bestätigung darf die Oberfläche keinen zweiten unabhängigen Auftrag erzeugen.
-- Prüfe Nachrichtenschema, Größe, erlaubte Typen, Rate und WebSocket-Origin. Fange ungültiges JSON und unerwartete Verbindungsabbrüche ab.
-- Halte Spiellogik, Transport, Anmeldung und Speicherung in getrennten Modulen. Verwende eine gepflegte WebSocket-Bibliothek, wenn Node.js dafür keine passende Serverfunktion bietet; dokumentiere neue Abhängigkeiten.
-- Entferne oder sperre alte Spiel-HTTP-Endpunkte, damit keine zweite, ungeschützte Zugriffsmöglichkeit bestehen bleibt.
+## 5. Entfernungen und WebSocket-Ereignisse
 
-## C. Konten und getrennte Städte
+- Berechne und dokumentiere eine einheitliche Entfernung in Kartenfeldern. Ein einfacher geometrischer Abstand ist für diese Etappe ausreichend; kennzeichne ihn als Luftlinie und nicht als spätere tatsächliche Marschroute.
+- Es gibt noch keine verbindlichen Marschzeiten, Geländekosten oder Wegfindung. Diese hängen später von Truppen und weiteren Regeln ab.
+- Nutze für alle dynamischen Kartenanfragen und Änderungen das vorhandene versionierte WebSocket-Protokoll. Kein HTTP-Spielpolling und kein zweiter REST-Spielkanal.
+- Ergänze geeignete Ereignisse für Karteninitialisierung bzw. Ausschnitte, öffentliche Felddetails und Kartenänderungen. Die genauen Namen sollen zur bestehenden Implementierung passen.
+- Teile neu entstandene Spielerstädte den verbundenen berechtigten Spielern mit. Sende nicht sekündlich die vollständige unveränderte Karte.
+- Prüfe Anmeldung, Koordinaten, Ausschnittsgröße, Rate und erlaubte Felder. Manipulierte IDs dürfen keine privaten Zustände zurückliefern.
+- Nach Wiederverbindung wird die Karte konsistent abgeglichen. Ignoriere veraltete Antworten bei raschem Verschieben oder Wechseln der Auswahl.
 
-Implementiere Registrierung, Anmeldung, Abmeldung und Wiederaufnahme einer Sitzung. Ein bloßer frei eingebbarer Spielername ist keine ausreichende Authentifizierung.
+## 6. Prüfungen und Abnahme
 
-- Jedes neue Konto erhält genau eine eigene Stadt mit eigenem Ressourcenbestand, Gebäuden, Bauplätzen und Bauaufträgen.
-- Eine robuste Kennwort-/Sitzungslösung ist für diese Etappe ausreichend. Passwörter müssen mit einem geeigneten gesalzenen Passwort-Hash gespeichert werden; verwende die dokumentierte Standardbibliothek oder eine gepflegte Bibliothek.
-- Persistente Sitzungsschlüssel müssen ausreichend zufällig sein, dürfen nicht in URLs oder Logs stehen und benötigen Ablauf- und Widerrufsregeln. Erläutere die gewählte Browser-Speicherung und deren Sicherheitsgrenzen.
-- Nach Browserneustart oder Serverneustart muss eine gültige Sitzung wieder zur eigenen Stadt führen. Nach Ablauf oder Abmeldung muss eine erneute Anmeldung mit demselben Konto möglich bleiben.
-- Ziehe die Spieleridentität ausschließlich aus der authentifizierten Verbindung. Eine vom Client gesendete fremde Spieler-ID darf niemals fremde Daten lesen oder verändern.
-- Verhindere die doppelte Registrierung derselben normalisierten Identität auch bei gleichzeitigen Anfragen.
-- Prüfe Eingaben, begrenze Anmeldeversuche und übertrage keine Kennwörter oder Sitzungsschlüssel an andere Spieler.
-- Zwei getrennte Browserprofile müssen gleichzeitig unabhängig spielen können. Eine Übersicht anderer Kommandanten ist optional; private Ressourcen und Aufträge werden nicht veröffentlicht.
-- Dokumentiere Grenzen wie eine noch fehlende Passwortwiederherstellung ehrlich.
+Prüfe bestehende Funktionen und ergänze gezielte Tests:
 
-## D. JSON-Persistenz und bisherige Spielstände
+1. Zwei Spieler sehen dieselbe Welt und dieselben NPC-IDs; ihre eigenen Städte stehen auf unterschiedlichen Feldern.
+2. Gleichzeitige Registrierungen können keinen Standort doppelt belegen.
+3. Koordinaten, Weltidentität und NPCs bleiben über Neustart und erneuten Login stabil.
+4. Bestehende Konten werden ohne Verlust ihrer Städte und Bauaufträge migriert. Wiederholte Migration erzeugt keine neuen Positionen.
+5. Eine volle Karte und Speicherfehler führen zu nachvollziehbaren, konsistenten Ergebnissen.
+6. Kartendaten und öffentliche Detailantworten enthalten keine privaten Bestände, Garnisonen, Produktions-/Regenerationsdaten oder Zugangsdaten.
+7. Ungültige Koordinaten, fremde IDs und übergroße Kartenanfragen werden abgefangen.
+8. Neu registrierte Städte erscheinen bei anderen Spielern über WebSocket-Ereignisse ohne Neuladen.
+9. Rückkehr nach Verbindungsabbruch liefert einen konsistenten Kartenstand.
+10. Die dokumentierte Distanzberechnung stimmt für gleiche, waagerecht, senkrecht und diagonal versetzte Koordinaten.
+11. Unterschiedliche Serverwelten besitzen getrennte Karten und Zustände.
 
-Der Nutzer verlangt für jeden Spieler einen eigenen, serverseitigen JSON-Spielstand. Verwende dafür noch keine Datenbank.
+Prüfe die Oberfläche auf Desktop und Smartphone, einschließlich Auswahl, Koordinatensuche, Zoom, Verschieben, Tastaturbedienung und Rückkehr zur eigenen Stadt. Füge Screenshots zum Ergebnis hinzu. Benenne nicht ausführbare Prüfungen offen; erfinde keine Testergebnisse.
 
-- Lege Spielerdaten innerhalb der jeweiligen Welt ab, beispielsweise unter data/<welt>/players/<sichere-spieler-id>.json. Dateipfade werden serverseitig festgelegt und gegen Pfadmanipulation geschützt.
-- Speichere Stadt, Ressourcen, Bauwarteschlange, Identität, relevante Zeitstempel, Schema-/Regelsatzversion und notwendige Metadaten für Wiederaufnahme und Deduplizierung.
-- Kontozugangsdaten können separat gespeichert werden. Verhindere inkonsistente Zwischenstände zwischen Registrierung, Konto und Stadt.
-- Schreibe atomar über eine temporäre Datei mit anschließender Umbenennung. Bestätige zustandsändernde Befehle erst nach erfolgreicher Speicherung.
-- Stelle sicher, dass parallele Befehle und mehrere Verbindungen desselben Spielers keine Änderungen verlieren.
-- Offline-Produktion und mehrere zwischenzeitlich abgeschlossene Bauaufträge müssen nach Wiederbeitritt zeitlich korrekt nachberechnet werden.
-- Keine Geheimnisse oder echten Spielstände committen oder aus dem statischen Webverzeichnis ausliefern.
-- Unterstütze zunächst genau einen Schreibprozess pro Weltverzeichnis; dokumentiere oder erzwinge diese Grenze.
-- Erhalte die bisherige gemeinsame Demo-Stadt samt Rohstoffen und laufenden Aufträgen durch Backup und versionierte Migration. Ordne sie nicht automatisch dem ersten beliebigen Registrierenden zu. Stelle einen nachvollziehbaren, ausdrücklich durch den Betreiber ausgelösten Übernahmeweg zu einem bestimmten Konto bereit.
-- Unbekannte oder beschädigte Spielstände dürfen nicht stillschweigend durch neue Städte überschrieben werden.
-- Ergänze eine kurze Anleitung zum Sichern und Wiederherstellen des gesamten Weltverzeichnisses.
+## Ergebnis und anschließende Etappen
 
-## E. Bestehenden Betrieb erhalten
-
-Passe Dockerfile, Compose, Lockdatei, Healthcheck und CI an, soweit die neuen Abhängigkeiten und Endpunkte das erfordern. Der vorhandene Containerweg muss funktionsfähig bleiben.
-
-Prüfe eine zulässige Origin-/Host-Konfiguration auch bei abweichenden Hostports und hinter einem Reverse Proxy. Leite keine Vertrauensentscheidung allein aus beliebigen Client-Headern ab. Dokumentiere WebSocket-Upgrades und HTTPS/WSS für Zugriff über andere Rechner. Veröffentliche keinen Server und ändere keine produktive Infrastruktur eigenständig.
-
-## F. Abnahme und Prüfungen
-
-Führe die vorhandenen Tests vor und nach der Änderung aus. Ergänze gezielte Integrationsprüfungen:
-
-1. Zwei Konten besitzen unterschiedliche Städte; Bauen bei A verändert weder Rohstoffe noch Aufträge von B.
-2. Nicht angemeldete Verbindungen und manipulierte Spieler-IDs erhalten keinen Zugriff auf fremde Städte.
-3. Richtige und falsche Anmeldung, Sitzungsablauf, Abmeldung und Wiederaufnahme funktionieren.
-4. Browser-Neuladen, Verbindungsunterbrechung und Serverneustart erhalten den Spieler und seinen Fortschritt.
-5. Ein wiederholter Auftrag wird nur einmal ausgeführt; gleiche ID mit anderem Inhalt wird abgewiesen.
-6. Gleichzeitige Aufträge und mehrere Verbindungen eines Spielers verlieren keine Änderungen.
-7. Offline-Produktion und Bauabschlüsse bleiben korrekt; der Server meldet Änderungen ohne HTTP-Spielpolling.
-8. Fehler beim Speichern erzeugen keine fälschliche Erfolgsbestätigung und keinen zerstörten letzten Spielstand.
-9. Migration und gezielte Übernahme der bisherigen Demo-Stadt erhalten deren Daten.
-10. Ungültige, zu große oder unerlaubte WebSocket-Nachrichten bringen den Server nicht zum Absturz.
-11. Docker-/CI-Konfiguration berücksichtigt die tatsächlichen Abhängigkeiten und den neuen Healthcheck.
-
-Prüfe die Oberfläche im Browser auf Desktop und einer schmalen Mobilansicht. Dokumentiere die neue Stadtansicht mit Screenshots. Falls Browser- oder Containerprüfungen nicht möglich sind, benenne genau, was ungeprüft bleibt. Behaupte keine erfolgreiche Prüfung ohne Ausführung.
-
-## Ergebnis und Umfang
-
-- Implementiere den vollständigen Ablauf: registrieren → eigene Stadt sehen → bauen → Verbindung verlassen → wieder anmelden → dieselbe Stadt mit korrektem Fortschritt erhalten.
-- Aktualisiere README, Projektplan und eine kurze WebSocket-/Speicherdokumentation.
-- Öffne einen Pull Request von einem eigenen Branch. Beschreibe sichtbare Änderungen, Migration, Tests und offene Grenzen. Nicht selbst zusammenführen oder produktiv deployen.
-- Antworte auf Deutsch und trenne implementierte Funktionen von geplanten Funktionen.
-- Keine Umstellung auf TypeScript oder ein neues Frontend-Framework ohne konkrete Notwendigkeit.
-- Matrix-Föderation, NPC-Städte zum Farmen von Nahrung sowie Generäle mit Truppenführung, Erfahrung und Levelsystem bleiben verbindliche spätere Ziele. Implementiere sie in diesem Auftrag noch nicht.
-
-Arbeite die zusammengehörenden Änderungen in überprüfbaren Schritten ab. Entscheide reversible technische Einzelheiten selbst; frage nur bei einer tatsächlich blockierenden Produktentscheidung nach.
+- Aktualisiere README, Projektplan und die Protokoll-/Speicherdokumentation mit dem tatsächlich erreichten Stand.
+- Erhalte Docker-/Compose-/CI-Funktionalität und passe sie nur an, wenn es durch diese Etappe erforderlich wird.
+- Arbeite auf einem eigenen Branch und öffne einen Pull Request mit Änderungen, Migrationshinweisen, Prüfungen und verbleibenden Grenzen. Nicht selbst zusammenführen oder produktiv deployen.
+- Antworte auf Deutsch. Implementierter Stand, vorbereitete Datenstrukturen und spätere Mechaniken müssen eindeutig getrennt bleiben.
+- JavaScript bleibt die Projektsprache; die Spiellogik bleibt unabhängig von Oberfläche und Transport.
+- Als Nächstes folgen Truppen und Generäle mit Erfahrung/Levelsystem; darauf aufbauend Aufklärung und erste NPC-Farmzüge mit Rückkehr und gemeinsamer Beuteentnahme. Forschung bleibt im Projektplan. Matrix-Föderation und serverübergreifende Gefechte folgen später.
+- Entscheide reversible technische Details selbst und dokumentiere Prototypwerte. Die oben bestätigten Spielentscheidungen werden nicht erneut zur Abstimmung gestellt.
