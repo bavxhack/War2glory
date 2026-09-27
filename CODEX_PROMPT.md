@@ -112,7 +112,7 @@ Prüfe die Oberfläche auf Desktop und Smartphone, einschließlich Auswahl, Koor
 - Arbeite auf einem eigenen Branch und öffne einen Pull Request mit Änderungen, Migrationshinweisen, Prüfungen und verbleibenden Grenzen. Nicht selbst zusammenführen oder produktiv deployen.
 - Antworte auf Deutsch. Implementierter Stand, vorbereitete Datenstrukturen und spätere Mechaniken müssen eindeutig getrennt bleiben.
 - JavaScript bleibt die Projektsprache; die Spiellogik bleibt unabhängig von Oberfläche und Transport.
-- Als Nächstes folgen Truppen und Generäle mit Erfahrung/Levelsystem; darauf aufbauend Aufklärung und erste NPC-Farmzüge mit Rückkehr und gemeinsamer Beuteentnahme. Forschung bleibt im Projektplan. Matrix-Föderation und serverübergreifende Gefechte folgen später.
+- Nach diesem Weltkartenauftrag hat das Grundsystem für Kommandantenpunkte hohe Priorität; die Bewertungsregeln werden vor dem separaten Implementierungsauftrag abgestimmt. Danach folgen die weiteren geplanten Systeme für Forschung, Truppen und Generäle sowie Aufklärung und NPC-Farmzüge. Matrix-Föderation und serverübergreifende Gefechte folgen später.
 - Entscheide reversible technische Details selbst und dokumentiere Prototypwerte. Die oben bestätigten Spielentscheidungen werden nicht erneut zur Abstimmung gestellt.
 
 ## Zusätzlicher Ausblick: Lager und Gebäudeabriss (nicht Teil dieses Auftrags)
@@ -133,3 +133,13 @@ Für spätere Etappen sind Universitäten als Forschungsgebäude verbindlich vor
 Die konkreten Technologien, Voraussetzungen, Werte, Forschungszeiten, Universitätsstufen, Parallelität und Gültigkeit pro Stadt oder Spielerkonto sind noch abzustimmen. Forschungsboni müssen später mit Gebäudestufen und Lagerhauskapazitäten nachvollziehbar verrechnet werden; dazu wurde noch keine Formel festgelegt. Details und offene Entscheidungen stehen in docs/PROJECT.md.
 
 Diese Forschungsanforderungen in der Planung erhalten. Im aktuellen Weltkartenauftrag weder Forschung implementieren noch Technologie-, Kosten- oder Bonuswerte eigenmächtig festlegen. Der vereinbarte Umfang dieses Auftrags bleibt unverändert.
+
+## Priorisierter Folgeauftrag: Kommandantenpunkte
+
+Der Nutzer fordert eine zeitnahe Punktewertung pro Kommandant, beeinflusst durch Gebäude, Forschung, Kämpfe und Niederlagen. Sie ist von der Erfahrung einzelner Generäle getrennt. Das Grundsystem wird als nächste eigenständige Etappe nach der Weltkarte priorisiert.
+
+Zunächst können die vorhandenen Gebäude bewertet werden; Forschungs- und Kampfbeiträge werden später an echte, bestätigte Abschlüsse und Gefechte angebunden. Gesamtpunkte und ihre Zusammensetzung müssen serverseitig nachvollziehbar, dauerhaft konsistent und gegen doppelte Ereignisverarbeitung geschützt sein.
+
+Konkrete Gewichtungen, die Wirkung von Niederlagen, der Umgang mit Gebäudeabriss und eine mögliche Untergrenze sind noch nicht beschlossen. Auch öffentliche Sichtbarkeit und eine Rangliste sind noch offen. Details stehen in docs/PROJECT.md.
+
+Der aktuelle Auftrag bleibt die Weltkarte. Punktregeln nicht nebenbei erfinden oder ungefragt implementieren. Die Priorität und die beschriebenen Anforderungen in der Planung erhalten, damit anschließend ein eigener abgestimmter Codex-Auftrag erstellt werden kann.
