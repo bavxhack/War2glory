@@ -11,7 +11,7 @@ Codex Cloud unterstützt die Verbindung mit GitHub, eine Umgebung für ein ausge
 1. Gewähltes Zielrepository: https://github.com/bavxhack/War2glory, Eigentümer bavxhack.
 2. Der Projektstand liegt in der Repository-Wurzel, einschließlich LICENSE, AGENTS.md, CODEX_PROMPT.md und docs/.
 3. Das Repository für Codex freigeben und eine Umgebung mit Node.js 24 oder neuer konfigurieren.
-4. `npm test` als erste Prüfung ausführen. Der aktuelle Stand benötigt keine npm-Abhängigkeiten.
-5. In Codex den Auftrag aus CODEX_PROMPT.md ausführen: Stadtkarte mit Bauplätzen und erweiterte Bauwarteschlange. Danach gemäß docs/PROJECT.md weiterarbeiten.
+4. `npm test` als erste Prüfung ausführen. Der aktuelle Stand benötigt keine externen npm-Abhängigkeiten.
+5. Der Auftrag aus `CODEX_PROMPT.md` umfasst Stadtansicht, Konten, WebSocket und getrennte JSON-Spielstände. Danach gemäß docs/PROJECT.md weiterarbeiten.
 
-Geheimnisse und lokale Spielstände gehören nicht ins Repository. Öffentliches Hosting, CI-Einrichtung und produktiver Betrieb sind noch nicht konfiguriert. Tests wurden vor dieser reinen Dokumentationsergänzung für den unveränderten Prototyp erfolgreich ausgeführt.
+Geheimnisse und lokale Spielstände gehören nicht ins Repository. Öffentliches Hosting und produktiver Betrieb sind noch nicht konfiguriert. Die CI prüft Tests und Container-Builds; lokale Änderungen müssen vor einem Pull Request erneut mit `npm test` geprüft werden.

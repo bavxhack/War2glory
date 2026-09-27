@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node apps/server/index.js",
     "test": "node --test",
+    "claim-legacy": "node apps/server/claim-legacy.js",
     "start:alpha": "node apps/server/index.js --world alpha --port 3000",
     "start:beta": "node apps/server/index.js --world beta --port 3001"
   }

@@ -1,123 +1,136 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { once } from 'node:events';
-import { createGameServer, migrateState } from '../apps/server/server.js';
+import { once, EventEmitter } from 'node:events';
+import { connect } from 'node:net';
+import { randomBytes } from 'node:crypto';
+import { createGameServer } from '../apps/server/server.js';
+import { migrateLegacyState } from '../apps/server/legacy.js';
 
-async function start(dataFile, clock, worldName) {
-  const server = createGameServer({ dataFile, clock, worldName });
+async function start(worldDir, clock = Date.now, worldName = 'alpha') {
+  const server = createGameServer({ worldDir, clock, worldName });
+  await server.ready;
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  return { server, url: `http://127.0.0.1:${server.address().port}` };
+  return { server, port: server.address().port, url: `http://127.0.0.1:${server.address().port}` };
 }
 
 async function close(server) {
   server.closeAllConnections();
-  await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
-}
-
-function post(url, body, origin) {
-  return fetch(`${url}/api/construction`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(origin ? { Origin: origin } : {}) },
-    body: typeof body === 'string' ? body : JSON.stringify(body),
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(resolve, 500);
+    server.close(error => { clearTimeout(timeout); error ? reject(error) : resolve(); });
   });
 }
 
-test('Migration erhält Identität, Gebäude, Rohstoffe und aktiven Auftrag', () => {
-  const legacy = {
-    schemaVersion: 1,
-    ruleset: 'prototype-0.1',
-    instanceId: 'stable-instance',
-    worldName: 'legacy',
-    city: {
-      name: 'Alte Stadt', resources: { wood: 12, stone: 34, food: 56 },
-      buildings: { sawmill: 2, quarry: 3, farm: 4 },
-      construction: { building: 'sawmill', level: 3, finishesAt: 9000 },
-      updatedAt: 1000,
-    },
-  };
-  const migrated = migrateState(legacy);
-  assert.equal(migrated.schemaVersion, 2);
-  assert.equal(migrated.instanceId, legacy.instanceId);
-  assert.deepEqual(migrated.city.resources, legacy.city.resources);
-  assert.deepEqual(migrated.city.buildingSlots.slice(0, 3).map(slot => [slot.building, slot.level]),
-    [['sawmill', 2], ['quarry', 3], ['farm', 4]]);
-  assert.equal(migrated.city.constructionQueue[0].slotId, 'plot-1');
-  assert.throws(() => migrateState({ schemaVersion: 99, ruleset: 'unknown' }), /Unbekannte/);
+class TestSocket extends EventEmitter {
+  constructor(socket) { super(); this.socket = socket; this.buffer = Buffer.alloc(0); }
+  send(type, payload = {}, requestId = randomBytes(8).toString('hex')) {
+    const body = Buffer.from(JSON.stringify({ version: 1, type, requestId, payload }));
+    const mask = randomBytes(4);
+    const header = body.length < 126 ? Buffer.from([0x81, 0x80 | body.length]) : Buffer.from([0x81, 0xfe, body.length >> 8, body.length & 255]);
+    const masked = Buffer.from(body); for (let index = 0; index < masked.length; index += 1) masked[index] ^= mask[index % 4];
+    this.socket.write(Buffer.concat([header, mask, masked]));
+    return requestId;
+  }
+  ingest(chunk) {
+    this.buffer = Buffer.concat([this.buffer, chunk]);
+    while (this.buffer.length >= 2) {
+      let length = this.buffer[1] & 127; let offset = 2;
+      if (length === 126) { if (this.buffer.length < 4) return; length = this.buffer.readUInt16BE(2); offset = 4; }
+      if (this.buffer.length < offset + length) return;
+      const opcode = this.buffer[0] & 15; const body = this.buffer.subarray(offset, offset + length); this.buffer = this.buffer.subarray(offset + length);
+      if (opcode === 1) this.emit('event', JSON.parse(body.toString()));
+    }
+  }
+  next(type, requestId) {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => { this.off('event', listener); reject(new Error(`Timeout: ${type}`)); }, 3000);
+      const listener = event => { if (event.type === type && (!requestId || event.requestId === requestId)) { clearTimeout(timeout); this.off('event', listener); resolve(event); } };
+      this.on('event', listener);
+    });
+  }
+  close() { this.socket.destroy(); }
+}
+
+function websocket(port, origin = `http://127.0.0.1:${port}`) {
+  return new Promise((resolve, reject) => {
+    const socket = connect(port, '127.0.0.1'); let handshake = Buffer.alloc(0);
+    socket.once('error', reject);
+    socket.on('connect', () => socket.write(`GET /game HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nOrigin: ${origin}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: ${randomBytes(16).toString('base64')}\r\n\r\n`));
+    const establish = chunk => {
+      handshake = Buffer.concat([handshake, chunk]); const boundary = handshake.indexOf('\r\n\r\n'); if (boundary < 0) return;
+      socket.off('data', establish); const status = handshake.subarray(0, boundary).toString();
+      if (!status.includes('101 Switching Protocols')) return reject(new Error(status));
+      const client = new TestSocket(socket); socket.on('data', data => client.ingest(data));
+      const remainder = handshake.subarray(boundary + 4); if (remainder.length) client.ingest(remainder); resolve(client);
+    };
+    socket.on('data', establish);
+  });
+}
+
+async function authenticate(client, mode, username, password = 'sicheres-passwort') {
+  const requestId = client.send(`auth.${mode}`, { username, password, cityName: `${username}burg` });
+  const successPromise = client.next('auth.success', requestId); const snapshotPromise = client.next('city.snapshot', requestId);
+  return { success: await successPromise, snapshot: (await snapshotPromise).payload };
+}
+
+test('Legacy-Migration erhält Stadt, Rohstoffe und laufenden Auftrag', () => {
+  const result = migrateLegacyState({ schemaVersion: 1, ruleset: 'prototype-0.1', instanceId: 'old', worldName: 'old', city: {
+    name: 'Alte Stadt', resources: { wood: 12, stone: 34, food: 56 }, buildings: { sawmill: 2, quarry: 3, farm: 4 },
+    construction: { building: 'sawmill', level: 3, finishesAt: 9000 }, updatedAt: 1000,
+  } });
+  assert.deepEqual(result.city.resources, { wood: 12, stone: 34, food: 56 });
+  assert.deepEqual(result.city.buildingSlots.slice(0, 3).map(slot => slot.level), [2, 3, 4]);
+  assert.equal(result.city.constructionQueue[0].slotId, 'plot-1');
+  assert.throws(() => migrateLegacyState({ schemaVersion: 99 }), /Unbekannte/);
 });
 
-test('HTTP: Warteschlange, Deduplizierung, Neustart und isolierte Welten', async () => {
-  const directory = mkdtempSync(join(tmpdir(), 'strategy-test-'));
-  let now = 0;
-  let running;
-  let other;
+test('WebSocket: getrennte Konten, Sitzung, Deduplizierung, Push und Neustart', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'strategy-ws-')); let running; const clients = []; let now = 1000;
   try {
-    const alphaFile = join(directory, 'alpha.json');
-    running = await start(alphaFile, () => now, 'alpha');
-    const initial = await (await fetch(`${running.url}/api/state`)).json();
-    assert.equal(initial.city.buildingSlots.length, 9);
-    assert.equal(initial.maxQueueLength, 3);
-    assert.match(await (await fetch(running.url)).text(), /STADTKARTE/i);
-    for (const asset of ['/app.js', '/style.css']) assert.equal((await fetch(running.url + asset)).status, 200);
-
-    const first = { id: 'request-0001', slotId: 'plot-1', building: 'sawmill' };
-    assert.equal((await post(running.url, first)).status, 200);
-    const afterFirst = await (await post(running.url, first)).json();
-    assert.equal(afterFirst.city.resources.wood, 120, 'wiederholte ID zieht Kosten nicht erneut ab');
-    assert.equal(afterFirst.city.constructionQueue.length, 1);
-    assert.equal((await post(running.url, { id: 'request-0002', slotId: 'plot-1', building: 'sawmill' })).status, 409);
-    assert.equal((await post(running.url, { id: 'request-0003', slotId: 'plot-2', building: 'quarry' })).status, 200);
-    assert.equal((await post(running.url, { id: 'request-0004', slotId: 'plot-4', building: 'farm' })).status, 200);
-    assert.equal((await post(running.url, { id: 'request-0005', slotId: 'plot-5', building: 'farm' })).status, 409);
-    assert.equal((await post(running.url, first, 'https://foreign.invalid')).status, 403);
-    assert.equal((await post(running.url, '{broken')).status, 400);
-    assert.equal(JSON.parse(readFileSync(alphaFile, 'utf8')).city.constructionQueue.length, 3);
-
-    await close(running.server);
-    running = null;
-    now = 30000;
-    running = await start(alphaFile, () => now, 'alpha');
-    const restored = await (await fetch(`${running.url}/api/state`)).json();
-    assert.equal(restored.world.instanceId, initial.world.instanceId);
-    assert.deepEqual(restored.city.buildingSlots.slice(0, 4).map(slot => slot.level), [2, 2, 1, 1]);
-    assert.equal(restored.city.constructionQueue.length, 0);
-
-    other = await start(join(directory, 'beta.json'), () => now, 'beta');
-    const isolated = await (await fetch(`${other.url}/api/state`)).json();
-    assert.notEqual(isolated.world.instanceId, initial.world.instanceId);
-    assert.equal(isolated.world.name, 'beta');
-    assert.equal(isolated.city.buildingSlots[0].level, 1);
-    const descriptor = await (await fetch(`${running.url}/.well-known/federated-strategy`)).json();
-    assert.equal(descriptor.federationEnabled, false);
-  } finally {
-    if (running) await close(running.server);
-    if (other) await close(other.server);
-    rmSync(directory, { recursive: true, force: true });
-  }
+    running = await start(directory, () => now); assert.equal((await fetch(`${running.url}/health`)).status, 200);
+    assert.equal((await fetch(`${running.url}/request-id.js`)).status, 200);
+    assert.equal((await fetch(`${running.url}/api/state`)).status, 410);
+    const a = await websocket(running.port); const b = await websocket(running.port); clients.push(a, b);
+    const authA = await authenticate(a, 'register', 'Alpha'); const authB = await authenticate(b, 'register', 'Bravo');
+    assert.notEqual(authA.snapshot.player.id, authB.snapshot.player.id);
+    const id = 'construction-0001'; const okPromise = a.next('command.ok', id); const updatePromise = a.next('city.updated');
+    a.send('construction.enqueue', { slotId: 'plot-4', building: 'farm', playerId: authB.snapshot.player.id }, id);
+    await okPromise; const updatedA = (await updatePromise).payload;
+    assert.equal(updatedA.city.resources.wood, 160); assert.equal(authB.snapshot.city.resources.wood, 200);
+    const duplicatePromise = a.next('command.ok', id); a.send('construction.enqueue', { slotId: 'plot-4', building: 'farm' }, id);
+    assert.equal((await duplicatePromise).payload.duplicate, true);
+    const conflictPromise = a.next('command.error', id); a.send('construction.enqueue', { slotId: 'plot-5', building: 'farm' }, id);
+    assert.match((await conflictPromise).payload.message, /anderem Inhalt/);
+    const unauthenticated = await websocket(running.port); clients.push(unauthenticated);
+    const deniedId = unauthenticated.send('city.sync', { playerId: authA.snapshot.player.id });
+    assert.equal((await unauthenticated.next('auth.required', deniedId)).type, 'auth.required');
+    const badLoginId = unauthenticated.send('auth.login', { username: 'Alpha', password: 'ganz-falsch!' });
+    assert.match((await unauthenticated.next('command.error', badLoginId)).payload.message, /falsch/);
+    const resumeClient = await websocket(running.port); clients.push(resumeClient);
+    const resumeId = resumeClient.send('auth.resume', { sessionToken: authA.success.payload.sessionToken });
+    const resumeSuccess = resumeClient.next('auth.success', resumeId); const resumeSnapshot = resumeClient.next('city.snapshot', resumeId);
+    await resumeSuccess; assert.equal((await resumeSnapshot).payload.player.id, authA.snapshot.player.id);
+    clients.splice(0).forEach(client => client.close()); await close(running.server); running = null;
+    now = 20_000; running = await start(directory, () => now);
+    const restored = await websocket(running.port); clients.push(restored); const restoredId = restored.send('auth.resume', { sessionToken: authA.success.payload.sessionToken });
+    const restoredSuccess = restored.next('auth.success', restoredId); const restoredSnapshot = restored.next('city.snapshot', restoredId);
+    await restoredSuccess; const restoredCity = (await restoredSnapshot).payload.city;
+    assert.equal(restoredCity.buildingSlots[3].building, 'farm'); assert.equal(restoredCity.constructionQueue.length, 0);
+    const accountData = JSON.parse(readFileSync(join(directory, 'accounts.json'), 'utf8'));
+    assert.equal(JSON.stringify(accountData).includes(authA.success.payload.sessionToken), false, 'Sitzung wird nur gehasht gespeichert');
+  } finally { clients.forEach(client => client.close()); if (running) await close(running.server); rmSync(directory, { recursive: true, force: true }); }
 });
 
-test('Server migriert Version 1 beim Start und weist unbekannte Versionen ab', async () => {
-  const directory = mkdtempSync(join(tmpdir(), 'strategy-migration-'));
-  const file = join(directory, 'state.json');
-  const legacy = {
-    schemaVersion: 1, ruleset: 'prototype-0.1', instanceId: 'migration-instance', worldName: 'old',
-    city: { name: 'Stadt', resources: { wood: 200, stone: 200, food: 200 }, buildings: { sawmill: 1, quarry: 1, farm: 1 }, construction: null, updatedAt: 0 },
-  };
-  let running;
+test('WebSocket weist fremde Origins und übergroße Nachrichten ab', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'strategy-security-')); let running;
   try {
-    writeFileSync(file, JSON.stringify(legacy));
-    running = await start(file, () => 0, 'ignored');
-    assert.equal(JSON.parse(readFileSync(file, 'utf8')).schemaVersion, 2);
-    await close(running.server);
-    running = null;
-    writeFileSync(file, JSON.stringify({ schemaVersion: 88, ruleset: 'future' }));
-    assert.throws(() => createGameServer({ dataFile: file, clock: () => 0 }), /Unbekannte/);
-    assert.equal(JSON.parse(readFileSync(file, 'utf8')).schemaVersion, 88);
-  } finally {
-    if (running) await close(running.server);
-    rmSync(directory, { recursive: true, force: true });
-  }
+    running = await start(directory);
+    await assert.rejects(websocket(running.port, 'https://evil.invalid'), /403 Forbidden/);
+    const client = await websocket(running.port); client.socket.write(Buffer.from([0x81, 0xfe, 0x40, 0x01]));
+    await once(client.socket, 'close');
+  } finally { if (running) await close(running.server); rmSync(directory, { recursive: true, force: true }); }
 });
