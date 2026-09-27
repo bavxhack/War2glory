@@ -1,3 +1,5 @@
+import { createRequestId } from './request-id.js';
+
 const resourceLabels = { wood: 'Holz', stone: 'Stein', food: 'Nahrung' };
 const resourceIcons = { wood: '▰', stone: '◆', food: '●' };
 const authRoot = document.querySelector('#auth');
@@ -24,7 +26,7 @@ function setConnection(text, connected = false) {
   document.querySelector('#connection-dot').classList.toggle('online', connected);
 }
 
-function send(type, payload = {}, requestId = crypto.randomUUID()) {
+function send(type, payload = {}, requestId = createRequestId()) {
   if (socket?.readyState !== WebSocket.OPEN) throw new Error('Keine Verbindung zum Spielserver.');
   socket.send(JSON.stringify({ version: 1, type, requestId, payload }));
   return requestId;
@@ -116,7 +118,7 @@ function actionButton(label, detail, disabled, action) {
   button.append(element('strong', label), element('span', detail)); button.addEventListener('click', action); return button;
 }
 function submitConstruction(slotId, building) {
-  const id = crypto.randomUUID(); pending.set(id, { slotId, building });
+  const id = createRequestId(); pending.set(id, { slotId, building });
   try { send('construction.enqueue', { slotId, building }, id); render(currentState); }
   catch (error) { pending.delete(id); messageRoot.textContent = error.message; }
 }

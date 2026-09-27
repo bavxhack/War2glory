@@ -92,6 +92,7 @@ test('WebSocket: getrennte Konten, Sitzung, Deduplizierung, Push und Neustart', 
   const directory = mkdtempSync(join(tmpdir(), 'strategy-ws-')); let running; const clients = []; let now = 1000;
   try {
     running = await start(directory, () => now); assert.equal((await fetch(`${running.url}/health`)).status, 200);
+    assert.equal((await fetch(`${running.url}/request-id.js`)).status, 200);
     assert.equal((await fetch(`${running.url}/api/state`)).status, 410);
     const a = await websocket(running.port); const b = await websocket(running.port); clients.push(a, b);
     const authA = await authenticate(a, 'register', 'Alpha'); const authB = await authenticate(b, 'register', 'Bravo');
