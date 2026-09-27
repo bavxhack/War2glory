@@ -16,6 +16,21 @@ export function isCoordinate(config, x, y) {
   return Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < config.width && y < config.height;
 }
 
+export function randomFreeLocation(map, randomIndex) {
+  if (typeof randomIndex !== 'function') throw new TypeError('Eine Zufallsfunktion wird benötigt.');
+  const occupied = new Set(map.entities.map(entity => `${entity.x}:${entity.y}`));
+  const available = [];
+  for (let y = 0; y < map.config.height; y += 1) {
+    for (let x = 0; x < map.config.width; x += 1) {
+      if (!occupied.has(`${x}:${y}`) && terrainAt(x, y, map.seed) !== 'water') available.push({ x, y });
+    }
+  }
+  if (available.length === 0) throw new Error('Die Weltkarte ist voll. Es ist kein Stadtfeld mehr frei.');
+  const index = randomIndex(available.length);
+  if (!Number.isInteger(index) || index < 0 || index >= available.length) throw new RangeError('Die Zufallsfunktion lieferte einen ungültigen Index.');
+  return available[index];
+}
+
 export function publicMap(world, ownPlayerId, viewport) {
   const { config } = world.map;
   const width = viewport?.width ?? config.maxViewport;

@@ -1,9 +1,9 @@
-import { createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { copyFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
 import { newCity, RULESET } from '../../packages/game-core/index.js';
-import { terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
+import { randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
 export const PLAYER_SCHEMA_VERSION = 1;
@@ -158,12 +158,7 @@ export class WorldStorage {
   #removeEntity(id) { this.world.map.entities = this.world.map.entities.filter(entity => entity.id !== id); this.world.map.revision += 1; }
 
   #allocatePlayerCity(player, account) {
-    const occupied = new Set(this.world.map.entities.map(entity => `${entity.x}:${entity.y}`));
-    let location;
-    for (let y = 0; y < this.world.map.config.height && !location; y += 1) for (let x = 0; x < this.world.map.config.width; x += 1) {
-      if (!occupied.has(`${x}:${y}`) && terrainAt(x, y, this.world.map.seed) !== 'water') { location = { x, y }; break; }
-    }
-    if (!location) throw new Error('Die Weltkarte ist voll. Es ist kein Stadtfeld mehr frei.');
+    const location = randomFreeLocation(this.world.map, upperBound => randomInt(upperBound));
     const entity = { id: `city-${player.playerId}`, kind: 'player', playerId: player.playerId, name: player.city.name, commanderName: account.displayName, ...location };
     this.world.map.entities.push(entity); this.world.map.revision += 1;
     return entity;

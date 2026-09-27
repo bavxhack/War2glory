@@ -65,7 +65,7 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Server prüft Kosten, Belegung und Aufträge; wiederholte Auftrags-IDs werden nur einmal verarbeitet.
 - Atomare JSON-Spielstände pro Spieler, stabile Instanz-ID, ausdrückliche Übernahme der alten Demo-Stadt und Produktion während Abwesenheit.
 - Maschinenlesbare Serverbeschreibung als Vorbereitung auf Föderation.
-- Dauerhafte gemeinsame 24×24-Weltkarte mit Gelände, eindeutigen Spielerpositionen und 18 gemeinsam sichtbaren NPC-Städten.
+- Dauerhafte gemeinsame 24×24-Weltkarte mit Gelände, zufällig vergebenen eindeutigen Spielerpositionen und 18 gemeinsam sichtbaren NPC-Städten.
 - Kartenwechsel, Ausschnittsnavigation, Koordinatensuche, Zoom, Tastaturbedienung und öffentliche Stadtinformationen über WebSocket.
 - Spielregeln und Serverintegration mit `npm test` prüfen.
 

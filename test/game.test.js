@@ -8,7 +8,7 @@ import {
   MAX_QUEUE_LENGTH,
   newCity,
 } from '../packages/game-core/index.js';
-import { mapDistance, publicMap, terrainAt } from '../packages/game-core/world.js';
+import { mapDistance, publicMap, randomFreeLocation, terrainAt } from '../packages/game-core/world.js';
 
 const command = (id, slotId, building) => ({ id, slotId, building });
 
@@ -77,4 +77,18 @@ test('Öffentliche Kartenausschnitte geben keine internen NPC-Bestände preis', 
   assert.equal(JSON.stringify(view).includes('secret'), false);
   assert.equal(view.terrain[0].type, terrainAt(0, 0, 12));
   assert.throws(() => publicMap(world, 'p1', { x: 0, y: 0, width: 5, height: 1 }), /zu groß/);
+});
+
+test('Zufällige Stadtpositionen wählen nur freie, bebaubare Felder', () => {
+  const map = { seed: 7, config: { width: 4, height: 3 }, entities: [
+    { id: 'occupied-1', x: 0, y: 0 },
+    { id: 'occupied-2', x: 1, y: 0 },
+  ] };
+  const firstChoice = randomFreeLocation(map, () => 0);
+  const lastChoice = randomFreeLocation(map, count => count - 1);
+  assert.notDeepEqual(firstChoice, lastChoice);
+  for (const location of [firstChoice, lastChoice]) {
+    assert.equal(map.entities.some(entity => entity.x === location.x && entity.y === location.y), false);
+    assert.notEqual(terrainAt(location.x, location.y, map.seed), 'water');
+  }
 });
