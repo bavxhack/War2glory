@@ -8,6 +8,7 @@ import {
   MAX_QUEUE_LENGTH,
   newCity,
 } from '../packages/game-core/index.js';
+import { mapDistance, publicMap, terrainAt } from '../packages/game-core/world.js';
 
 const command = (id, slotId, building) => ({ id, slotId, building });
 
@@ -56,4 +57,24 @@ test('Volle Warteschlange, belegte Plätze, unbekannte Gebäude und Rohstoffmang
 test('Lagergrenze und rückwärts laufende Uhr', () => {
   assert.equal(advanceCity(newCity(0), 100000000).resources.wood, CAPACITY);
   assert.deepEqual(advanceCity(newCity(1000), 0), newCity(1000));
+});
+
+test('Kartendistanz verwendet dokumentierte euklidische Luftlinie', () => {
+  assert.equal(mapDistance({ x: 2, y: 3 }, { x: 2, y: 3 }), 0);
+  assert.equal(mapDistance({ x: 2, y: 3 }, { x: 5, y: 3 }), 3);
+  assert.equal(mapDistance({ x: 2, y: 3 }, { x: 2, y: 7 }), 4);
+  assert.equal(mapDistance({ x: 0, y: 0 }, { x: 3, y: 4 }), 5);
+});
+
+test('Öffentliche Kartenausschnitte geben keine internen NPC-Bestände preis', () => {
+  const world = { map: { seed: 12, revision: 3, config: { width: 4, height: 4, maxViewport: 4 }, entities: [
+    { id: 'own', kind: 'player', playerId: 'p1', name: 'Eigen', commanderName: 'Alpha', x: 0, y: 0 },
+    { id: 'npc-1', kind: 'npc', name: 'NPC', difficulty: 2, x: 3, y: 3, resources: { food: { amount: 500, regenerationPerHour: 25 } }, garrison: ['secret'] },
+  ] } };
+  const view = publicMap(world, 'p1', { x: 0, y: 0, width: 4, height: 4 });
+  assert.ok(Math.abs(view.entities.find(entity => entity.id === 'npc-1').distance - Math.sqrt(18)) < 1e-12);
+  assert.equal(JSON.stringify(view).includes('500'), false);
+  assert.equal(JSON.stringify(view).includes('secret'), false);
+  assert.equal(view.terrain[0].type, terrainAt(0, 0, 12));
+  assert.throws(() => publicMap(world, 'p1', { x: 0, y: 0, width: 5, height: 1 }), /zu groß/);
 });
