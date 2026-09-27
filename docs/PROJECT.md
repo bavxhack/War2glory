@@ -10,6 +10,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | --- | --- | --- |
 | 0 | Startbarer Server, lokale Demo-Stadt, Rohstoffe, Ausbau, Speichern, Tests | Implementiert |
 | 1 | Stadtkarte, feste Bauplätze, Errichten/Ausbauen und Warteschlange | Implementiert |
+| 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Geplant; eigene spätere Ausbauetappe |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Als Nächstes; abgestimmt |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | Geplant; nach Einführung der Truppen |
@@ -70,6 +71,38 @@ Datenbank, Passwortwiederherstellung, E-Mail-Verifikation und produktiver Mehrpr
 - Nächster Auftrag: Weltkarte, dauerhafte Stadtpositionen, öffentliche Detailansichten und gemeinsame NPC-Identitäten. Aufklärung, Märsche, Kämpfe, Beuteentnahme und aktive Regeneration folgen nach Einführung der benötigten Truppen-/Generalsysteme.
 - Eine gemeinsame Karte pro Serverwelt dient als Ausgangspunkt. Die spätere Verbindung von Welten über Matrix ist damit noch nicht festgelegt.
 - In diesem Planungschat entstehen nur Codex-Anweisungen; die Umsetzung und ihre Prüfungen übernimmt Codex.
+
+## Bestätigte Gebäude- und Lageranforderungen vom 27.09.2026
+
+Diese Anforderungen sind für eine spätere Ausbauetappe aufgenommen. Sie sind noch nicht umgesetzt und erweitern nicht den laufenden Weltkartenauftrag.
+
+### Lagerkapazität durch Gebäudeausbau
+
+- Mit höherer Ausbaustufe eines Produktionsgebäudes wächst auch die Lagerkapazität der zugehörigen Ressource: Sägewerk → Holz, Steinbruch → Stein, Bauernhof → Nahrung.
+- Lagerkapazität und Produktionsrate sind getrennte Gebäudewirkungen; die bisherige Produktionssteigerung bleibt bestehen.
+- Die Kapazität muss künftig pro Ressource betrachtet werden. Konkrete Grundkapazitäten, Beiträge pro Stufe und die Verrechnung mehrerer Gebäude werden vor dieser Etappe abgestimmt.
+- Die bisherige feste Lagergrenze ist ein Prototypwert und noch keine Umsetzung dieser Anforderung.
+
+### Neuer Gebäudetyp Lagerhaus
+
+- Ein Lagerhaus erhöht die Lagerkapazität aller Ressourcen.
+- Es kann auf einem freien Bauplatz errichtet und über mehrere Stufen ausgebaut werden.
+- Höhere Lagerhausstufen erhöhen dessen Kapazitätswirkung.
+- Das Lagerhaus erhöht die speicherbare Menge, nicht automatisch die vorhandenen Rohstoffbestände oder deren Produktion.
+- Baukosten, Bauzeiten, maximale Stufe, Kapazitätswerte und zulässige Anzahl sind noch festzulegen.
+
+### Gebäudeabriss und Rückerstattung
+
+- Spieler sollen eigene Gebäude später vollständig entfernen und den Bauplatz wieder nutzen können.
+- Beim Abriss erhalten sie einen kleinen Anteil der Ressourcen zurück, die bis zur erreichten Gebäudestufe in dieses Gebäude investiert wurden.
+- Die Rückerstattung bezieht sich auf die kumulierten Investitionen aus Neubau und abgeschlossenen Ausbaustufen; sie darf nicht allein aus den Kosten der letzten Stufe abgeleitet werden.
+- Der genaue Rückerstattungsanteil ist noch nicht festgelegt. Es wird hier kein Prozentsatz vorgegeben.
+- Bei der späteren Umsetzung müssen Investitionen je Gebäude und Ressourcenart nachvollziehbar bleiben. Änderungen an Baukosten dürfen keine rückwirkend erfundenen Zahlungen erzeugen. Für Altbestände ohne Investitionshistorie ist eine ausdrücklich dokumentierte Migrationsregel abzustimmen.
+- Mit Entfernung eines Gebäudes entfallen auch dessen Produktions- und Kapazitätswirkungen. Ob der Abriss sofort oder nach einer Zeitspanne erfolgt, ist noch offen.
+- Vor Umsetzung sind Regeln für volle Lager bzw. Überbestände nach Kapazitätsverlust, die Aufnahme der Rückerstattung und Gebäude mit aktiven oder wartenden Bauaufträgen festzulegen. Bestehende Vorräte dürfen nicht ohne eine abgestimmte Regel stillschweigend verschwinden.
+- Abriss und Rückerstattung müssen später serverseitig geprüft, gemeinsam dauerhaft gespeichert und bei wiederholten Befehlen nur einmal ausgeführt werden. Die Oberfläche soll vor Bestätigung den Rückerstattungsbetrag und die Kapazitätsfolgen anzeigen.
+
+Die genaue Einordnung dieser Ausbauetappe erfolgt gemeinsam mit dem Nutzer. Der aktuelle Auftrag bleibt die Weltkarte mit gemeinsamen NPC-Städten.
 
 ## Weitere vorgeschlagene Spielregeln, noch abzustimmen
 
