@@ -54,14 +54,16 @@ Die Portfreigabe bindet standardmäßig nur an `127.0.0.1`. Das ist weiterhin ei
 
 Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft den Container-Build, veröffentlicht aus Sicherheitsgründen aber kein Image aus fremdem Pull-Request-Code. Bei jedem Branch-Push baut der Workflow anschließend ein AMD64-/ARM64-Image und lädt es selbstständig in die GitHub Container Registry hoch. Der Branch `main` erhält dabei `ghcr.io/bavxhack/war2glory:latest`, andere Branches erhalten ein bereinigtes Branch-Tag und jeder veröffentlichte Build zusätzlich ein `sha-…`-Tag. Tags wie `v0.2.0` erzeugen ein gleichnamiges Image-Tag. Der Upload verwendet ausschließlich das von GitHub bereitgestellte `GITHUB_TOKEN`; ein eigenes Registry-Passwort ist nicht nötig. Für öffentliche Images ist kein Registry-Login zum Herunterladen erforderlich. Die erstmalige Sichtbarkeit des Pakets wird in den GitHub-Paketeinstellungen des Repository-Eigentümers festgelegt.
 
-## Stand 0.2
+## Implementierter Stand 0.3
 
-- Browseroberfläche mit einer gemeinsamen Demo-Stadt und einer responsiven Stadtkarte pro Server.
+- Responsive Stadtlandschaft mit eigenen CSS-Grafiken für Gebäude, Wege, Grün und sichtbare Baustellen.
+- Registrierung, Anmeldung, Abmeldung und Sitzungswiederaufnahme; jeder Kommandant besitzt eine getrennte Stadt.
+- Ereignisbasierte Spielkommunikation über WebSocket statt privater HTTP-Spielendpunkte.
 - Holz, Stein und Nahrung; Sägewerk, Steinbruch und Bauernhof.
 - Neun feste Bauplätze; bestehende Gebäude können ausgebaut und freie Plätze bebaut werden.
 - Eine serverseitig geprüfte, sequenzielle Warteschlange mit bis zu drei Bauaufträgen.
 - Server prüft Kosten, Belegung und Aufträge; wiederholte Auftrags-IDs werden nur einmal verarbeitet.
-- JSON-Spielstände, stabile Instanz-ID, explizite Migration von Schema 1 auf 2 und Produktion während Abwesenheit.
+- Atomare JSON-Spielstände pro Spieler, stabile Instanz-ID, ausdrückliche Übernahme der alten Demo-Stadt und Produktion während Abwesenheit.
 - Maschinenlesbare Serverbeschreibung als Vorbereitung auf Föderation.
 - Spielregeln und Serverintegration mit `npm test` prüfen.
 
@@ -72,26 +74,28 @@ Provisorische Regeln: Jedes Gebäude produziert seine Stufe in Rohstoffen pro Se
 | Pfad | Aufgabe |
 | --- | --- |
 | `apps/client/` | Oberfläche: JavaScript, HTML und CSS |
-| `apps/server/` | Node.js-HTTP-Server und Speicherung |
+| `apps/server/` | Node.js-HTTP-/WebSocket-Server, Anmeldung und Speicherung |
 | `packages/game-core/` | Spiellogik ohne Netzwerk- oder Datenbankabhängigkeit |
 | `docs/PROJECT.md` | Ziel, Etappen und offene Produktentscheidungen |
 | `docs/FEDERATION.md` | Entwurf für serverübergreifendes Spielen |
 | `docs/DEVELOPMENT.md` | Vorgeschlagener Codex-/GitHub-Arbeitsablauf |
 | `test/` | Regel- und Integrationstests |
-| `data/<welt>/state.json` | Automatisch erzeugter lokaler Spielstand |
+| `data/<welt>/` | Lokale Welt-, Konto- und getrennte Spielerdateien |
+
+Protokoll, Origin-Konfiguration, Sitzungsgrenzen, Backups und Altstadtübernahme beschreibt [`docs/WEBSOCKET.md`](docs/WEBSOCKET.md).
 
 ## Entwicklungsgrenzen
 
-Dieser Stand bindet ausschließlich an 127.0.0.1. Es gibt noch keine Benutzerkonten oder getrennten Spielerrechte; alle lokalen Besucher steuern dieselbe Stadt. Internetbetrieb wird erst mit Konten, Zugriffsrechten und einem geeigneten Deployment ergänzt.
+Dieser Stand bindet standardmäßig an 127.0.0.1. Konten und getrennte Spielerrechte sind implementiert; für Internetbetrieb fehlen weiterhin Passwortwiederherstellung, E-Mail-Verifikation, administrativer Missbrauchsschutz und ein erprobtes Deployment.
 
-Genau einen Prozess pro Weltdatei starten. Die JSON-Ablage ist für den Prototyp gedacht, nicht für verteilte Serverprozesse. Aufträge werden vor der Erfolgsantwort gespeichert. Produktion wird anhand gespeicherter Zeitstempel nachberechnet. Vor manuellen Änderungen oder Backups den Server stoppen; zum Sichern den jeweiligen `data/<welt>/`-Ordner kopieren. Löschen dieses Ordners setzt die Welt einschließlich Instanz-ID zurück.
+Genau einen Prozess pro Weltverzeichnis starten. Die JSON-Ablage ist für den Prototyp gedacht, nicht für verteilte Serverprozesse. Aufträge werden vor der Erfolgsantwort gespeichert. Produktion wird anhand gespeicherter Zeitstempel nachberechnet. Vor manuellen Änderungen oder Backups den Server stoppen; zum Sichern den jeweiligen `data/<welt>/`-Ordner kopieren. Löschen dieses Ordners setzt die Welt einschließlich Instanz-ID zurück.
 
-Nicht enthalten: Anmeldung, Multiplayer innerhalb einer Welt, zusätzliche Gebäudetypen, Abbruch von Bauaufträgen, Weltkarte, NPC-Farmstädte, Forschung, Truppen, Generäle/Levelsystem, Kampf, Bündnisse, Handel oder aktive Föderation. Der Quellcode wird im oben verlinkten Repository entwickelt; es gibt noch keine veröffentlichte Spielinstanz.
+Nicht enthalten: Passwortwiederherstellung, zusätzliche Gebäudetypen, Abbruch von Bauaufträgen, Weltkarte, NPC-Farmstädte, Forschung, Truppen, Generäle/Levelsystem, Kampf, Bündnisse, Handel oder aktive Föderation. Der Quellcode wird im oben verlinkten Repository entwickelt; es gibt noch keine veröffentlichte Spielinstanz.
 
-Planungsstand vom 27.09.2026: NPC-Städte zum Farmen von Nahrung und aufwertbare Generäle mit Truppenführung gehören zum Projektziel. Matrix ist der bevorzugte Ansatz für die Föderation. Diese späteren Etappen sind geplant; der ausführbare Prototyp steht mit der Stadtkarte auf Stand 0.2.
+Planungsstand vom 27.09.2026: NPC-Städte zum Farmen von Nahrung und aufwertbare Generäle mit Truppenführung gehören zum Projektziel. Matrix ist der bevorzugte Ansatz für die Föderation. Diese späteren Etappen sind geplant; der ausführbare Prototyp steht mit Konten, eigenen Städten und WebSocket-Kommunikation auf Stand 0.3.
 
 ## Zusammenarbeit
 
-Wir erweitern jeweils einen spielbaren Ablauf, prüfen ihn und dokumentieren die Regeln. Der vorgeschlagene nächste Schritt sind Konten, mehrere Städte beziehungsweise Spieler, Berechtigungen und eine belastbare Speicherung. Die Reihenfolge kann nach deinen Prioritäten geändert werden.
+Wir erweitern jeweils einen spielbaren Ablauf, prüfen ihn und dokumentieren die Regeln. Der vorgeschlagene nächste Schritt ist die geplante Weltkarte mit NPC-Städten, Entfernungen und Erkundung. Die Reihenfolge kann nach deinen Prioritäten geändert werden.
 
 Der enthaltene eigene Code steht unter MIT. Der Name ist ein vorläufiger Arbeitstitel. Es werden keine Originalgrafiken, Originaltexte oder Originalquellen von War2Glory mitgeliefert. Eine genaue Funktionsliste und gewünschte Ähnlichkeit stimmen wir anhand deiner Beschreibungen und Referenzen ab.

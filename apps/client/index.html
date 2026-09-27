@@ -8,29 +8,35 @@
   <script type="module" src="/app.js"></script>
 </head>
 <body>
-  <main>
-    <header>
-      <span class="eyebrow">OPEN SOURCE · PROTOTYP 0.2</span>
-      <h1>Deine Stadt. Deine Welt.</h1>
-      <p>Plane deine Siedlung auf festen Bauplätzen. Der Server führt bis zu drei Aufträge nacheinander aus.</p>
+  <div id="auth" class="auth-shell">
+    <form id="auth-form" class="auth-card">
+      <span class="kicker">WILLKOMMEN, KOMMANDANT</span><h1>Deine Stadt wartet.</h1>
+      <p>Registriere dich oder melde dich an. Jede Identität besitzt eine getrennte Stadt.</p>
+      <label>Kommandantenname<input name="username" autocomplete="username" minlength="3" maxlength="24" required></label>
+      <label>Passwort<input name="password" type="password" autocomplete="current-password" minlength="10" maxlength="128" required></label>
+      <label id="city-field">Stadtname (nur Registrierung)<input name="cityName" minlength="3" maxlength="32"></label>
+      <div class="auth-actions"><button name="mode" value="register">Registrieren</button><button name="mode" value="login" class="secondary">Anmelden</button></div>
+      <p id="auth-message" role="alert"></p>
+    </form>
+  </div>
+  <main id="game" hidden>
+    <header class="topbar">
+      <div><span class="kicker">SPIELWELT <span id="world">…</span></span><h1 id="city-name">Deine Stadt</h1><p>Kommandant <strong id="commander">…</strong></p></div>
+      <div class="connection"><span id="connection-dot"></span><span id="connection">Verbinde …</span><button id="logout" class="text-button">Abmelden</button></div>
     </header>
-    <div class="world"><strong id="world">Verbinde mit der Spielwelt …</strong><span>Lokale Demo · eine gemeinsame Stadt</span></div>
     <section aria-label="Rohstoffe" id="resources" class="resources"></section>
-
-    <section aria-labelledby="city-heading">
-      <div class="heading"><div><span class="kicker">STADTKARTE</span><h2 id="city-heading">Gründerstadt</h2></div><span>Wähle einen Bauplatz</span></div>
-      <div class="city-layout">
-        <div id="city-grid" class="city-grid" aria-label="Bauplätze"></div>
-        <aside id="selection" class="selection" aria-live="polite"><p>Wähle einen Bauplatz auf der Karte.</p></aside>
-      </div>
-    </section>
-
-    <section class="queue" aria-labelledby="queue-heading">
-      <div class="queue-title"><div><span class="kicker">BAUPLAN</span><h2 id="queue-heading">Warteschlange</h2></div><span id="queue-capacity"></span></div>
-      <ol id="queue-list"></ol>
-    </section>
+    <div class="game-layout">
+      <section class="map-panel" aria-labelledby="city-heading">
+        <div class="heading"><div><span class="kicker">STADTANSICHT</span><h2 id="city-heading">Siedlung</h2></div><span>Grundstück auswählen</span></div>
+        <div class="city-scene"><div class="river" aria-hidden="true"></div><div class="road horizontal" aria-hidden="true"></div><div class="road vertical" aria-hidden="true"></div><div id="city-grid" class="city-grid" aria-label="Bauplätze"></div></div>
+      </section>
+      <aside>
+        <section id="selection" class="card selection" aria-live="polite"><p>Wähle ein Grundstück.</p></section>
+        <section class="card queue" aria-labelledby="queue-heading"><div class="queue-title"><h2 id="queue-heading">Bauplan</h2><span id="queue-capacity"></span></div><ol id="queue-list"></ol></section>
+      </aside>
+    </div>
     <p id="message" role="status" aria-live="polite"></p>
-    <footer>Föderation ist noch nicht aktiv. Konten, Weltkarte, Truppen und gemeinsame Kämpfe folgen in eigenen Entwicklungsschritten.</footer>
+    <footer>Weltkarte, NPC-Farmstädte, Generäle, Bündnisse und Matrix-Föderation sind geplant, aber noch nicht implementiert.</footer>
   </main>
 </body>
 </html>

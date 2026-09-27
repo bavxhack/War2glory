@@ -10,7 +10,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | --- | --- | --- |
 | 0 | Startbarer Server, lokale Demo-Stadt, Rohstoffe, Ausbau, Speichern, Tests | Implementiert |
 | 1 | Stadtkarte, feste Bauplätze, Errichten/Ausbauen und Warteschlange | Implementiert |
-| 2 | Konten, mehrere Städte/Spieler, Berechtigungen, Datenbankmigrationen | Geplant |
+| 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
 | 3 | Weltkarte, NPC-Städte mit Stufen und Nahrungsvorräten, Entfernungen, Bewegung und Erkundung | Geplant |
 | 4a | Forschung, Truppen und Generäle mit Erfahrung, Leveln, Aufwertungen und Truppenzuweisung | Geplant |
 | 4b | Kämpfe, NPC-Farmzüge, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
@@ -31,6 +31,16 @@ Vor jeder Etappe definieren wir einen konkreten Spielablauf und dessen Erfolgskr
 - Schema 1 wird beim Laden ausdrücklich auf Schema 2 migriert. Identität, Rohstoffe, Gebäude und ein laufender Altauftrag bleiben erhalten; unbekannte Versionen werden ohne Überschreiben abgewiesen.
 
 Die Obergrenze von drei Aufträgen, neun Bauplätze sowie alle Kosten und Bauzeiten sind vorläufige eigene Balancewerte. Abbruch, Rückerstattung und weitere Gebäudetypen sind nicht Teil dieser Etappe.
+
+## Implementierter Stand von Etappe 2
+
+- Registrierung und Anmeldung verwenden gesalzene `scrypt`-Kennworthashes; zufällige, ablaufende und widerrufbare Sitzungen ermöglichen den Wiederbeitritt.
+- Jede Identität besitzt eine eigene atomar gespeicherte JSON-Stadt. Mehrere Verbindungen werden serialisiert und gemeinsam aktualisiert.
+- Private Zustände und Befehle laufen über ein versioniertes WebSocket-Protokoll; alte HTTP-Spielendpunkte liefern keine Spielstände mehr.
+- Die responsive Stadtlandschaft verwendet selbst erstellte CSS-Gebäude, Wege und sichtbare Baustellen.
+- Die alte Demo-Stadt wird nur durch einen ausdrücklichen Betreiberbefehl einem gewählten Konto zugeordnet.
+
+Datenbank, Passwortwiederherstellung, E-Mail-Verifikation und produktiver Mehrprozessbetrieb bleiben geplant. Matrix-Föderation, NPC-Städte und Generäle gehören weiterhin zu späteren Etappen.
 
 ## Entscheidungen für diesen Prototyp
 
