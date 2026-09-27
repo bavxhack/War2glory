@@ -3,19 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Federated Strategy · Prototyp</title>
+  <title>Federated Strategy · Stadt</title>
   <link rel="stylesheet" href="/style.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
   <main>
-    <header><span class="eyebrow">OPEN SOURCE · PROTOTYP 0.1</span><h1>Deine Stadt. Deine Welt.</h1>
-    <p>Baue eine erste Siedlung auf. Jede Serverinstanz verwaltet ihre eigene Welt.</p></header>
+    <header>
+      <span class="eyebrow">OPEN SOURCE · PROTOTYP 0.2</span>
+      <h1>Deine Stadt. Deine Welt.</h1>
+      <p>Plane deine Siedlung auf festen Bauplätzen. Der Server führt bis zu drei Aufträge nacheinander aus.</p>
+    </header>
     <div class="world"><strong id="world">Verbinde mit der Spielwelt …</strong><span>Lokale Demo · eine gemeinsame Stadt</span></div>
     <section aria-label="Rohstoffe" id="resources" class="resources"></section>
-    <section><div class="heading"><h2>Gründerstadt</h2><span>Ausbau & Versorgung</span></div>
-    <div id="buildings" class="buildings"></div></section>
-    <section class="queue"><h2>Bauauftrag</h2><p id="queue">Keine Daten geladen.</p></section>
+
+    <section aria-labelledby="city-heading">
+      <div class="heading"><div><span class="kicker">STADTKARTE</span><h2 id="city-heading">Gründerstadt</h2></div><span>Wähle einen Bauplatz</span></div>
+      <div class="city-layout">
+        <div id="city-grid" class="city-grid" aria-label="Bauplätze"></div>
+        <aside id="selection" class="selection" aria-live="polite"><p>Wähle einen Bauplatz auf der Karte.</p></aside>
+      </div>
+    </section>
+
+    <section class="queue" aria-labelledby="queue-heading">
+      <div class="queue-title"><div><span class="kicker">BAUPLAN</span><h2 id="queue-heading">Warteschlange</h2></div><span id="queue-capacity"></span></div>
+      <ol id="queue-list"></ol>
+    </section>
     <p id="message" role="status" aria-live="polite"></p>
     <footer>Föderation ist noch nicht aktiv. Konten, Weltkarte, Truppen und gemeinsame Kämpfe folgen in eigenen Entwicklungsschritten.</footer>
   </main>

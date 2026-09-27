@@ -3,8 +3,22 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { advanceCity, newCity, startUpgrade, RULESET, BUILDINGS, CAPACITY, MAX_LEVEL } from '../../packages/game-core/index.js';
+import {
+  advanceCity,
+  BUILDINGS,
+  BUILDING_SLOT_COUNT,
+  CAPACITY,
+  cityOffers,
+  enqueueConstruction,
+  MAX_LEVEL,
+  MAX_QUEUE_LENGTH,
+  newCity,
+  RULESET,
+} from '../../packages/game-core/index.js';
 
+const SCHEMA_VERSION = 2;
+const LEGACY_RULESET = 'prototype-0.1';
+const MAX_PROCESSED_COMMANDS = 100;
 const clientRoot = fileURLToPath(new URL('../client/', import.meta.url));
 const staticFiles = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
@@ -12,26 +26,78 @@ const staticFiles = new Map([
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
 ]);
 
+export function migrateState(saved) {
+  if (saved?.schemaVersion === SCHEMA_VERSION && saved.ruleset === RULESET) return structuredClone(saved);
+  if (saved?.schemaVersion !== 1 || saved.ruleset !== LEGACY_RULESET) {
+    throw new Error('Unbekannte Spielstandsversion; Datei wird nicht überschrieben.');
+  }
+
+  const buildingEntries = Object.entries(saved.city?.buildings ?? {});
+  const buildingSlots = Array.from({ length: BUILDING_SLOT_COUNT }, (_, index) => {
+    const [building, level] = buildingEntries[index] ?? [];
+    return { id: `plot-${index + 1}`, building: building ?? null, level: level ?? 0 };
+  });
+  const legacyJob = saved.city.construction;
+  const constructionQueue = legacyJob ? [{
+    id: `migration-${legacyJob.building}-${legacyJob.finishesAt}`,
+    type: 'upgrade',
+    slotId: buildingSlots.find(slot => slot.building === legacyJob.building)?.id,
+    building: legacyJob.building,
+    level: legacyJob.level,
+    startsAt: saved.city.updatedAt,
+    finishesAt: legacyJob.finishesAt,
+  }] : [];
+
+  return {
+    ...saved,
+    schemaVersion: SCHEMA_VERSION,
+    ruleset: RULESET,
+    processedCommands: [],
+    city: {
+      name: saved.city.name,
+      resources: structuredClone(saved.city.resources),
+      buildingSlots,
+      constructionQueue,
+      updatedAt: saved.city.updatedAt,
+    },
+  };
+}
+
 export function createGameServer({ dataFile, worldName = 'alpha', clock = Date.now }) {
   const file = resolve(dataFile);
   mkdirSync(dirname(file), { recursive: true });
-  let state = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {
-    schemaVersion: 1, ruleset: RULESET, instanceId: randomUUID(), worldName, city: newCity(clock()),
+  const initial = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {
+    schemaVersion: SCHEMA_VERSION,
+    ruleset: RULESET,
+    instanceId: randomUUID(),
+    worldName,
+    processedCommands: [],
+    city: newCity(clock()),
   };
-  if (state.schemaVersion !== 1 || state.ruleset !== RULESET) {
-    throw new Error('Spielstand benötigt eine Migration. Datei wird nicht überschrieben.');
-  }
+  let state = migrateState(initial);
   const save = next => {
     writeFileSync(`${file}.tmp`, JSON.stringify(next, null, 2), { mode: 0o600 });
     renameSync(`${file}.tmp`, file);
     state = next;
   };
   save(state);
-  const publicState = () => ({
-    world: { name: state.worldName, instanceId: state.instanceId },
-    ruleset: RULESET, city: advanceCity(state.city, clock()), serverTime: clock(),
-    buildings: BUILDINGS, capacity: CAPACITY, maxLevel: MAX_LEVEL,
-  });
+
+  const publicState = () => {
+    const now = clock();
+    const city = advanceCity(state.city, now);
+    return {
+      world: { name: state.worldName, instanceId: state.instanceId },
+      ruleset: RULESET,
+      city,
+      serverTime: now,
+      buildings: BUILDINGS,
+      offers: cityOffers(city),
+      capacity: CAPACITY,
+      maxLevel: MAX_LEVEL,
+      maxQueueLength: MAX_QUEUE_LENGTH,
+    };
+  };
+
   const server = createServer(async (req, res) => {
     const json = (status, data) => {
       res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -40,7 +106,6 @@ export function createGameServer({ dataFile, worldName = 'alpha', clock = Date.n
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'none'; base-uri 'none'");
     try {
-      // Local demo only. Reject foreign Host/Origin values to prevent browser cross-site writes.
       const authority = req.headers.host;
       const port = server.address().port;
       if (![ `127.0.0.1:${port}`, `localhost:${port}` ].includes(authority)) {
@@ -60,7 +125,7 @@ export function createGameServer({ dataFile, worldName = 'alpha', clock = Date.n
           federationEnabled: false, capabilities: [],
         });
       }
-      if (req.method === 'POST' && path === '/api/upgrade') {
+      if (req.method === 'POST' && path === '/api/construction') {
         if (req.headers.origin && req.headers.origin !== `http://${authority}`) {
           return json(403, { error: 'Ursprung nicht erlaubt.' });
         }
@@ -74,11 +139,19 @@ export function createGameServer({ dataFile, worldName = 'alpha', clock = Date.n
         }
         let command;
         try { command = JSON.parse(body); } catch { return json(400, { error: 'Ungültiges JSON.' }); }
-        if (!command || typeof command.building !== 'string') return json(400, { error: 'Gebäude fehlt.' });
+        if (!command || typeof command.id !== 'string' || !/^[a-zA-Z0-9_-]{8,100}$/.test(command.id)) {
+          return json(400, { error: 'Gültige Auftrags-ID fehlt.' });
+        }
+        if (state.processedCommands.includes(command.id)) return json(200, publicState());
+
         let city;
-        try { city = startUpgrade(state.city, command.building, clock()); }
+        try { city = enqueueConstruction(state.city, command, clock()); }
         catch (error) { return json(409, { error: error.message }); }
-        save({ ...state, city });
+        save({
+          ...state,
+          city,
+          processedCommands: [...state.processedCommands, command.id].slice(-MAX_PROCESSED_COMMANDS),
+        });
         return json(200, publicState());
       }
       json(404, { error: 'Nicht gefunden.' });
