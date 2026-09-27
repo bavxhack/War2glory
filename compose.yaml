@@ -1,0 +1,20 @@
+name: war2glory
+
+services:
+  game-server:
+    image: ghcr.io/bavxhack/war2glory:latest
+    restart: unless-stopped
+    command:
+      - --world
+      - ${WORLD_NAME:-alpha}
+      - --port
+      - "3000"
+      - --host
+      - 0.0.0.0
+    ports:
+      - "127.0.0.1:${PORT:-3000}:3000"
+    volumes:
+      - game-data:/app/data
+
+volumes:
+  game-data:

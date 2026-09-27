@@ -28,6 +28,32 @@ npm run start:beta
 
 Alpha: http://localhost:3000 · Beta: http://localhost:3001. **Die beiden Welten kommunizieren noch nicht miteinander.** Individuell: `npm start -- --world meine-welt --port 3010`.
 
+## Mit Docker Compose starten
+
+Voraussetzung ist Docker mit dem Compose-Plugin. Das veröffentlichte Image wird aus der GitHub Container Registry geladen und der Server anschließend im Hintergrund gestartet:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Die Spieloberfläche ist danach unter http://localhost:3000 erreichbar. Der Spielstand liegt in dem benannten Volume `war2glory_game-data` und bleibt bei Container-Updates erhalten. Status und Protokollausgabe lassen sich so prüfen:
+
+```sh
+docker compose ps
+docker compose logs -f game-server
+```
+
+Port und Weltname können ohne Änderung der Compose-Datei gesetzt werden:
+
+```sh
+PORT=3010 WORLD_NAME=meine-welt docker compose up -d
+```
+
+Die Portfreigabe bindet standardmäßig nur an `127.0.0.1`. Das ist weiterhin ein lokaler Prototyp ohne Anmeldung und darf nicht unverändert öffentlich ins Internet gestellt werden. Ein Backup entsteht bei gestopptem Server beispielsweise mit `docker run --rm -v war2glory_game-data:/data -v "$PWD":/backup alpine tar czf /backup/war2glory-data.tar.gz -C /data .`.
+
+Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und baut das Container-Image für AMD64 und ARM64. Pushes auf `main` veröffentlichen `ghcr.io/bavxhack/war2glory:latest`; Tags wie `v0.2.0` erzeugen zusätzlich ein gleichnamiges Image-Tag. Für öffentliche Images ist kein Registry-Login zum Herunterladen erforderlich. Die erstmalige Sichtbarkeit des Pakets wird in den GitHub-Paketeinstellungen des Repository-Eigentümers festgelegt.
+
 ## Stand 0.2
 
 - Browseroberfläche mit einer gemeinsamen Demo-Stadt und einer responsiven Stadtkarte pro Server.
