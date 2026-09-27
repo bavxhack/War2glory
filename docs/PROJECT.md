@@ -13,6 +13,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Geplant; eigene spätere Ausbauetappe |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Als Nächstes; abgestimmt |
+| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Hohe Priorität; nächste eigenständige Etappe nach der Weltkarte; Bewertungsregeln abzustimmen |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | Geplant; nach Einführung der Truppen |
 | 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Geplant; Forschungsumfang vorgemerkt |
 | 4b | Kämpfe, NPC-Farmzüge, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
@@ -137,6 +138,40 @@ Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universitä
 - Forschungsabhängigkeiten dürfen keinen unerreichbaren Einstieg erzeugen; insbesondere muss eine erste Universität ohne die Forschung errichtbar sein, die sie selbst erst ermöglichen würde.
 - Forschungsdaten gehören zum privaten Spieler-/Stadtzustand und dürfen nicht ohne eine später festgelegte Berechtigung öffentlich übertragen werden.
 - Universität, Forschung, Lagerausbau, weitere Gebäude und das spätere Truppensystem werden vor ihrem jeweiligen Implementierungsauftrag gemeinsam aufeinander abgestimmt.
+
+## Kommandanten-Punktesystem: hohe Priorität
+
+Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden und wird als nächste eigenständige Ausbauetappe nach dem bereits beauftragten Weltkartenschritt priorisiert. Es ist noch nicht implementiert.
+
+### Umfang und schrittweise Einführung
+
+- Die Punkte gehören zum Kommandanten. Sie sind von Erfahrungspunkten und Leveln einzelner Generäle zu unterscheiden.
+- Die Berechnung berücksichtigt getrennt Gebäudeentwicklung, Forschungsfortschritt und bestätigte Kampfergebnisse einschließlich Niederlagen.
+- Das Grundsystem kann zuerst mit den bereits vorhandenen Gebäuden eingeführt werden. Forschungs- und Kampfbeiträge werden mit Einführung dieser Spielsysteme angeschlossen. Es dürfen keine nicht gespielten Gefechte oder nicht abgeschlossenen Forschungen erfunden werden.
+- Der Spieler soll seine Gesamtpunkte und deren nachvollziehbare Zusammensetzung sehen. Ob Gesamtpunkte öffentlich auf der Weltkarte oder in einer Rangliste erscheinen, ist noch abzustimmen. Private Gebäude-, Forschungs- und Kampfdaten bleiben dabei geschützt.
+- Zunächst gilt die Bewertung innerhalb einer Serverwelt. Eine spätere serverübergreifende Wertung benötigt eigene Vertrauensregeln und gehört nicht zu dieser ersten Umsetzung.
+
+### Berechnungsmodell vor der Umsetzung abstimmen
+
+Als Diskussionsgrundlage, noch nicht beschlossen: Gesamtpunkte setzen sich aus Gebäudepunkten, Forschungspunkten und Kampfpunkten zusammen; Niederlagen können innerhalb der Kampfwertung einen Abzug erzeugen. Konkrete Zahlen, Gewichtungen und Abzugsregeln sind noch offen.
+
+- Gebäude: Bewertung nach Typ und erreichter Stufe oder nach nachvollziehbaren Investitionen? Zählen vorhandene Gebäude oder dauerhaft erworbene Bauleistungen? Welche Wirkung haben Abriss, Wiederaufbau und abgebrochene Aufträge?
+- Forschung: Bewertung abgeschlossener Technologien und Stufen; laufende Aufträge nicht mit abgeschlossenen Forschungen verwechseln. Gültigkeit pro Stadt oder Konto berücksichtigen, damit dieselbe Forschung nicht mehrfach zählt.
+- Kämpfe: Bewertung nach Sieg, Gegnerstärke, erbrachter Leistung oder Verlusten? NPC- und Spielerkämpfe gegebenenfalls unterschiedlich behandeln.
+- Niederlagen: Fester oder variabler Einfluss, etwa abhängig von eigenen Verlusten? Verhindern, dass derselbe Verlust ungewollt sowohl über eine Ergebnisstrafe als auch über verlorene Einheiten doppelt abgezogen wird.
+- Untergrenze: Darf die Gesamtwertung negativ werden oder gibt es eine Mindestpunktzahl?
+- Zeitpunkt, Rundung, Gleichstände sowie eine mögliche spätere Rangliste sind vor dem ausführbaren Codex-Auftrag festzulegen.
+
+### Anforderungen an die spätere Codex-Umsetzung
+
+- Der Server berechnet alle Punkte aus verbindlichen Zuständen und bestätigten Ereignissen. Clients dürfen weder Punkte setzen noch Kampfergebnisse selbst bestätigen.
+- Punktregeln werden zentral und versioniert definiert. Die angezeigte Summe muss aus denselben Regeln stammen wie die gespeicherte bzw. abgeleitete Wertung.
+- Ergebnisabhängige Beiträge werden anhand stabiler Ereignis-IDs nur einmal verbucht; Wiederverbindung, Wiederholung und Neustart dürfen keine Punkte vervielfachen.
+- Punkte, Begründungen und notwendige Ereignisnachweise bleiben im JSON-Speichermodell nachvollziehbar. Speicherung und Wiederherstellung müssen zum zugrunde liegenden Bau-, Forschungs- oder Kampfabschluss konsistent sein.
+- Vorhandene Gebäude können gemäß der später vereinbarten Regel als Ausgangsbewertung übernommen werden. Fehlende historische Kampf- oder Forschungsdaten werden nicht geschätzt oder erfunden.
+- Änderungen werden über WebSocket an die berechtigten Spieler übertragen. Für private Aufschlüsselungen gelten dieselben Zugriffsgrenzen wie für sonstige private Spielzustände.
+- Prüfe später insbesondere Neuberechnung, Migration, Reihenfolge und Wiederholung von Ereignissen, Kontentrennung, Neustart und die vereinbarten Regeln für Abriss sowie Niederlagen.
+- Mehrfaches Bauen/Abreißen oder wiederholte Abrechnung desselben Gefechts darf keinen unbeabsichtigten Punktegewinn erzeugen. Regeln gegen gezieltes gegenseitiges Punktefarmen sind mit dem Kampfsystem zu definieren.
 
 ## Weitere vorgeschlagene Spielregeln, noch abzustimmen
 
