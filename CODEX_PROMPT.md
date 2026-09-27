@@ -125,3 +125,11 @@ Der Nutzer hat folgende spätere Anforderungen ergänzt; sie sind in docs/PROJEC
 - Kapazitätskurven, Rückerstattungsanteil, Umgang mit Überbeständen und laufenden Bauaufträgen sowie die Migration fehlender Investitionshistorien sind noch abzustimmen.
 
 Diese Punkte jetzt nur als dokumentierte zukünftige Anforderungen erhalten. Keine Lagerhaus-, Abriss- oder Rückerstattungsimplementierung und keine zusätzlichen Balanceentscheidungen in den laufenden Weltkartenauftrag aufnehmen. Falls in diesem Auftrag bestehende Ressourcendaten berührt werden, ihre spätere Erweiterbarkeit erhalten, ohne den vereinbarten Umfang auszuweiten.
+
+## Zusätzlicher Ausblick: Universitäten und Forschung (nicht Teil dieses Auftrags)
+
+Für spätere Etappen sind Universitäten als Forschungsgebäude verbindlich vorgemerkt. Forschung soll Ressourcenproduktion und Lagerkapazität verbessern sowie später Waffensysteme, Truppengattungen und zusätzliche Gebäudetypen mit weiteren Verbesserungen beeinflussen bzw. freischalten.
+
+Die konkreten Technologien, Voraussetzungen, Werte, Forschungszeiten, Universitätsstufen, Parallelität und Gültigkeit pro Stadt oder Spielerkonto sind noch abzustimmen. Forschungsboni müssen später mit Gebäudestufen und Lagerhauskapazitäten nachvollziehbar verrechnet werden; dazu wurde noch keine Formel festgelegt. Details und offene Entscheidungen stehen in docs/PROJECT.md.
+
+Diese Forschungsanforderungen in der Planung erhalten. Im aktuellen Weltkartenauftrag weder Forschung implementieren noch Technologie-, Kosten- oder Bonuswerte eigenmächtig festlegen. Der vereinbarte Umfang dieses Auftrags bleibt unverändert.
