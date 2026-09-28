@@ -9,7 +9,7 @@ Der Planungschat erstellt nur Anweisungen. Du, Codex, implementierst diesen Auft
 Ziel ist ein erster vollständiger Ablauf:
 eigene Punkte sehen → Militärbereich öffnen → Kaserne bauen → Späher ausbilden → General zuweisen → NPC-Stadt aufklären → Hin- und Rückmarsch verfolgen → privaten Bericht erhalten → denselben Fortschritt nach erneutem Login vorfinden.
 
-Implementiere die Abschnitte A bis D in überprüfbaren Schritten innerhalb dieses Auftrags. Die danach beschriebenen weiteren Etappen sind Ausblick, nicht automatisch mit umzusetzen.
+Implementiere die noch fehlenden Teile der Abschnitte A bis D in überprüfbaren Schritten innerhalb dieses Auftrags. Abschnitt E ergänzt den nächsten Projektschritt zur Generalverwaltung; beachte dort die Trennung zwischen jetzt ausführbaren Arbeiten und noch abzustimmenden Spielregeln. Die danach beschriebenen weiteren Etappen sind Ausblick, nicht automatisch mit umzusetzen.
 
 ## Ausgangspunkt und feste Anforderungen
 
@@ -60,7 +60,7 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 - Maximalmengen, Warteschlangengrenzen und ungültige Stückzahlen werden serverseitig geprüft. Kein negatives oder nicht ganzzahliges Rekrutieren.
 - Dauerhafter Truppenunterhalt, Waffenfabriken und weitere Einheiten sind noch nicht Teil dieses Auftrags.
 
-### Ein erster General pro Kommandant
+### Ein erster General pro Kommandant als Einstieg
 
 - Stelle als vorläufige Einstiegsregel jedem neuen und bestehenden Kommandanten genau einen kostenlosen Startgeneral bereit, einmalig und idempotent. Mehrfachlogin und Migration dürfen keine weiteren erzeugen.
 - Speichere stabile ID, Name, Level, gesamte Erfahrung, Führungskapazität und aktuellen Einsatzstatus.
@@ -70,7 +70,7 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 - Vorläufige Führungskapazität: 20 × Level Einheiten. Das ist eine Testregel, keine Originalmechanik.
 - Für den ersten erfolgreich zurückgekehrten Aufklärungseinsatz zu einer bestimmten NPC-ID erhält ein Kommandant 10 Erfahrung für den eingesetzten General. Weitere Einsätze zum gleichen Ziel geben in dieser Etappe keine weitere Erfahrung. Speichere die bereits belohnten NPC-IDs dauerhaft.
 - Erfahrung und Level gehören dem General, nicht zur Kommandantenpunktewertung. Stelle Fortschritt und die Wirkung des nächsten Levels verständlich dar.
-- Weitere Generäle, Ausrüstung, Angriff-/Verteidigungsattribute und rekrutierungsabhängige Qualität bleiben spätere Erweiterungen.
+- Mehrere Generäle und die Grundlage für verteilbare Eigenschaften werden im folgenden Abschnitt E ergänzt. Erzeugungsbedingungen weiterer Generäle, Ausrüstung und rekrutierungsabhängige Qualität bleiben offen.
 
 ## C. Erste Aktion auf der Weltkarte: NPC-Aufklärung
 
@@ -101,6 +101,50 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 - Halte Transport, Speicherung, Punkteberechnung, Ausbildung, Generäle und Einsatzregeln getrennt. Verwende die bestehende JavaScript-Struktur.
 - Private Informationen dürfen weder über Kartendaten noch über neue Übersichten oder Fehlerantworten an andere Spieler gelangen.
 - Große Zustandsänderungen müssen bis zum Speichern konsistent bleiben; atomarer Dateiaustausch allein ersetzt nicht die Abstimmung logisch zusammengehöriger Änderungen.
+
+## E. Nächster Projektschritt: mehrere Generäle und verteilbare Skillpunkte
+
+Neue Nutzeranforderung vom 28.09.2026. Laut Nutzer sind Generäle inzwischen angelegt. Prüfe den tatsächlichen Implementierungsstand und erweitere ihn; erzeuge bestehende Generäle nicht neu. Dieser Abschnitt hat bei Widersprüchen Vorrang vor der bisherigen Beschränkung auf einen Startgeneral. Er legt noch keine Rekrutierungsbedingungen oder endgültige Balance fest.
+
+### Mehrere Generäle verwalten
+
+- Ein Kommandant kann mehrere eigenständige Generäle besitzen. Verwende eine Sammlung mit stabilen IDs; jeder General besitzt eigenen Namen, Erfahrung, Skillpunkte, Eigenschaften und Einsatzstatus.
+- Migriere einen vorhandenen einzelnen General verlustfrei in diese Sammlung. Erhalte ID, Namen, Erfahrung, Level, Truppenzuordnung und aktive Einsätze. Wiederholtes Laden darf keine weiteren Generäle erzeugen.
+- Ein Startgeneral ist eine einmalige Einstiegshilfe, keine Obergrenze für den Bestand. Wann und wie weitere Generäle entstehen, wird später gemeinsam entschieden. Implementiere deshalb keine frei verfügbare Erzeugungsaktion, Rekrutierungskosten, Wartezeiten oder erfundene Freischaltbedingungen.
+- Liste vorhandene Generäle im Militärbereich auf und ermögliche die Auswahl eines konkreten freien Generals für einen Einsatz. Ein General bleibt auf einen gleichzeitigen Einsatz begrenzt; mehrere Generäle dürfen nicht dieselben Truppen reservieren.
+- Prüfe Mehrfachbesitz mit isolierten Testdaten mit mehreren Generälen. Diese Testdaten oder Erzeugungshilfen dürfen keine zusätzlichen Generäle in produktiven Spielständen vergeben.
+
+### Erfahrung, Skillpunkte und Bonuswirkungen
+
+- Jeder General erhält später eigene Erfahrung aus serverseitig bestätigten Kämpfen. Die konkrete Belohnung und Verteilung bei mehreren beteiligten Generälen gehört zum späteren Kampfauftrag. Keine fiktiven Kämpfe oder frei vom Client vergebene Erfahrung.
+- Eine bestimmte Erfahrungsmenge wird in einen Skillpunkt umgerechnet. Skillpunkte können auf Eigenschaften verteilt werden und erhöhen deren Bonuswirkungen.
+- Der Erfahrungsbedarf für den nächsten Skillpunkt steigt mit dem Fortschritt des jeweiligen Generals. Die genaue Kostenkurve, Startkosten und Obergrenzen sind noch offen; keine Zahlen als beschlossen darstellen.
+- Technischer Vorschlag für eine nicht rücksetzbare Kostenbasis: bereits insgesamt erworbene Skillpunkte je General zählen, einschließlich ausgegebener Punkte. Die Verteilung freier Punkte darf den nächsten Skillpunkt nicht wieder billiger machen. Diese Auslegung ausdrücklich als Vorschlag dokumentieren.
+- Trenne insgesamt verdiente Erfahrung, bereits zur Umrechnung verwendete Erfahrung, noch verfügbare Erfahrung, insgesamt erworbene Skillpunkte, unverteilte Skillpunkte und verteilte Eigenschaftspunkte. Abgeleitete Werte müssen konsistent aus dem verbindlichen Zustand entstehen. Erfahrung und Skillpunkte sind keine Kommandantenpunkte.
+- Noch zu entscheiden ist, ob die Umrechnung automatisch oder auf Spielerbefehl erfolgt. Baue den Berechnungsbaustein unabhängig davon auf. Bei mehreren Umrechnungen nacheinander muss jeder weitere Punkt mit seinem neuen Preis berechnet werden; Rest-Erfahrung bleibt erhalten.
+- Benannte Eigenschaften, ihre Bonusformeln, Grenzen und ihr Zusammenspiel mit Generallevel und bisheriger Führungskapazität sind noch abzustimmen. Führung, Angriff und Verteidigung sind lediglich Vorschläge, keine bestätigte Auswahl.
+- Behalte bestehende Level und bestätigte Fortschritte bei der Migration bei. Ein eventuell bestehendes Level darf durch die Verwendung von Erfahrung nicht unbeabsichtigt sinken. Keine automatische Doppelvergabe von Level- und Skillboni.
+- Bereits vorhandene Aufklärungs-Erfahrung bleibt erhalten. Ob Aufklärung künftig weiter Erfahrung bringt, ist gesondert zu entscheiden; die bisherige Testregel ist keine Bestätigung einer endgültigen Belohnungsquelle.
+- Neue Bonuswerte dürfen einen laufenden Einsatz nicht nachträglich verändern. Lege für die spätere Aktivierung einen dokumentierten Gültigkeitszeitpunkt fest; speichere einsatzrelevante Werte beim Start als verbindliche Grundlage.
+
+### General-Modal
+
+- Ein Klick auf einen eigenen General öffnet ein Modal mit Name, Level, Einsatzstatus, Erfahrung, unverteilten Skillpunkten und Eigenschaften.
+- Ermögliche das Benennen und spätere Umbenennen eines Generals. Der Name ist ein Anzeigewert; ID und Einsatzreferenzen bleiben stabil. Prüfe serverseitig sinnvolle Länge und nicht leere Eingabe; stelle Namen als Text dar.
+- Die Eigenschaften werden im Modal durch Zuweisung verfügbarer Skillpunkte festgelegt. Zeige aktuellen Wert, geplante Änderung und deren tatsächliche Bonuswirkung vor dem Speichern.
+- Änderungen an der Punkteverteilung sind bis zur Bestätigung nur ein lokaler Entwurf. Abbrechen verwirft ihn ohne Abbuchung; Speichern überträgt einen zusammenhängenden Auftrag. Bereits gespeicherte Punkte erhalten ohne gesonderte Regel keine kostenlose Rücksetzung oder Umverteilung.
+- Das Modal muss auf Mobilgeräten funktionieren und mit Tastatur bedienbar sein, einschließlich sinnvoller Fokusführung, Schließen und Rückkehr zum auslösenden Element.
+- Solange Bonusarten und Kostenregeln nicht festgelegt sind, dürfen offene Felder keine erfundenen Werte oder scheinbar aktiven Kampfboni anzeigen. Kennzeichne die noch ausstehende Konfiguration verständlich.
+
+### Jetzt umsetzen und später aktivieren
+
+- Jetzt ausführbar: Sammlung mehrerer Generäle, verlustfreie Migration, Liste und Einsatzwahl, Namensbearbeitung, Modal sowie konfigurierbare Daten- und Berechnungsgrundlage für Skillpunkte.
+- Prüfe steigende Kosten und Punkteverteilung mit ausdrücklich als Testdaten gekennzeichneten Regeln. Aktiviere die Umrechnung und echte Bonusvergabe im regulären Spiel erst nach Festlegung der Kostenkurve, Umrechnungsart und Eigenschaften mit ihren Wirkungen. Dokumentiere dies als offene Produktentscheidung, nicht als fertig spielbares Skillsystem.
+- Die Bedingungen für weitere Generäle und Kampf-Erfahrungsbelohnungen bleiben spätere Entscheidungen. Diese offenen Punkte blockieren nicht die oben ausführbaren Arbeiten.
+- Alle Änderungen erfolgen über das bestehende WebSocket-Protokoll, mit serverseitiger Besitzprüfung und persistiertem privaten JSON-Zustand.
+- Namensänderung und Skillverteilung müssen wiederholbare Anfragen sowie gleichzeitige Verbindungen korrekt behandeln. Der Server berechnet Kosten und Boni; Speichern erfolgt vor Erfolgsbestätigung. Veraltete oder unzureichend gedeckte Verteilungen werden ohne Teilabbuchung abgewiesen.
+- Ergänze gezielte Tests für Migration, getrennte Fortschritte mehrerer Generäle, fremde General-IDs, Umbenennen mit stabilen Einsatzreferenzen, fehlende Erfahrung, steigende Umrechnungskosten, erhaltene Rest-Erfahrung, keine Kostensenkung durch Punkteverteilung, doppelte/gleichzeitige Anfragen sowie Wiederbeitritt und Neustart.
+- Dokumentiere im Pull Request getrennt die umgesetzte Verwaltung, die vorbereitete Skillgrundlage und die noch offenen Spielregeln.
 
 ## Prüfungen und Abnahmekriterien
 
