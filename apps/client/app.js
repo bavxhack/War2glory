@@ -7,6 +7,7 @@ const authRoot = document.querySelector('#auth');
 const gameRoot = document.querySelector('#game');
 const form = document.querySelector('#auth-form');
 const gridRoot = document.querySelector('#city-grid');
+const resourcesRoot = document.querySelector('#resources');
 const selectionRoot = document.querySelector('#selection');
 const queueRoot = document.querySelector('#queue-list');
 const messageRoot = document.querySelector('#message');
@@ -97,15 +98,34 @@ form.addEventListener('submit', event => {
 document.querySelector('#logout').addEventListener('click', () => send('auth.logout'));
 
 function renderResources(state) {
-  document.querySelector('#resources').replaceChildren(...Object.entries(state.city.resources).map(([key, amount]) => {
-    const card = element('div', '', 'resource');
-    card.append(element('span', resourceIcons[key], 'resource-icon'));
+  const activeResources = new Set(Object.keys(state.city.resources));
+  for (const card of resourcesRoot.querySelectorAll('[data-resource]')) {
+    if (!activeResources.has(card.dataset.resource)) card.remove();
+  }
+
+  for (const [key, amount] of Object.entries(state.city.resources)) {
+    let card = resourcesRoot.querySelector(`[data-resource="${key}"]`);
+    if (!card) {
+      card = element('div', '', 'resource');
+      card.dataset.resource = key;
+      const copy = element('div');
+      const amountNode = element('strong'); amountNode.dataset.role = 'amount';
+      const statusNode = element('small'); statusNode.dataset.role = 'status';
+      const details = element('details', '', 'capacity-details');
+      const breakdownNode = element('small'); breakdownNode.dataset.role = 'breakdown';
+      details.append(element('summary', 'Lagerdetails'), breakdownNode);
+      copy.append(element('span', resourceLabels[key]), amountNode, statusNode, details);
+      card.append(element('span', resourceIcons[key], 'resource-icon'), copy);
+      resourcesRoot.append(card);
+    }
+
     const capacity = state.capacities[key]; const rate = state.productionRates[key];
-    const copy = element('div'); copy.append(element('span', resourceLabels[key]), element('strong', Math.floor(amount).toLocaleString('de-DE')), element('small', ` / ${capacity} · +${rate}/s${amount >= capacity ? ' · Produktion pausiert' : ''}`));
-    const details = element('details', '', 'capacity-details'); details.append(element('summary', 'Lagerdetails'));
-    const breakdown = state.capacityBreakdown[key]; details.append(element('small', `Grundkapazität ${breakdown.base}${breakdown.contributions.map(item => ` · ${state.buildings[item.building].label} Stufe ${item.level}: +${item.amount}`).join('')}`));
-    copy.append(details); card.classList.toggle('overstock', amount > capacity); card.append(copy); return card;
-  }));
+    const breakdown = state.capacityBreakdown[key];
+    card.querySelector('[data-role="amount"]').textContent = Math.floor(amount).toLocaleString('de-DE');
+    card.querySelector('[data-role="status"]').textContent = ` / ${capacity} · +${rate}/s${amount >= capacity ? ' · Produktion pausiert' : ''}`;
+    card.querySelector('[data-role="breakdown"]').textContent = `Grundkapazität ${breakdown.base}${breakdown.contributions.map(item => ` · ${state.buildings[item.building].label} Stufe ${item.level}: +${item.amount}`).join('')}`;
+    card.classList.toggle('overstock', amount > capacity);
+  }
 }
 
 function buildingArt(type) {
