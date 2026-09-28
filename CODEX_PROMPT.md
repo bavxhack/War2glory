@@ -9,7 +9,7 @@ Der Planungschat erstellt nur Anweisungen. Du, Codex, implementierst diesen Auft
 Ziel ist ein erster vollständiger Ablauf:
 eigene Punkte sehen → Militärbereich öffnen → Kaserne bauen → Späher ausbilden → General zuweisen → NPC-Stadt aufklären → Hin- und Rückmarsch verfolgen → privaten Bericht erhalten → denselben Fortschritt nach erneutem Login vorfinden.
 
-Implementiere die Abschnitte A bis D in überprüfbaren Schritten innerhalb dieses Auftrags. Die danach beschriebenen weiteren Etappen sind Ausblick, nicht automatisch mit umzusetzen.
+Implementiere die noch fehlenden Teile der Abschnitte A bis D in überprüfbaren Schritten innerhalb dieses Auftrags. Abschnitt E ergänzt den nächsten Projektschritt zur Generalverwaltung; beachte dort die Trennung zwischen jetzt ausführbaren Arbeiten und noch abzustimmenden Spielregeln. Die danach beschriebenen weiteren Etappen sind Ausblick, nicht automatisch mit umzusetzen.
 
 ## Ausgangspunkt und feste Anforderungen
 
@@ -58,9 +58,9 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 - Einheiten werden erst bei Ausbildungsabschluss verfügbar. Zeige stationierte, in Ausbildung befindliche und unterwegs gebundene Truppen getrennt.
 - Bestimme die Ausbildungsgeschwindigkeit nachvollziehbar aus der Kasernenstufe. Bereits bezahlte Aufträge dürfen durch einen Ausbau nicht stillschweigend verändert werden; verwende für diese Etappe beim Start festgeschriebene Zeiten.
 - Maximalmengen, Warteschlangengrenzen und ungültige Stückzahlen werden serverseitig geprüft. Kein negatives oder nicht ganzzahliges Rekrutieren.
-- Dauerhafter Truppenunterhalt, Waffenfabriken und weitere Einheiten sind noch nicht Teil dieses Auftrags.
+- Dauerhafter Nahrungsunterhalt ist als spätere Anforderung bestätigt und im Abschnitt „Geplanter Nahrungsunterhalt der Truppen“ beschrieben; jetzt noch nicht aktivieren. Waffenfabriken und weitere Einheiten bleiben ebenfalls spätere Aufgaben.
 
-### Ein erster General pro Kommandant
+### Ein erster General pro Kommandant als Einstieg
 
 - Stelle als vorläufige Einstiegsregel jedem neuen und bestehenden Kommandanten genau einen kostenlosen Startgeneral bereit, einmalig und idempotent. Mehrfachlogin und Migration dürfen keine weiteren erzeugen.
 - Speichere stabile ID, Name, Level, gesamte Erfahrung, Führungskapazität und aktuellen Einsatzstatus.
@@ -70,7 +70,7 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 - Vorläufige Führungskapazität: 20 × Level Einheiten. Das ist eine Testregel, keine Originalmechanik.
 - Für den ersten erfolgreich zurückgekehrten Aufklärungseinsatz zu einer bestimmten NPC-ID erhält ein Kommandant 10 Erfahrung für den eingesetzten General. Weitere Einsätze zum gleichen Ziel geben in dieser Etappe keine weitere Erfahrung. Speichere die bereits belohnten NPC-IDs dauerhaft.
 - Erfahrung und Level gehören dem General, nicht zur Kommandantenpunktewertung. Stelle Fortschritt und die Wirkung des nächsten Levels verständlich dar.
-- Weitere Generäle, Ausrüstung, Angriff-/Verteidigungsattribute und rekrutierungsabhängige Qualität bleiben spätere Erweiterungen.
+- Mehrere Generäle und die Grundlage für verteilbare Eigenschaften werden im folgenden Abschnitt E ergänzt. Erzeugungsbedingungen weiterer Generäle, Ausrüstung und rekrutierungsabhängige Qualität bleiben offen.
 
 ## C. Erste Aktion auf der Weltkarte: NPC-Aufklärung
 
@@ -101,6 +101,61 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 - Halte Transport, Speicherung, Punkteberechnung, Ausbildung, Generäle und Einsatzregeln getrennt. Verwende die bestehende JavaScript-Struktur.
 - Private Informationen dürfen weder über Kartendaten noch über neue Übersichten oder Fehlerantworten an andere Spieler gelangen.
 - Große Zustandsänderungen müssen bis zum Speichern konsistent bleiben; atomarer Dateiaustausch allein ersetzt nicht die Abstimmung logisch zusammengehöriger Änderungen.
+
+## E. Nächster Projektschritt: mehrere Generäle und verteilbare Skillpunkte
+
+Neue Nutzeranforderung vom 28.09.2026. Laut Nutzer sind Generäle inzwischen angelegt. Prüfe den tatsächlichen Implementierungsstand und erweitere ihn; erzeuge bestehende Generäle nicht neu. Dieser Abschnitt hat bei Widersprüchen Vorrang vor der bisherigen Beschränkung auf einen Startgeneral. Er legt noch keine Rekrutierungsbedingungen oder endgültige Balance fest.
+
+### Mehrere Generäle verwalten
+
+- Ein Kommandant kann mehrere eigenständige Generäle besitzen. Verwende eine Sammlung mit stabilen IDs; jeder General besitzt eigenen Namen, Erfahrung, Skillpunkte, Eigenschaften und Einsatzstatus.
+- Migriere einen vorhandenen einzelnen General verlustfrei in diese Sammlung. Erhalte ID, Namen, Erfahrung, Level, Truppenzuordnung und aktive Einsätze. Wiederholtes Laden darf keine weiteren Generäle erzeugen.
+- Ein Startgeneral ist eine einmalige Einstiegshilfe, keine Obergrenze für den Bestand. Wann und wie weitere Generäle entstehen, wird später gemeinsam entschieden. Implementiere deshalb keine frei verfügbare Erzeugungsaktion, Rekrutierungskosten, Wartezeiten oder erfundene Freischaltbedingungen.
+- Liste vorhandene Generäle im Militärbereich auf und ermögliche die Auswahl eines konkreten freien Generals für einen Einsatz. Ein General bleibt auf einen gleichzeitigen Einsatz begrenzt; mehrere Generäle dürfen nicht dieselben Truppen reservieren.
+- Prüfe Mehrfachbesitz mit isolierten Testdaten mit mehreren Generälen. Diese Testdaten oder Erzeugungshilfen dürfen keine zusätzlichen Generäle in produktiven Spielständen vergeben.
+
+### Erfahrung, Skillpunkte und Bonuswirkungen
+
+- Jeder General erhält später eigene Erfahrung aus serverseitig bestätigten Kämpfen. Die konkrete Belohnung und Verteilung bei mehreren beteiligten Generälen gehört zum späteren Kampfauftrag. Keine fiktiven Kämpfe oder frei vom Client vergebene Erfahrung.
+- Eine bestimmte Erfahrungsmenge wird in einen Skillpunkt umgerechnet. Skillpunkte können auf Eigenschaften verteilt werden und erhöhen deren Bonuswirkungen.
+- Der Erfahrungsbedarf für den nächsten Skillpunkt steigt mit dem Fortschritt des jeweiligen Generals. Die genaue Kostenkurve, Startkosten und Obergrenzen sind noch offen; keine Zahlen als beschlossen darstellen.
+- Technischer Vorschlag für eine nicht rücksetzbare Kostenbasis: bereits insgesamt erworbene Skillpunkte je General zählen, einschließlich ausgegebener Punkte. Die Verteilung freier Punkte darf den nächsten Skillpunkt nicht wieder billiger machen. Diese Auslegung ausdrücklich als Vorschlag dokumentieren.
+- Trenne insgesamt verdiente Erfahrung, bereits zur Umrechnung verwendete Erfahrung, noch verfügbare Erfahrung, insgesamt erworbene Skillpunkte, unverteilte Skillpunkte und verteilte Eigenschaftspunkte. Abgeleitete Werte müssen konsistent aus dem verbindlichen Zustand entstehen. Erfahrung und Skillpunkte sind keine Kommandantenpunkte.
+- Noch zu entscheiden ist, ob die Umrechnung automatisch oder auf Spielerbefehl erfolgt. Baue den Berechnungsbaustein unabhängig davon auf. Bei mehreren Umrechnungen nacheinander muss jeder weitere Punkt mit seinem neuen Preis berechnet werden; Rest-Erfahrung bleibt erhalten.
+- Bestätigte Eigenschaften seit der Nutzerergänzung vom 28.09.2026: Führung, Angriff und Verteidigung. Verwende diese Bezeichnungen im Datenmodell und General-Modal. Ihre Bonusformeln, Grenzen und ihr Zusammenspiel mit Generallevel und bisheriger Führungskapazität sind weiterhin abzustimmen.
+- Behalte bestehende Level und bestätigte Fortschritte bei der Migration bei. Ein eventuell bestehendes Level darf durch die Verwendung von Erfahrung nicht unbeabsichtigt sinken. Keine automatische Doppelvergabe von Level- und Skillboni.
+- Bereits vorhandene Aufklärungs-Erfahrung bleibt erhalten. Ob Aufklärung künftig weiter Erfahrung bringt, ist gesondert zu entscheiden; die bisherige Testregel ist keine Bestätigung einer endgültigen Belohnungsquelle.
+- Neue Bonuswerte dürfen einen laufenden Einsatz nicht nachträglich verändern. Lege für die spätere Aktivierung einen dokumentierten Gültigkeitszeitpunkt fest; speichere einsatzrelevante Werte beim Start als verbindliche Grundlage.
+
+### Spätere Einsatzrollen: Truppengeneral, Bürgermeister und Forschungsgeneral
+
+- Der Nutzer bestätigt drei spätere Einsatzszenarien für Generäle: Truppengeneral zum Befehligen von Truppen, Bürgermeister in einer Stadt und Forschungsgeneral im Forschungsbereich.
+- Eigenschaften und Einsatzrolle sind verschiedene Konzepte. Führung, Angriff und Verteidigung gehören zum General; die Rolle beschreibt seine Aufgabe. Leite aus den Rollennamen keine zusätzlichen bestätigten Eigenschaften oder konkreten Boni ab.
+- Bereite die Generalverwaltung auf diese Rollen vor. Technischer Vorschlag: eine getrennte, erweiterbare Rollenzuweisung mit Referenz auf die zuständige Stadt, Armee oder spätere Forschung. Keine irreversible Festlegung auf drei getrennte Generaltypen.
+- Gegenwärtige Truppen- und Einsatzzuordnungen müssen weiterhin funktionieren. Bürgermeister und Forschungsgeneral werden erst in späteren Aufträgen spielbar; jetzt keine scheinbar aktiven Ernennungsaktionen oder erfundenen Wirtschafts-/Forschungsboni.
+- Vor der jeweiligen Aktivierung gemeinsam festlegen: Wirkung der drei Eigenschaften je Rolle, Voraussetzungen, Zahl der Rollenplätze, Rollenwechsel und mögliche gleichzeitige Aufgaben. Der bestehende Ausschluss mehrerer gleichzeitiger Märsche pro General bleibt bestehen.
+- Ebenfalls offen: Erfahrungserwerb in zivilen Rollen, Gültigkeitszeitpunkt von Boni und Wechselwirkungen mit laufendem Bau, Produktion, Forschung und Truppeneinsätzen.
+- Im Modal die aktuelle Aufgabe nachvollziehbar anzeigen. Spätere Rollen klar als geplant kennzeichnen, sofern sie bereits dargestellt werden. Namen, Erfahrung und Skillverteilung bleiben an die stabile General-ID gebunden.
+- Dokumentiere die Rollen als bestätigtes Zukunftsziel. Ihre konkreten Mechaniken und Balancewerte sind noch nicht bestätigt.
+
+### General-Modal
+
+- Ein Klick auf einen eigenen General öffnet ein Modal mit Name, Level, Einsatzstatus, Erfahrung, unverteilten Skillpunkten und Eigenschaften.
+- Ermögliche das Benennen und spätere Umbenennen eines Generals. Der Name ist ein Anzeigewert; ID und Einsatzreferenzen bleiben stabil. Prüfe serverseitig sinnvolle Länge und nicht leere Eingabe; stelle Namen als Text dar.
+- Die Eigenschaften werden im Modal durch Zuweisung verfügbarer Skillpunkte festgelegt. Zeige aktuellen Wert, geplante Änderung und deren tatsächliche Bonuswirkung vor dem Speichern.
+- Änderungen an der Punkteverteilung sind bis zur Bestätigung nur ein lokaler Entwurf. Abbrechen verwirft ihn ohne Abbuchung; Speichern überträgt einen zusammenhängenden Auftrag. Bereits gespeicherte Punkte erhalten ohne gesonderte Regel keine kostenlose Rücksetzung oder Umverteilung.
+- Das Modal muss auf Mobilgeräten funktionieren und mit Tastatur bedienbar sein, einschließlich sinnvoller Fokusführung, Schließen und Rückkehr zum auslösenden Element.
+- Solange Bonusarten und Kostenregeln nicht festgelegt sind, dürfen offene Felder keine erfundenen Werte oder scheinbar aktiven Kampfboni anzeigen. Kennzeichne die noch ausstehende Konfiguration verständlich.
+
+### Jetzt umsetzen und später aktivieren
+
+- Jetzt ausführbar: Sammlung mehrerer Generäle, verlustfreie Migration, Liste und Einsatzwahl, Namensbearbeitung, Modal sowie konfigurierbare Daten- und Berechnungsgrundlage für Skillpunkte.
+- Prüfe steigende Kosten und Punkteverteilung mit ausdrücklich als Testdaten gekennzeichneten Regeln. Aktiviere die Umrechnung und echte Bonusvergabe im regulären Spiel erst nach Festlegung der Kostenkurve, Umrechnungsart und Wirkungen der bestätigten Eigenschaften. Dokumentiere dies als offene Produktentscheidung, nicht als fertig spielbares Skillsystem.
+- Die Bedingungen für weitere Generäle und Kampf-Erfahrungsbelohnungen bleiben spätere Entscheidungen. Diese offenen Punkte blockieren nicht die oben ausführbaren Arbeiten.
+- Alle Änderungen erfolgen über das bestehende WebSocket-Protokoll, mit serverseitiger Besitzprüfung und persistiertem privaten JSON-Zustand.
+- Namensänderung und Skillverteilung müssen wiederholbare Anfragen sowie gleichzeitige Verbindungen korrekt behandeln. Der Server berechnet Kosten und Boni; Speichern erfolgt vor Erfolgsbestätigung. Veraltete oder unzureichend gedeckte Verteilungen werden ohne Teilabbuchung abgewiesen.
+- Ergänze gezielte Tests für Migration, getrennte Fortschritte mehrerer Generäle, fremde General-IDs, Umbenennen mit stabilen Einsatzreferenzen, fehlende Erfahrung, steigende Umrechnungskosten, erhaltene Rest-Erfahrung, keine Kostensenkung durch Punkteverteilung, doppelte/gleichzeitige Anfragen sowie Wiederbeitritt und Neustart.
+- Dokumentiere im Pull Request getrennt die umgesetzte Verwaltung, die vorbereitete Skillgrundlage und die noch offenen Spielregeln.
 
 ## Prüfungen und Abnahmekriterien
 
@@ -136,9 +191,89 @@ Prüfe außerdem im Browser mit zwei unabhängigen Benutzerkontexten den vollst�
 
 ## Danach: vorbereitete Reihenfolge, noch nicht automatisch ausführen
 
-1. **Erste NPC-Farmzüge:** Infanterie und General entsenden, Garnison und Kampfregeln festlegen, Kampfausgang/Verluste, gemeinsame Nahrungsvorräte, begrenzte Traglast, Rückkehr mit Beute und allmähliche NPC-Regeneration. Kampfpunkte und Niederlageneinfluss werden hierbei angeschlossen. Vorab Kampf- und Verlustregeln als eigenen Auftrag ausarbeiten.
+1. **Erste NPC-Farmzüge:** Infanterie und General entsenden, Garnison und Kampfregeln festlegen, Kampfausgang/Verluste, gemeinsame Nahrungsvorräte, unterschiedliche Traglast je Truppentyp gemäß dem folgenden Logistikabschnitt, Rückkehr mit Beute und allmähliche NPC-Regeneration. Kampfpunkte und Niederlageneinfluss werden hierbei angeschlossen. Typabhängigen Nahrungsunterhalt gemeinsam mit oder unmittelbar nach diesem Farmkreislauf gemäß späterem Unterhaltsabschnitt einplanen. Vorab Kampf-, Verlust- und Nahrungsmangelregeln als eigenen Auftrag ausarbeiten.
 2. **Lager und Gebäudeabriss:** Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus, vollständiger Gebäudeabriss mit kleiner Rückerstattung kumulierter Investitionen. Überbestände und Rückerstattungsanteil vor Umsetzung festlegen.
 3. **Universitäten und Forschung:** Produktion, Kapazitäten und Freischaltungen verbessern; Forschungspunkte integrieren.
-4. Danach weitere Einheiten und Waffensysteme, Bündnisse/Handel sowie Matrix-Föderation gemäß Projektplan.
+4. **Spätere motorisierte Einheiten und Logistik:** LKWs mit hoher Traglast ohne Kampfkraft, Öl als Ressource, zivile Ölraffinerien und typabhängiger Ölbedarf zur Mobilmachung. Vorher die offenen Logistikregeln unten konkretisieren.
+5. Danach weitere Einheiten und Waffensysteme, Bündnisse/Handel sowie Matrix-Föderation gemäß Projektplan.
+
+Empfehlung aus der anschließenden Planung: Lagerregeln vor dem ersten Farmzug abschließen. Dies ist eine vorgeschlagene Priorisierung, kein zusätzlicher Implementierungsauftrag.
 
 Der nächste Auftrag darf diese späteren Schritte nicht als bereits umgesetzt darstellen. Die hier verwendeten Prototypwerte sind ausdrücklich vorläufige Arbeitsvorschläge für den Review.
+
+## Geplante Logistik: Traglast, LKWs und Öl
+
+Nutzerergänzung vom 28.09.2026. Diese Anforderungen sind geplant, nicht als implementiert bestätigt. Sie erweitern die späteren Farm- und Einheitenaufträge; LKWs und Öl gehören nicht automatisch zum laufenden Auftrag 4.
+
+### Bestätigte Anforderungen
+
+- Jeder Truppentyp erhält eine eigene Transportkapazität je Einheit. Plünderbare Beute ist durch die verfügbare Transportkapazität der entsandten Truppen begrenzt.
+- LKWs sind spätere Transporteinheiten mit hoher Transportkapazität und ohne Kampfkraft. Ihre konkreten Werte sind noch offen.
+- Öl wird als weitere Ressource eingeführt. Der neue Gebäudetyp Ölraffinerie produziert Öl.
+- Öl wird für die Mobilmachung benötigt; unterschiedliche Truppentypen benötigen unterschiedliche Mengen. Zeitpunkt, Berechnungsgrundlage und konkrete Verbrauchswerte sind noch festzulegen.
+
+### Einordnung in die Entwicklung
+
+- Empfehlung des Planungschats: typabhängige Traglast bereits beim ersten NPC-Farmzug umsetzen. LKWs, Ölraffinerie und Ölverbrauch gemeinsam in einer späteren Etappe für motorisierte Einheiten ergänzen.
+- Jetzt bei ohnehin anstehenden Arbeiten Einheitenwerte und Ressourcen erweiterbar halten: Transportkapazität, Kampfkraft und späterer Ölbedarf sind getrennte Größen. Keine unnötige vollständige Umstellung und keine Ölpflicht für bisherige Märsche.
+- Lager, Produktion, Baukosten, Forschungswirkungen, WebSocket-Daten und JSON-Speicherung dürfen nicht dauerhaft auf genau drei Ressourcen festgelegt werden. Bestehende Spielstände und Regeln bleiben bei späterer Einführung von Öl erhalten.
+- Die Ölraffinerie ist ein Ressourcenproduktionsgebäude und gehört gemäß der bestätigten Bereichstrennung auf zivile Bauplätze, nicht auf Militärbauplätze.
+- Die stufenabhängige ressourcenspezifische Lagerwirkung von Produktionsgebäuden soll auch für Öl gelten; das Lagerhaus umfasst später ebenfalls Öl. Konkrete Werte im Öl-Auftrag festlegen.
+- Keine zusätzliche Rohöl-Ressource oder Verarbeitungskette erfinden: bislang bestätigt ist nur die Ölproduktion durch Raffinerien.
+
+### Vor dem ersten Farmzug konkret festlegen
+
+- Gesamttraglast ergibt sich aus der Summe: transportfähige Anzahl je Truppentyp × dessen Kapazität. Dieselbe Kapazität darf bei mehreren Beuteressourcen nicht mehrfach genutzt werden.
+- Technischer Vorschlag: Beute nach dem Kampf anhand der überlebenden, zum Transport fähigen Truppen begrenzen. Verlust- und Rückkehrregeln müssen vor Umsetzung festlegen, was mit Ladung bei späterem Kapazitätsverlust geschieht.
+- Beute darf weder die verfügbare Traglast noch den tatsächlich verfügbaren plünderbaren NPC-Vorrat überschreiten. Ohne Transportkapazität keine Beute.
+- In der ersten Nahrungsetappe kann die Nahrung innerhalb dieser beiden Grenzen geladen werden. Ressourcengewichte und Verteilungsprioritäten bei mehreren Beuteressourcen sind später gesondert festzulegen.
+- Der Server berechnet die Beute verbindlich. Entnahme aus dem gemeinsamen NPC-Bestand und Zuordnung zur Mission erfolgen konsistent und nur einmal; gleichzeitige Angriffe dürfen denselben Vorrat nicht mehrfach erhalten.
+- Beute bleibt während der Rückreise an die Mission gebunden und wird erst bei Rückkehr gutgeschrieben. Volle Heimatlager benötigen die zuvor vereinbarte Überbestandsregel.
+- Einsatzdialog und Bericht zeigen Traglast und tatsächliche Ladung. Unaufgeklärte gegnerische Vorräte dürfen dadurch vor dem Angriff nicht offengelegt werden.
+- Prüfe gemischte Truppen, fehlende Traglast, Verluste, knappe Vorräte, gleichzeitige Angriffe, Neustart und einmalige Rückkehrgutschrift.
+
+### Vor Einführung von LKWs und Öl konkret festlegen
+
+- Werte, Freischaltung, Herstellungsort, Kosten, Reisegeschwindigkeit und Schutzbedarf von LKWs. Keine Kampfkraft bedeutet nicht Unverwundbarkeit; Regeln für Beschädigung, Verlust oder Erbeutung sind noch offen.
+- Ob LKWs beim Transport die Führungskapazität eines Generals belegen und ob unbegleitete Transporte zulässig sind.
+- Ölbedarf je Truppentyp und Bedeutung von Mobilmachung: einmalige Kosten beim Entsenden oder eine andere Regel; außerdem Entfernungsabhängigkeit sowie Versorgung von Hin- und Rückweg.
+- Ölbedarf zur Mobilmachung ist von dem separat bestätigten laufenden Nahrungsunterhalt zu unterscheiden. Zusätzlicher laufender Ölunterhalt oder Öl als Rekrutierungskosten sind nicht bestätigt.
+- Zeitpunkt der Reservierung bzw. Abbuchung, Verhalten bei fehlendem Öl sowie mögliche Rückerstattung bei späterem Abbruch. Der Server muss Doppelverbrauch verhindern und einen begonnenen Einsatz nach Neustart konsistent fortsetzen.
+- Raffineriekosten, Ausbaustufen, Produktions- und Lagerwerte sowie ein erreichbarer Einstieg in die Ölwirtschaft. Die erste Raffinerie darf nicht Öl voraussetzen, das ohne sie noch nicht beschafft werden kann.
+- Bestehenden Armeen bei einer Migration keine rückwirkenden Ölrechnungen auferlegen. Laufende Einsätze bleiben an ihre beim Start geltenden Regeln gebunden.
+
+## Geplanter Nahrungsunterhalt der Truppen
+
+Nutzeranforderung vom 28.09.2026. Geplant für die Wirtschafts- und Farmmechanik, noch nicht als implementiert bestätigt. Der laufende Auftrag wird dadurch nicht automatisch um ein aktives Unterhaltssystem erweitert.
+
+### Bestätigte Anforderungen und Berechnung
+
+- Truppen verbrauchen fortlaufend Nahrung. Der Verbrauch pro Einheit und Zeit unterscheidet sich je Truppentyp.
+- Der Verbrauch wird regelmäßig verrechnet beziehungsweise als Abzug von der Nahrungsproduktion berücksichtigt. Dies sind zwei mögliche Darstellungen derselben Belastung, keine zwei getrennten Kosten.
+- Gesamtverbrauch pro Zeiteinheit = Summe aus versorgter Einheitenanzahl je Truppentyp × dessen Nahrungsbedarf pro Einheit und Zeiteinheit.
+- Nahrungsbilanz pro Zeiteinheit = tatsächliche Nahrungsproduktion minus Gesamtverbrauch. Eine negative Bilanz verbraucht vorhandene Vorräte; erfolgreiche Plünderungen sollen dieses Defizit ausgleichen können.
+- „Negative Nahrung“ wird hier als negative laufende Bilanz verstanden. Negative Lagerbestände oder Nahrungsschulden sind damit nicht beschlossen.
+- Nahrung aus einem Farmzug steht gemäß den bisherigen Regeln erst bei Rückkehr zur Verfügung. Erwartete Beute darf vorher keinen Verbrauch decken.
+- Nahrungsunterhalt ist unabhängig vom späteren Ölbedarf zur Mobilmachung. Beide Kostenarten werden getrennt konfiguriert und angezeigt.
+
+### Empfohlene Reihenfolge und noch offene Regeln
+
+- Empfehlung: Datenmodell und Wirtschaftsberechnung beim Lagerausbau vorbereiten; tatsächlichen Nahrungsunterhalt zusammen mit oder unmittelbar nach dem ersten funktionierenden NPC-Farmkreislauf aktivieren. Vor Aktivierung Verbrauchswerte und Verhalten bei leerem Lager festlegen.
+- Noch offen: konkrete Verbrauchswerte, Zeiteinheit, kontinuierliche Verrechnung oder feste Intervalle einschließlich Rundung.
+- Noch offen: Folgen bei aufgebrauchter Nahrung. Keine automatische Desertion, Truppenvernichtung, Kampfschwächung oder Verschuldung erfinden.
+- Noch offen: Versorgung stationierter Truppen, marschierender Armeen, späterer Unterstützungstruppen und Transporteinheiten wie LKWs. Für jede Gruppe müssen zahlende Stadt und Verbrauchszeitraum eindeutig festgelegt werden; keine doppelte Verrechnung und keine unbeabsichtigte Unterhaltsbefreiung durch Entsenden.
+- Noch offen: Verbrauchsbeginn bei Ausbildung und Behandlung späterer Verluste, Entlassungen oder Besitzwechsel. Technischer Vorschlag: ausgebildete Einheiten ab tatsächlicher Fertigstellung zählen, Verluste ab dem bestätigten Verlustzeitpunkt.
+- Verbrauch, Produktion, Marschzeiten und NPC-Regeneration müssen zusammen einen erreichbaren Versorgungskreislauf ermöglichen. Konkrete Balancewerte werden separat festgelegt.
+
+### Leitplanken für die spätere Codex-Umsetzung
+
+- Zeige Bruttoproduktion, Truppenverbrauch, Nettobilanz und Vorrat getrennt an. Bei negativem Nettoertrag optional die voraussichtliche Restversorgungsdauer anzeigen: Vorrat geteilt durch den Betrag des Nettoverbrauchs, mit Hinweis auf unveränderte aktuelle Raten.
+- Berechne den Verbrauch serverseitig auch bei Abwesenheit und Neustart. Browser-Timer oder offene Verbindungen bestimmen keine Kosten.
+- Verrechne Ereignisse chronologisch: Produktionsänderung, Ausbildungsabschluss, Truppenverlust, Rückkehr mit Nahrung sowie Erreichen eines leeren oder vollen Lagers. Ein zwischenzeitlich leeres Lager darf nicht durch später eintreffende Beute rückwirkend als versorgt gelten.
+- Für unveränderte Raten gilt innerhalb eines Zeitabschnitts: Bestandsänderung = Nettobilanz × verstrichene Zeit in der vereinbarten Zeiteinheit. Lagergrenzen und das spätere Mangelverhalten sind an ihren tatsächlichen Eintrittszeitpunkten anzuwenden.
+- Persistiere Verrechnungszeitpunkt und erforderliche Rundungsreste bzw. rechne mit hinreichender Genauigkeit. Häufigere Aktualisierungen, Reconnects oder mehrere Verbindungen dürfen weder zusätzlichen Verbrauch noch kostenlose Nahrung erzeugen.
+- Verrechne Unterhalt genau einmal: nicht zugleich als reduzierte Produktion und als zusätzliche volle Abbuchung.
+- Aktiviere Unterhalt mit dokumentiertem Startzeitpunkt und versionierter Migration. Bestehende Truppen erhalten keine rückwirkende Rechnung für Zeiten vor Einführung der Regel.
+- Zustandsänderungen werden dauerhaft im privaten JSON-Spielstand gespeichert und über WebSocket an berechtigte Verbindungen gemeldet.
+- Prüfe verschiedene Truppentypen, positive/null/negative Nettobilanz, Lagergrenzen, chronologische Ratenwechsel, Offlinebetrieb, kleine gegenüber großen Zeitschritten, Neustart und einmalige Beutegutschrift. Tests für Nahrungsmangel folgen den erst noch festzulegenden Regeln.
+
