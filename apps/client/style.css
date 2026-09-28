@@ -29,11 +29,11 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .unit-card strong, .unit-card span { display: block; padding-inline: .7rem; }
 .unit-card strong { padding-top: .55rem; }
 .unit-card span { padding-bottom: .65rem; color: #bac5b6; font-size: .8rem; }
-.training-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem .65rem; margin-top: .75rem; padding: .75rem; border: 1px solid #52624c; border-radius: .7rem; background: #111a10; }
+.training-form { display: grid; grid-template-columns: 1fr; gap: .55rem; margin-top: .75rem; padding: .85rem; border: 1px solid #52624c; border-radius: .7rem; background: #111a10; }
 .training-form label { color: #d9dfd3; font-size: .8rem; }
 .training-form input { display: block; width: 100%; margin-top: .3rem; padding: .65rem; border: 1px solid #65755d; border-radius: .45rem; background: #0b110b; color: #fff; }
 .training-form input:focus { border-color: #d5e59b; outline: 3px solid #d5e59b33; }
-.training-form button { grid-row: 1 / 3; grid-column: 2; align-self: stretch; min-width: 145px; padding: .75rem 1rem; border: 1px solid #efffb8; border-radius: .65rem; background: linear-gradient(180deg,#e6f7ad,#b9cf75); color: #172017; box-shadow: 0 4px 0 #738744,0 7px 16px #0005; font-weight: 850; cursor: pointer; transition: transform .15s,filter .15s; }
+.training-form button { width: 100%; min-height: 46px; padding: .7rem 1rem; border: 1px solid #efffb8; border-radius: .65rem; background: linear-gradient(180deg,#e6f7ad,#b9cf75); color: #172017; box-shadow: 0 3px 0 #738744,0 6px 12px #0004; font-weight: 850; cursor: pointer; transition: transform .15s,filter .15s; }
 .training-form button:not(:disabled):hover { filter: brightness(1.08); transform: translateY(-1px); }
 .training-form button:not(:disabled):active { box-shadow: 0 1px 0 #738744; transform: translateY(3px); }
 .training-form button:disabled { background: #465345; color: #adb7aa; cursor: not-allowed; }
@@ -48,4 +48,4 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .plot-training-queue i.waiting { background: #d68f3e; color: #25190d; }
 #map-details.has-selection { border-color: #d5e59b; box-shadow: 0 0 0 2px #d5e59b22; }
 @media (max-width: 700px) { .city-grid.compact { min-height: 300px; } .view-tabs { overflow-x: auto; } }
-@media (max-width: 460px) { .unit-visuals { grid-template-columns: 1fr; } .training-form { grid-template-columns: 1fr; } .training-form button { grid-row: auto; grid-column: auto; } }
+@media (max-width: 460px) { .unit-visuals { grid-template-columns: 1fr; } }

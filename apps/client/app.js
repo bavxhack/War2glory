@@ -271,15 +271,16 @@ function renderMap(data) {
     button.append(element('span', `${terrain.x},${terrain.y}`, 'coordinates'));
     if (entity) {
       button.append(element('span', entity.type === 'npc' ? '♜' : '◆', 'city-marker'), element('strong', entity.name));
-      button.addEventListener('click', () => {
-        selectedMapId = entity.id;
-        renderMapDetails({ entity, terrain });
-        send('map.details', { id: entity.id });
-      });
+      button.addEventListener('click', () => selectMapEntity(entity, terrain));
     }
     else button.addEventListener('click', () => renderMapDetails({ terrain, entity: null }));
     if (entity?.id === selectedMapId) button.classList.add('selected'); return button;
   }));
+}
+function selectMapEntity(entity, terrain) {
+  selectedMapId = entity.id;
+  renderMapDetails({ entity, terrain });
+  send('map.details', { id: entity.id });
 }
 function renderMapDetails({ entity, terrain }) {
   const detailsRoot = document.querySelector('#map-details');
@@ -309,15 +310,23 @@ const worldMap = document.querySelector('#world-map');
 worldMap.addEventListener('keydown', event => { const offsets = { ArrowLeft: panOffsets.left, ArrowRight: panOffsets.right, ArrowUp: panOffsets.up, ArrowDown: panOffsets.down }; if (!offsets[event.key]) return; event.preventDefault(); panMap(...offsets[event.key]); });
 worldMap.addEventListener('pointerdown', event => {
   if (event.button !== 0 || !event.isPrimary) return;
-  mapDrag = { pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY } };
+  const tile = event.target.closest('.world-tile');
+  mapDrag = { pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, tile };
   worldMap.setPointerCapture(event.pointerId); worldMap.classList.add('dragging');
 });
 worldMap.addEventListener('pointerup', event => {
   if (mapDrag?.pointerId !== event.pointerId) return;
   const tile = worldMap.querySelector('.world-tile');
   const offset = dragToPan(mapDrag.start, { x: event.clientX, y: event.clientY }, tile?.getBoundingClientRect().width || 46);
+  const clickedTile = mapDrag.tile;
   mapDrag = null; worldMap.classList.remove('dragging'); worldMap.releasePointerCapture(event.pointerId);
-  if (offset.x || offset.y) { suppressMapClick = true; panMap(offset.x, offset.y); }
+  suppressMapClick = true;
+  if (offset.x || offset.y) panMap(offset.x, offset.y);
+  else if (clickedTile) {
+    const terrain = mapState?.terrain.find(item => item.x === Number(clickedTile.dataset.x) && item.y === Number(clickedTile.dataset.y));
+    const entity = mapState?.entities.find(item => item.x === Number(clickedTile.dataset.x) && item.y === Number(clickedTile.dataset.y));
+    if (terrain) entity ? selectMapEntity(entity, terrain) : renderMapDetails({ entity: null, terrain });
+  }
 });
 worldMap.addEventListener('pointercancel', event => { if (mapDrag?.pointerId === event.pointerId) { mapDrag = null; worldMap.classList.remove('dragging'); } });
 worldMap.addEventListener('click', event => { if (!suppressMapClick) return; event.preventDefault(); event.stopPropagation(); suppressMapClick = false; }, true);
