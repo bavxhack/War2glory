@@ -12,10 +12,10 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 1 | Stadtkarte, feste Bauplätze, Errichten/Ausbauen und Warteschlange | Implementiert |
 | 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Geplant; eigene spätere Ausbauetappe |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
-| 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Als Nächstes; abgestimmt |
-| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Hohe Priorität; nächste eigenständige Etappe nach der Weltkarte; Bewertungsregeln abzustimmen |
-| 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | Geplant; nach Einführung der Truppen |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Geplant; Forschungsumfang vorgemerkt |
+| 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
+| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Grundsystem in Auftrag 4; Gebäude-Testregel vorgeschlagen, Forschung/Kämpfe später |
+| 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung in Auftrag 4; noch nicht implementiert |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Kaserne/erste Truppen/Startgeneral in Auftrag 4; Forschung weiterhin später |
 | 4b | Kämpfe, NPC-Farmzüge, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -55,6 +55,39 @@ Datenbank, Passwortwiederherstellung, E-Mail-Verifikation und produktiver Mehrpr
 
 Kartengröße, NPC-Anzahl, Schwierigkeitsstufen und interne Vorratswerte sind reversible eigene Prototypwerte und keine bestätigten War2Glory-Werte.
 
+## Aktueller Codex-Auftrag vom 28.09.2026: Punkte und erste NPC-Einsätze
+
+Die Weltkarte ist laut Nutzer und Repository umgesetzt. Der Nutzer möchte weitere Arbeitsanweisungen, damit dort sinnvolle Aktionen möglich werden. CODEX_PROMPT.md enthält dafür Auftrag 4 mit folgenden zusammenhängenden Teilen:
+
+1. Kommandantenpunkte, zunächst aus fertiggestellten Gebäuden; spätere Forschungs- und Kampfbeiträge getrennt vorbereiten.
+2. Ausbaubare Kaserne, persistente Ausbildung von Spähern und Infanterie sowie ein General mit Erfahrung, Level und Führungskapazität.
+3. Erste NPC-Aufklärung mit zugewiesenem General und Spähern, Hin-/Rückmarsch und privaten zeitgestempelten Berichten.
+4. Neustartfeste JSON-Abläufe, WebSocket-Ereignisse, Migration und gezielte Tests.
+
+Diese Funktionen sind beauftragt, nicht als implementiert bestätigt. Echte Angriffe, Verluste und Nahrung als Beute sind der nächste separate Schritt.
+
+### Vorläufige Arbeitsvorschläge für den Review
+
+Die folgenden Werte wurden vom Planungschat zur Konkretisierung des Codex-Auftrags vorgeschlagen. Sie sind keine einzeln vom Nutzer bestätigten Balanceentscheidungen und keine Originalwerte von War2Glory. Codex soll sie konfigurierbar umsetzen und im Pull Request ausdrücklich zur Prüfung ausweisen:
+
+- Gebäudepunkte: 10 × Summe der fertiggestellten Gebäudelevel. Drei Gebäude auf Stufe 1 ergeben 30 Punkte; ein Upgrade auf Stufe 2 erhöht die Summe auf 40. Spätere Abrisse entfernen den jeweiligen Gebäudebeitrag.
+- Punkteübersicht zunächst nur für den Eigentümer; keine öffentliche Rangliste. Forschungs- und Kampfwertung noch inaktiv, keine erfundenen historischen Beiträge.
+- Genau ein kostenloser Startgeneral pro Kommandant. General-Erfahrung bleibt von Kommandantenpunkten getrennt.
+- Generallevel L ab insgesamt 50 × L × (L − 1) Erfahrung; vorläufig maximal Level 10. Führungskapazität: 20 × Level Einheiten.
+- Erste zurückgekehrte Aufklärung je Kommandant und NPC-ID: 10 Erfahrung für den eingesetzten General; keine erneute Erstbelohnung beim gleichen Ziel.
+- NPC-Aufklärung ohne Verlust- oder Entdeckungsrisiko als erste Testfassung, Berichte erst bei Rückkehr. Keine Aufklärung fremder Spielerstädte.
+- Einfache Luftlinienreise: je Richtung mindestens 5 Sekunden, ansonsten aufgerundete Entfernung in Feldern × 5 Sekunden. Gelände verhindert in dieser Fassung noch keine Reise.
+- Kosten und Ausbildungszeiten für Kaserne/Einheiten werden als günstige, dokumentierte Testwerte zentral festgelegt. Die bisherigen Stadt- und Gebäuderegeln bleiben ansonsten erhalten.
+
+Die endgültige Punktgewichtung, Niederlageneinflüsse, militärische Balance und weitere zuvor offene Produktentscheidungen bleiben abzustimmen. Diese Vorschläge machen den Prototyp prüfbar und ändern nicht den Status offener Langfristentscheidungen.
+
+### Weitere Arbeitsfolge nach Auftrag 4
+
+- NPC-Farmzüge mit echter Garnison, Kampf, Verlusten, Beutetransport und allmählicher Regeneration der gemeinsam genutzten Nahrungsvorräte. Dabei Kampf- und Niederlagenpunkte anschließen.
+- Stufenabhängige Lagerkapazität, Lagerhaus und Gebäudeabriss nach Klärung der offenen Regeln.
+- Universitäten/Forschung einschließlich Forschungspunkten; weitere Truppen und Waffensysteme.
+- Anschließend Bündnisse, Handel und Matrix-Föderation gemäß den bestehenden Zielen.
+
 ## Entscheidungen für diesen Prototyp
 
 - Kleine Module, keine Framework- oder Datenbankabhängigkeiten zum Einstieg.
@@ -79,13 +112,13 @@ Kartengröße, NPC-Anzahl, Schwierigkeitsstufen und interne Vorratswerte sind re
 - Genaue Informationen zu fremden Städten werden erst in einer späteren Etappe durch Aufklärung zugänglich. Sie dürfen vorher auch nicht in öffentlichen Serverantworten enthalten sein.
 - Alle Spieler einer Welt teilen dieselben NPC-Städte und deren Ressourcenbestände.
 - Nach späteren Farmangriffen füllen sich diese Bestände allmählich bis zu einer Obergrenze wieder auf.
-- Nächster Auftrag: Weltkarte, dauerhafte Stadtpositionen, öffentliche Detailansichten und gemeinsame NPC-Identitäten. Aufklärung, Märsche, Kämpfe, Beuteentnahme und aktive Regeneration folgen nach Einführung der benötigten Truppen-/Generalsysteme.
+- Der Weltkartenschritt mit dauerhaften Stadtpositionen, öffentlichen Details und gemeinsamen NPC-Identitäten ist laut aktuellem Projektstand umgesetzt. Auftrag 4 ergänzt erste Truppen/Generäle und NPC-Aufklärung; Kämpfe, Beuteentnahme und aktive Regeneration folgen danach.
 - Eine gemeinsame Karte pro Serverwelt dient als Ausgangspunkt. Die spätere Verbindung von Welten über Matrix ist damit noch nicht festgelegt.
 - In diesem Planungschat entstehen nur Codex-Anweisungen; die Umsetzung und ihre Prüfungen übernimmt Codex.
 
 ## Bestätigte Gebäude- und Lageranforderungen vom 27.09.2026
 
-Diese Anforderungen sind für eine spätere Ausbauetappe aufgenommen. Sie sind noch nicht umgesetzt und erweitern nicht den laufenden Weltkartenauftrag.
+Diese Anforderungen sind für eine spätere Ausbauetappe aufgenommen. Sie sind noch nicht umgesetzt und gehören nicht zum aktuellen Auftrag 4.
 
 ### Lagerkapazität durch Gebäudeausbau
 
@@ -113,11 +146,11 @@ Diese Anforderungen sind für eine spätere Ausbauetappe aufgenommen. Sie sind n
 - Vor Umsetzung sind Regeln für volle Lager bzw. Überbestände nach Kapazitätsverlust, die Aufnahme der Rückerstattung und Gebäude mit aktiven oder wartenden Bauaufträgen festzulegen. Bestehende Vorräte dürfen nicht ohne eine abgestimmte Regel stillschweigend verschwinden.
 - Abriss und Rückerstattung müssen später serverseitig geprüft, gemeinsam dauerhaft gespeichert und bei wiederholten Befehlen nur einmal ausgeführt werden. Die Oberfläche soll vor Bestätigung den Rückerstattungsbetrag und die Kapazitätsfolgen anzeigen.
 
-Die genaue Einordnung dieser Ausbauetappe erfolgt gemeinsam mit dem Nutzer. Der aktuelle Auftrag bleibt die Weltkarte mit gemeinsamen NPC-Städten.
+Die konkrete Ausgestaltung dieser Ausbauetappe bleibt abzustimmen. Der aktuelle Auftrag 4 ergänzt Punkte, erste Armeen und NPC-Aufklärung.
 
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
-Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und erweitert nicht den laufenden Weltkartenauftrag.
+Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Auftrag 4.
 
 ### Universität und Forschungsbereiche
 
@@ -151,7 +184,7 @@ Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universitä
 
 ## Kommandanten-Punktesystem: hohe Priorität
 
-Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden und wird als nächste eigenständige Ausbauetappe nach dem bereits beauftragten Weltkartenschritt priorisiert. Es ist noch nicht implementiert.
+Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden. Sein Grundsystem ist deshalb der erste Teil von Auftrag 4; Forschungs- und Kampfbeiträge folgen mit den jeweiligen Spielsystemen. Es ist noch nicht implementiert.
 
 ### Umfang und schrittweise Einführung
 
