@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, extname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   advanceCity, BUILDINGS, capacityBreakdown, cityOffers, commanderScore, demolishBuilding, demolitionPreview,
@@ -15,14 +15,14 @@ const MAX_PROCESSED_COMMANDS = 500;
 const COMMAND_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const TICK_MS = 1000;
 const clientRoot = fileURLToPath(new URL('../client/', import.meta.url));
+const clientDistRoot = resolve(clientRoot, 'dist');
 const staticFiles = new Map([
-  ['/', ['index.html', 'text/html; charset=utf-8']], ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/request-id.js', ['request-id.js', 'text/javascript; charset=utf-8']],
   ['/map-navigation.js', ['map-navigation.js', 'text/javascript; charset=utf-8']],
-  ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/assets/scout-aircraft.svg', ['assets/scout-aircraft.svg', 'image/svg+xml']],
   ['/assets/infantry.svg', ['assets/infantry.svg', 'image/svg+xml']],
 ]);
+const mimeTypes = new Map([['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'], ['.css', 'text/css; charset=utf-8'], ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.webp', 'image/webp'], ['.woff2', 'font/woff2']]);
 
 function commandFingerprint(type, payload) {
   const allowed = type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'unit', 'amount'] :
@@ -212,6 +212,19 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         const [name, type] = staticFiles.get(path);
         res.writeHead(200, { 'Content-Type': type });
         return res.end(await readFile(resolve(clientRoot, name)));
+      }
+      if (req.method === 'GET' && (path === '/' || path.startsWith('/assets/'))) {
+        const assetPath = resolve(clientDistRoot, path === '/' ? 'index.html' : `.${path}`);
+        if (relative(clientDistRoot, assetPath).startsWith('..')) return json(404, { error: 'Nicht gefunden.' });
+        try {
+          const content = await readFile(assetPath);
+          res.writeHead(200, { 'Content-Type': mimeTypes.get(extname(assetPath)) ?? 'application/octet-stream', 'Cache-Control': path === '/' ? 'no-cache' : 'public, max-age=31536000, immutable' });
+          return res.end(content);
+        } catch (error) {
+          if (path === '/' && error.code === 'ENOENT') return json(503, { error: 'Frontend-Build fehlt. Bitte zuerst `npm install` und `npm run build` ausführen.' });
+          if (error.code === 'ENOENT') return json(404, { error: 'Nicht gefunden.' });
+          throw error;
+        }
       }
       if (req.method === 'GET' && path === '/health') return json(200, { status: 'ok' });
       if (req.method === 'GET' && path === '/.well-known/federated-strategy') return json(200, {

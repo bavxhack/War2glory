@@ -3,9 +3,11 @@ FROM node:24-alpine
 ENV NODE_ENV=production
 WORKDIR /app
 
-COPY --chown=node:node package.json ./
+COPY --chown=node:node package.json package-lock.json ./
+RUN npm ci
 COPY --chown=node:node apps ./apps
 COPY --chown=node:node packages ./packages
+RUN npm run build && npm prune --omit=dev
 RUN mkdir -p /app/data && chown node:node /app/data
 
 USER node
