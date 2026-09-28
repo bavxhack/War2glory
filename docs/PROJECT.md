@@ -15,7 +15,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Grundsystem in Auftrag 4; Gebäude-Testregel vorgeschlagen, Forschung/Kämpfe später |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung in Auftrag 4; noch nicht implementiert |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Separater Militärbereich/Kaserne/erste Truppen/Startgeneral in Auftrag 4; Forschung weiterhin später |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle laut Nutzer angelegt; Mehrfachverwaltung/Skillgrundlage in Abschnitt E von Auftrag 4; Forschung weiterhin später |
 | 4b | Kämpfe, NPC-Farmzüge, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -64,7 +64,7 @@ Die Weltkarte ist laut Nutzer und Repository umgesetzt. Der Nutzer möchte weite
 3. Erste NPC-Aufklärung mit zugewiesenem General und Spähern, Hin-/Rückmarsch und privaten zeitgestempelten Berichten.
 4. Neustartfeste JSON-Abläufe, WebSocket-Ereignisse, Migration und gezielte Tests.
 
-Diese Funktionen sind beauftragt, nicht als implementiert bestätigt. Echte Angriffe, Verluste und Nahrung als Beute sind der nächste separate Schritt.
+Generäle sind laut neuer Nutzerangabe bereits angelegt. Der Umsetzungsstand der übrigen beauftragten Funktionen ist dadurch nicht zusätzlich bestätigt. Echte Angriffe, Verluste und Nahrung als Beute sind der nächste separate Schritt.
 
 ### Vorläufige Arbeitsvorschläge für den Review
 
@@ -83,10 +83,41 @@ Die endgültige Punktgewichtung, Niederlageneinflüsse, militärische Balance un
 
 ### Weitere Arbeitsfolge nach Auftrag 4
 
+- Zunächst Generalverwaltung und Skillgrundlage gemäß Ergänzung vom 28.09.2026 und Abschnitt E des Codex-Auftrags erweitern; offene Balance- und Rekrutierungsregeln anschließend gemeinsam festlegen.
 - NPC-Farmzüge mit echter Garnison, Kampf, Verlusten, Beutetransport und allmählicher Regeneration der gemeinsam genutzten Nahrungsvorräte. Dabei Kampf- und Niederlagenpunkte anschließen.
 - Stufenabhängige Lagerkapazität, Lagerhaus und Gebäudeabriss nach Klärung der offenen Regeln.
 - Universitäten/Forschung einschließlich Forschungspunkten; weitere Truppen und Waffensysteme.
 - Anschließend Bündnisse, Handel und Matrix-Föderation gemäß den bestehenden Zielen.
+
+## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
+
+Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Der nächste Projektschritt erweitert die Generalverwaltung; Abschnitt E in CODEX_PROMPT.md enthält die Arbeitsanweisungen.
+
+### Bestätigte Anforderungen
+
+- Ein Kommandant soll mehrere Generäle besitzen können. Wann weitere Generäle erzeugt werden können, entscheiden wir später.
+- Jeder General erhält später durch Kämpfe eigene Erfahrung.
+- Erfahrung wird in Skillpunkte umgerechnet, die auf Eigenschaften verteilt werden und deren Bonuswirkungen erhöhen.
+- Der Erfahrungsbedarf je zusätzlichem Skillpunkt steigt mit der bereits erreichten Skillpunktzahl.
+- Jeder General kann einen eigenen Namen erhalten. Name und Eigenschaften werden in einem Modal bearbeitet.
+- Erfahrung, Skillpunkte, Eigenschaften und Einsätze gehören zum jeweiligen General und bleiben dauerhaft gespeichert.
+
+### Ausführbarer nächster Schritt
+
+- Bestehende Generäle verlustfrei als Sammlung mit stabilen IDs verwalten, im Militärbereich anzeigen und für Einsätze auswählen.
+- Namen bearbeiten und ein Modal mit Fortschritt, Eigenschaften und vorgesehener Punkteverteilung ergänzen.
+- Skillberechnung und Speicherung konfigurierbar vorbereiten und mit isolierten Testregeln prüfen. Echte Umrechnung und Bonusvergabe erst nach Festlegung der offenen Regeln aktivieren.
+- Mehrere Generäle mit Testdaten prüfen; keine frei verfügbare Rekrutierung oder zusätzlichen kostenlosen Generäle für bestehende Konten erfinden.
+- Bestehende Erfahrung, Level und aktive Einsätze erhalten; Änderungen über WebSocket mit serverseitiger Prüfung und privater JSON-Speicherung.
+
+### Noch gemeinsam festzulegen
+
+- Startkosten und Verlauf der steigenden Erfahrungskosten; automatische Umrechnung oder bewusster Spielerbefehl.
+- Konkrete Eigenschaften und Bonuswirkungen, Grenzen und Zusammenspiel mit Level und Führungskapazität.
+- Rekrutierungsbedingungen, mögliche Anzahlgrenzen und spätere Rücksetzung verteilter Punkte.
+- Kampf-Erfahrungsbelohnungen und Verteilung bei mehreren beteiligten Generälen; künftige Rolle von Aufklärungs-Erfahrung.
+
+Technischer Vorschlag für die Kostenbasis: insgesamt erworbene Skillpunkte einschließlich bereits verteilter Punkte. Das Ausgeben freier Punkte soll den nächsten Punkt nicht billiger machen. Insgesamt verdiente und bereits umgerechnete Erfahrung sowie freie und verteilte Skillpunkte werden getrennt nachvollziehbar geführt. Diese Auslegung und alle konkreten Balancewerte sind noch keine einzeln bestätigten Nutzerentscheidungen.
 
 ## Entscheidungen für diesen Prototyp
 
