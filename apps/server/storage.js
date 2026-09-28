@@ -1,8 +1,9 @@
-import { createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
+import { copyFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
 import { newCity, RULESET } from '../../packages/game-core/index.js';
+import { randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
 export const PLAYER_SCHEMA_VERSION = 1;
@@ -54,9 +55,17 @@ export class WorldStorage {
     this.accounts = await readJson(this.accountsFile, { schemaVersion: 1, accounts: [], sessions: [] });
     this.world = await readJson(this.worldFile, null);
     if (!this.world) {
-      this.world = { schemaVersion: 1, instanceId: randomUUID(), worldName: this.worldName };
+      this.world = createWorld(this.worldName);
       await atomicWrite(this.worldFile, this.world);
+    } else if (this.world.schemaVersion === 1) {
+      await copyFile(this.worldFile, `${this.worldFile}.schema-1.backup`);
+      this.world = { ...this.world, schemaVersion: WORLD_SCHEMA_VERSION, map: createMap(this.world.instanceId) };
+      await this.#assignMissingLocations();
+      await atomicWrite(this.worldFile, this.world);
+    } else if (this.world.schemaVersion !== WORLD_SCHEMA_VERSION || !this.world.map) {
+      throw new Error(`Unbekannte Welt-Schemaversion: ${this.world.schemaVersion}.`);
     }
+    await this.#assignMissingLocations();
     this.#expireSessions();
     await atomicWrite(this.accountsFile, this.accounts);
     return this;
@@ -82,11 +91,15 @@ export class WorldStorage {
         processedCommands: [], createdAt: now,
       };
       const account = { playerId, displayName, normalized, password: credentials, createdAt: now };
-      await atomicWrite(this.playerFile(playerId), player);
+      const entity = this.#allocatePlayerCity(player, account);
+      await atomicWrite(this.worldFile, this.world);
+      try { await atomicWrite(this.playerFile(playerId), player); }
+      catch (error) { this.#removeEntity(entity.id); await atomicWrite(this.worldFile, this.world); throw error; }
+      const session = this.#prepareSession(playerId);
       this.accounts.accounts.push(account);
       try { await atomicWrite(this.accountsFile, this.accounts); }
-      catch (error) { this.accounts.accounts.pop(); throw error; }
-      return { account, player, session: await this.#newSession(playerId) };
+      catch (error) { this.accounts.accounts.pop(); this.accounts.sessions = this.accounts.sessions.filter(candidate => candidate.playerId !== playerId); this.#removeEntity(entity.id); await Promise.allSettled([unlink(this.playerFile(playerId)), atomicWrite(this.worldFile, this.world)]); throw error; }
+      return { account, player, session };
     });
   }
 
@@ -126,18 +139,59 @@ export class WorldStorage {
 
   async #newSession(playerId) {
     this.#expireSessions();
+    const session = this.#prepareSession(playerId);
+    await atomicWrite(this.accountsFile, this.accounts);
+    return session;
+  }
+
+  #prepareSession(playerId) {
     const token = randomBytes(32).toString('base64url');
     const expiresAt = this.clock() + SESSION_LIFETIME_MS;
     this.accounts.sessions.push({ tokenHash: createTokenHash(token), playerId, expiresAt, createdAt: this.clock() });
-    await atomicWrite(this.accountsFile, this.accounts);
     return { token, expiresAt };
   }
 
   #expireSessions() {
     this.accounts.sessions = this.accounts.sessions.filter(session => session.expiresAt > this.clock());
   }
+
+  #removeEntity(id) { this.world.map.entities = this.world.map.entities.filter(entity => entity.id !== id); this.world.map.revision += 1; }
+
+  #allocatePlayerCity(player, account) {
+    const location = randomFreeLocation(this.world.map, upperBound => randomInt(upperBound));
+    const entity = { id: `city-${player.playerId}`, kind: 'player', playerId: player.playerId, name: player.city.name, commanderName: account.displayName, ...location };
+    this.world.map.entities.push(entity); this.world.map.revision += 1;
+    return entity;
+  }
+
+  async #assignMissingLocations() {
+    let changed = false;
+    for (const account of this.accounts.accounts) {
+      if (this.world.map.entities.some(entity => entity.playerId === account.playerId)) continue;
+      const player = await this.loadPlayer(account.playerId);
+      this.#allocatePlayerCity(player, account); changed = true;
+    }
+    if (changed) await atomicWrite(this.worldFile, this.world);
+  }
 }
 
 function createTokenHash(token) {
   return createHash('sha256').update(token).digest('base64url');
 }
+
+function numericSeed(value) { return [...value].reduce((seed, character) => Math.imul(seed ^ character.charCodeAt(0), 16777619) >>> 0, 2166136261); }
+
+function createMap(instanceId) {
+  const seed = numericSeed(instanceId);
+  const config = { ...WORLD_CONFIG };
+  const entities = [];
+  for (let index = 0; index < config.npcCount; index += 1) {
+    let position = (seed + index * 97) % (config.width * config.height);
+    while (entities.some(entity => entity.x === position % config.width && entity.y === Math.floor(position / config.width)) || terrainAt(position % config.width, Math.floor(position / config.width), seed) === 'water') position = (position + 1) % (config.width * config.height);
+    entities.push({ id: `npc-${index + 1}`, kind: 'npc', name: `Freie Stadt ${index + 1}`, difficulty: 1 + index % 3, x: position % config.width, y: Math.floor(position / config.width),
+      resources: { schemaVersion: 1, food: { amount: 500, capacity: 500, regenerationPerHour: 25, updatedAt: Date.now() } } });
+  }
+  return { seed, revision: 1, config, entities };
+}
+
+function createWorld(worldName) { const instanceId = randomUUID(); return { schemaVersion: WORLD_SCHEMA_VERSION, instanceId, worldName, map: createMap(instanceId) }; }

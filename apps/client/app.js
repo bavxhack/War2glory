@@ -1,4 +1,5 @@
 import { createRequestId } from './request-id.js';
+import { dragToPan } from './map-navigation.js';
 
 const resourceLabels = { wood: 'Holz', stone: 'Stein', food: 'Nahrung' };
 const resourceIcons = { wood: '▰', stone: '◆', food: '●' };
@@ -14,6 +15,13 @@ let reconnectTimer;
 let reconnectAttempt = 0;
 let selectedSlotId;
 let currentState;
+let mapState;
+let selectedMapId;
+let mapCenter = { x: 7, y: 7 };
+let mapSize = 11;
+let latestMapRequest;
+let mapDrag;
+let suppressMapClick = false;
 const pending = new Map();
 
 function element(tag, text = '', className = '') { const node = document.createElement(tag); node.textContent = text; node.className = className; return node; }
@@ -54,6 +62,9 @@ function connect() {
       localStorage.removeItem('strategy.session'); authRoot.hidden = false; gameRoot.hidden = true;
       document.querySelector('#auth-message').textContent = event.payload.message;
     } else if (['city.snapshot', 'city.updated'].includes(event.type)) render(event.payload);
+    else if (event.type === 'map.snapshot' && (!latestMapRequest || !event.requestId || event.requestId === latestMapRequest)) renderMap(event.payload);
+    else if (event.type === 'map.changed') { if (mapState && event.payload.revision > mapState.revision) requestMap(); }
+    else if (event.type === 'map.details') renderMapDetails(event.payload);
     else if (event.type === 'command.error') {
       (gameRoot.hidden ? document.querySelector('#auth-message') : messageRoot).textContent = event.payload.message;
       pending.delete(event.requestId); if (currentState) render(currentState);
@@ -150,4 +161,64 @@ function render(state) {
   document.querySelector('#world').textContent = state.world.name; document.querySelector('#city-name').textContent = state.city.name; document.querySelector('#commander').textContent = state.player.commanderName;
   renderResources(state); renderGrid(state); renderSelection(state); renderQueue(state);
 }
+
+function setView(worldVisible) {
+  document.querySelector('#city-view').hidden = worldVisible; document.querySelector('#world-view').hidden = !worldVisible;
+  document.querySelector('#resources').hidden = worldVisible;
+  for (const [id, active] of [['show-city', !worldVisible], ['show-world', worldVisible]]) { const button = document.querySelector(`#${id}`); button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); }
+  if (worldVisible && mapState) document.querySelector('#world-map').focus();
+}
+document.querySelector('#show-city').addEventListener('click', () => setView(false));
+document.querySelector('#show-world').addEventListener('click', () => { setView(true); if (!mapState) requestMap(); });
+
+function requestMap(center = mapCenter) {
+  if (!currentState && !mapState) return;
+  const bounds = mapState?.bounds ?? { width: 24, height: 24 }; const size = Math.min(mapSize, bounds.width, bounds.height);
+  const x = Math.max(0, Math.min(bounds.width - size, Math.round(center.x - size / 2)));
+  const y = Math.max(0, Math.min(bounds.height - size, Math.round(center.y - size / 2)));
+  mapCenter = { x: x + size / 2, y: y + size / 2 };
+  latestMapRequest = send('map.viewport', { x, y, width: size, height: size });
+}
+
+function renderMap(data) {
+  mapState = data;
+  const root = document.querySelector('#world-map'); const entityByPosition = new Map(data.entities.map(entity => [`${entity.x}:${entity.y}`, entity]));
+  root.style.setProperty('--map-columns', data.viewport.width); root.replaceChildren(...data.terrain.map(terrain => {
+    const entity = entityByPosition.get(`${terrain.x}:${terrain.y}`); const button = element('button', '', `world-tile ${terrain.type}${entity ? ` has-city ${entity.type}` : ''}`);
+    button.type = 'button'; button.dataset.x = terrain.x; button.dataset.y = terrain.y; button.setAttribute('role', 'gridcell');
+    button.setAttribute('aria-label', entity ? `${entity.name}, ${terrain.x}, ${terrain.y}` : `${terrain.type}, ${terrain.x}, ${terrain.y}`);
+    button.append(element('span', `${terrain.x},${terrain.y}`, 'coordinates'));
+    if (entity) { button.append(element('span', entity.type === 'npc' ? '♜' : '◆', 'city-marker'), element('strong', entity.name)); button.addEventListener('click', () => { selectedMapId = entity.id; send('map.details', { id: entity.id }); }); }
+    else button.addEventListener('click', () => renderMapDetails({ terrain, entity: null }));
+    if (entity?.id === selectedMapId) button.classList.add('selected'); return button;
+  }));
+}
+function renderMapDetails({ entity, terrain }) {
+  const content = [element('span', `KOORDINATE ${terrain.x}, ${terrain.y}`, 'kicker'), element('h2', entity?.name ?? 'Unbebautes Feld'), element('p', `Gelände: ${{ plains: 'Ebene', forest: 'Wald', hills: 'Hügel', water: 'Wasser' }[terrain.type]}`)];
+  if (entity) { content.push(element('p', entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`), element('p', `Entfernung: ${entity.distance.toFixed(2)} Felder Luftlinie`)); if (entity.type !== 'own-city') content.push(element('p', 'Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.', 'notice')); }
+  document.querySelector('#map-details').replaceChildren(...content);
+}
+document.querySelector('#coordinate-search').addEventListener('submit', event => { event.preventDefault(); const match = document.querySelector('#coordinate').value.match(/^\s*(\d+)\s*[,; ]\s*(\d+)\s*$/); if (!match) return messageRoot.textContent = 'Koordinate als x, y eingeben.'; requestMap({ x: Number(match[1]), y: Number(match[2]) }); });
+document.querySelector('#own-city').addEventListener('click', () => { if (mapState?.ownCity) requestMap(mapState.ownCity); });
+document.querySelector('#zoom-in').addEventListener('click', () => { mapSize = Math.max(5, mapSize - 2); document.querySelector('#zoom-label').value = `${Math.round(1100 / mapSize)} %`; requestMap(); });
+document.querySelector('#zoom-out').addEventListener('click', () => { mapSize = Math.min(15, mapSize + 2); document.querySelector('#zoom-label').value = `${Math.round(1100 / mapSize)} %`; requestMap(); });
+function panMap(x, y) { requestMap({ x: mapCenter.x + x, y: mapCenter.y + y }); }
+const panOffsets = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
+document.querySelectorAll('[data-pan]').forEach(button => button.addEventListener('click', () => panMap(...panOffsets[button.dataset.pan])));
+const worldMap = document.querySelector('#world-map');
+worldMap.addEventListener('keydown', event => { const offsets = { ArrowLeft: panOffsets.left, ArrowRight: panOffsets.right, ArrowUp: panOffsets.up, ArrowDown: panOffsets.down }; if (!offsets[event.key]) return; event.preventDefault(); panMap(...offsets[event.key]); });
+worldMap.addEventListener('pointerdown', event => {
+  if (event.button !== 0 || !event.isPrimary) return;
+  mapDrag = { pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY } };
+  worldMap.setPointerCapture(event.pointerId); worldMap.classList.add('dragging');
+});
+worldMap.addEventListener('pointerup', event => {
+  if (mapDrag?.pointerId !== event.pointerId) return;
+  const tile = worldMap.querySelector('.world-tile');
+  const offset = dragToPan(mapDrag.start, { x: event.clientX, y: event.clientY }, tile?.getBoundingClientRect().width || 46);
+  mapDrag = null; worldMap.classList.remove('dragging'); worldMap.releasePointerCapture(event.pointerId);
+  if (offset.x || offset.y) { suppressMapClick = true; panMap(offset.x, offset.y); }
+});
+worldMap.addEventListener('pointercancel', event => { if (mapDrag?.pointerId === event.pointerId) { mapDrag = null; worldMap.classList.remove('dragging'); } });
+worldMap.addEventListener('click', event => { if (!suppressMapClick) return; event.preventDefault(); event.stopPropagation(); suppressMapClick = false; }, true);
 connect();

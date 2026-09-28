@@ -93,6 +93,7 @@ test('WebSocket: getrennte Konten, Sitzung, Deduplizierung, Push und Neustart', 
   try {
     running = await start(directory, () => now); assert.equal((await fetch(`${running.url}/health`)).status, 200);
     assert.equal((await fetch(`${running.url}/request-id.js`)).status, 200);
+    assert.equal((await fetch(`${running.url}/map-navigation.js`)).status, 200);
     assert.equal((await fetch(`${running.url}/api/state`)).status, 410);
     const a = await websocket(running.port); const b = await websocket(running.port); clients.push(a, b);
     const authA = await authenticate(a, 'register', 'Alpha'); const authB = await authenticate(b, 'register', 'Bravo');
@@ -133,4 +134,34 @@ test('WebSocket weist fremde Origins und übergroße Nachrichten ab', async () =
     const client = await websocket(running.port); client.socket.write(Buffer.from([0x81, 0xfe, 0x40, 0x01]));
     await once(client.socket, 'close');
   } finally { if (running) await close(running.server); rmSync(directory, { recursive: true, force: true }); }
+});
+
+test('Gemeinsame Karte vergibt eindeutige Positionen, sendet Push und bleibt nach Neustart stabil', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'strategy-map-')); let running; const clients = [];
+  try {
+    running = await start(directory);
+    const a = await websocket(running.port); clients.push(a);
+    const first = await authenticate(a, 'register', 'KarteAlpha');
+    const initialMapPromise = a.next('map.snapshot');
+    a.send('map.viewport', { x: 0, y: 0, width: 15, height: 15 });
+    const initialMap = (await initialMapPromise).payload;
+    const b = await websocket(running.port); clients.push(b);
+    const pushPromise = a.next('map.changed');
+    const second = await authenticate(b, 'register', 'KarteBravo');
+    const pushed = (await pushPromise).payload.entity;
+    assert.equal(pushed.commanderName, 'KarteBravo');
+    const world = JSON.parse(readFileSync(join(directory, 'world.json'), 'utf8'));
+    const playerCities = world.map.entities.filter(entity => entity.kind === 'player');
+    assert.equal(new Set(playerCities.map(entity => `${entity.x}:${entity.y}`)).size, 2);
+    assert.equal(new Set(world.map.entities.filter(entity => entity.kind === 'npc').map(entity => entity.id)).size, 18);
+    const npc = world.map.entities.find(entity => entity.kind === 'npc');
+    const detailId = a.send('map.details', { id: npc.id }); const detail = (await a.next('map.details', detailId)).payload;
+    assert.equal(JSON.stringify(detail).includes('resources'), false); assert.equal(detail.restricted, true);
+    const invalidId = a.send('map.viewport', { x: -1, y: 0, width: 99, height: 1 });
+    assert.match((await a.next('command.error', invalidId)).payload.message, /Ungültiger|zu groß/);
+    assert.notEqual(first.snapshot.player.id, second.snapshot.player.id); assert.ok(initialMap.entities);
+    const before = readFileSync(join(directory, 'world.json'), 'utf8');
+    clients.splice(0).forEach(client => client.close()); await close(running.server); running = await start(directory);
+    assert.equal(readFileSync(join(directory, 'world.json'), 'utf8'), before);
+  } finally { clients.forEach(client => client.close()); if (running) await close(running.server); rmSync(directory, { recursive: true, force: true }); }
 });

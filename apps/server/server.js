@@ -7,6 +7,7 @@ import {
 } from '../../packages/game-core/index.js';
 import { WorldStorage } from './storage.js';
 import { acceptWebSocket } from './websocket.js';
+import { publicMap } from '../../packages/game-core/world.js';
 
 const MAX_PROCESSED_COMMANDS = 500;
 const COMMAND_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -15,6 +16,7 @@ const clientRoot = fileURLToPath(new URL('../client/', import.meta.url));
 const staticFiles = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']], ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/request-id.js', ['request-id.js', 'text/javascript; charset=utf-8']],
+  ['/map-navigation.js', ['map-navigation.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
 ]);
 
@@ -34,6 +36,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
   const ready = storage.initialize();
   const connections = new Set();
   const playerConnections = new Map();
+  const mapRequestTimes = new WeakMap();
   const loginAttempts = new Map();
 
   const response = (peer, type, requestId, payload = {}) => peer.send({ version: 1, type, requestId, payload });
@@ -58,6 +61,11 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     playerConnections.get(peer.playerId).add(peer);
     return result;
   };
+  const mapSnapshot = (playerId, viewport) => ({ world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ...publicMap(storage.world, playerId, viewport) });
+  const pushMapChange = entity => {
+    const publicEntity = { id: entity.id, type: 'player-city', name: entity.name, commanderName: entity.commanderName, x: entity.x, y: entity.y };
+    for (const connection of connections) if (connection.playerId) connection.send({ version: 1, type: 'map.changed', payload: { revision: storage.world.map.revision, entity: { ...publicEntity, type: connection.playerId === entity.playerId ? 'own-city' : 'player-city' } } });
+  };
 
   async function authenticate(peer, message) {
     const address = peer.socket.remoteAddress;
@@ -75,6 +83,8 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         commanderName: result.account.displayName, playerId: result.player.playerId,
       });
       response(peer, 'city.snapshot', message.requestId, snapshot(result.player, result.account));
+      response(peer, 'map.snapshot', message.requestId, mapSnapshot(result.player.playerId));
+      if (message.type === 'auth.register') pushMapChange(storage.world.map.entities.find(entity => entity.playerId === result.player.playerId));
     } catch (error) {
       attempts.count += 1;
       loginAttempts.set(address, attempts);
@@ -93,7 +103,8 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         if (!result) return response(peer, 'auth.required', message.requestId, { message: 'Sitzung ist ungültig oder abgelaufen.' });
         setIdentity(peer, result);
         response(peer, 'auth.success', message.requestId, { expiresAt: result.session.expiresAt, commanderName: result.account.displayName, playerId: result.player.playerId });
-        return response(peer, 'city.snapshot', message.requestId, snapshot(result.player, result.account));
+        response(peer, 'city.snapshot', message.requestId, snapshot(result.player, result.account));
+        return response(peer, 'map.snapshot', message.requestId, mapSnapshot(result.player.playerId));
       }
       if (!peer.playerId) return response(peer, 'auth.required', message.requestId, { message: 'Bitte zuerst anmelden.' });
       if (message.type === 'auth.logout') {
@@ -106,6 +117,20 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       if (message.type === 'city.sync') {
         const player = await storage.loadPlayer(peer.playerId);
         return response(peer, 'city.snapshot', message.requestId, snapshot(player, peer.account));
+      }
+      if (message.type === 'map.viewport') {
+        const payload = mapSnapshot(peer.playerId, message.payload);
+        const previous = mapRequestTimes.get(peer) ?? 0;
+        if (clock() - previous < 75) throw new Error('Kartenanfragen erfolgen zu schnell.');
+        mapRequestTimes.set(peer, clock());
+        return response(peer, 'map.snapshot', message.requestId, payload);
+      }
+      if (message.type === 'map.details') {
+        if (typeof message.payload.id !== 'string' || message.payload.id.length > 100) throw new Error('Ungültige Kartenidentität.');
+        const entity = storage.world.map.entities.find(candidate => candidate.id === message.payload.id);
+        if (!entity) throw new Error('Stadt nicht gefunden.');
+        const view = publicMap(storage.world, peer.playerId, { x: entity.x, y: entity.y, width: 1, height: 1 });
+        return response(peer, 'map.details', message.requestId, { entity: view.entities[0], terrain: view.terrain[0], restricted: entity.playerId !== peer.playerId });
       }
       if (message.type !== 'construction.enqueue') throw new Error('Ereignistyp ist nicht erlaubt.');
       await storage.exclusive(async () => {

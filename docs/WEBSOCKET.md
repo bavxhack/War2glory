@@ -4,7 +4,7 @@
 
 Die Anwendung lädt nur statische Dateien, `GET /health` und die öffentliche Föderationsbeschreibung über HTTP. Private Spielstände und Spielbefehle sind ausschließlich über `GET /game` als WebSocket-Upgrade erreichbar. Jedes Clientereignis enthält `version`, `type`, eine eindeutige `requestId` und `payload`. Antworten tragen dieselbe `requestId`; Push-Ereignisse benötigen keine.
 
-Der Server akzeptiert `auth.register`, `auth.login`, `auth.resume`, `auth.logout`, `city.sync` und `construction.enqueue`. Er sendet `auth.success`, `auth.required`, `city.snapshot`, `city.updated`, `construction.completed`, `command.ok` und `command.error`. Nachrichten sind auf 16 KiB begrenzt. Der Server prüft Format, Ereignistyp und Origin. Hinter einem Reverse Proxy werden erlaubte öffentliche Origins explizit angegeben:
+Der Server akzeptiert `auth.register`, `auth.login`, `auth.resume`, `auth.logout`, `city.sync`, `construction.enqueue`, `map.viewport` und `map.details`. Er sendet zusätzlich `map.snapshot`, `map.details` und bei neu registrierten Städten `map.changed`. Kartenausschnitte sind höchstens 15×15 Felder groß; Koordinaten, IDs und eine kurze Anfragerate werden serverseitig geprüft. Antworten auf öffentliche Kartendetails enthalten keine Ressourcen, Garnisonen, Bauaufträge oder Regenerationszeitstempel. Nachrichten sind auf 16 KiB begrenzt. Der Server prüft Format, Ereignistyp und Origin. Hinter einem Reverse Proxy werden erlaubte öffentliche Origins explizit angegeben:
 
 ```sh
 npm start -- --host 0.0.0.0 --origins https://spiel.example.org
@@ -20,7 +20,9 @@ Eine bestätigte Bau-ID bleibt 30 Tage lang erhalten, höchstens die letzten 500
 
 ## JSON-Ablage, Sicherung und Altstadt
 
-Eine Welt enthält `world.json`, `accounts.json` und je Spieler `players/<serverseitige-uuid>.json`. Temporäre Dateien werden atomar umbenannt. Dateinamen stammen nie aus Benutzereingaben. Pro Weltverzeichnis darf genau ein Serverprozess schreiben. Unbekannte oder beschädigte JSON-Dateien stoppen den Start, statt still überschrieben zu werden.
+Eine Welt enthält `world.json`, `accounts.json` und je Spieler `players/<serverseitige-uuid>.json`. `world.json` ist die verbindliche Quelle für Weltidentität, Karte, NPCs und Stadtpositionen. Für eine neue Stadt wählt der Server kryptografisch zufällig aus allen freien, bebaubaren Feldern; die serialisierte Vergabe verhindert Doppelbelegungen bei gleichzeitigen Registrierungen. Die Weltänderung wird bei einer Registrierung vor Spieler und Konto atomar geschrieben und bei Folgefehlern zurückgerollt; alle Schritte laufen in derselben Prozesswarteschlange. Bestehendes Weltschema 1 wird vor der einmaligen Migration als `world.json.schema-1.backup` gesichert und erhält für alle vorhandenen Konten Positionen. Wiederholtes Laden vergibt keine neue Position. Temporäre Dateien werden atomar umbenannt. Dateinamen stammen nie aus Benutzereingaben. Pro Weltverzeichnis darf genau ein Serverprozess schreiben. Unbekannte oder beschädigte JSON-Dateien stoppen den Start, statt still überschrieben zu werden.
+
+NPC-Nahrung ist intern als gemeinsamer, versionierter Bestand mit Kapazität, Regenerationsrate und `updatedAt` vorbereitet. Später wird der Server beim Zugriff die seit diesem Zeitpunkt entstandene Nahrung bis zur Kapazität nachberechnen. Eine künftige Beuteentnahme muss unter derselben serialisierten Weltsperre speichern, bevor Nahrung gutgeschrieben wird, damit parallele Angriffe denselben Bestand nicht doppelt erhalten. Diese Regeneration und Beuteentnahme sind noch nicht implementiert.
 
 Für Sicherung und Wiederherstellung den Server stoppen und das vollständige Verzeichnis `data/<welt>/` kopieren beziehungsweise ersetzen. Bestehende `state.json`-Demo-Daten werden nicht automatisch einem Konto gegeben. Nach Registrierung und bei gestopptem Server erfolgt die ausdrückliche Übernahme so:
 
