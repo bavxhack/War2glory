@@ -101,6 +101,8 @@ Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht autom
 - Der Erfahrungsbedarf je zusätzlichem Skillpunkt steigt mit der bereits erreichten Skillpunktzahl.
 - Jeder General kann einen eigenen Namen erhalten. Name und Eigenschaften werden in einem Modal bearbeitet.
 - Erfahrung, Skillpunkte, Eigenschaften und Einsätze gehören zum jeweiligen General und bleiben dauerhaft gespeichert.
+- Führung, Angriff und Verteidigung sind als Eigenschaften bestätigt. Ihre konkreten Bonuswirkungen sind noch offen.
+- Als spätere Einsatzrollen sind Truppengeneral, Bürgermeister in einer Stadt und Forschungsgeneral vorgesehen. Die Generalverwaltung soll diese unterschiedlichen Aufgaben ermöglichen.
 
 ### Ausführbarer nächster Schritt
 
@@ -109,11 +111,14 @@ Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht autom
 - Skillberechnung und Speicherung konfigurierbar vorbereiten und mit isolierten Testregeln prüfen. Echte Umrechnung und Bonusvergabe erst nach Festlegung der offenen Regeln aktivieren.
 - Mehrere Generäle mit Testdaten prüfen; keine frei verfügbare Rekrutierung oder zusätzlichen kostenlosen Generäle für bestehende Konten erfinden.
 - Bestehende Erfahrung, Level und aktive Einsätze erhalten; Änderungen über WebSocket mit serverseitiger Prüfung und privater JSON-Speicherung.
+- Eigenschaften und Einsatzrolle getrennt modellieren. Eine erweiterbare Rollenzuweisung ist der technische Vorschlag; Bürgermeister- und Forschungswirkungen werden jetzt noch nicht aktiviert.
 
 ### Noch gemeinsam festzulegen
 
 - Startkosten und Verlauf der steigenden Erfahrungskosten; automatische Umrechnung oder bewusster Spielerbefehl.
-- Konkrete Eigenschaften und Bonuswirkungen, Grenzen und Zusammenspiel mit Level und Führungskapazität.
+- Bonuswirkungen der bestätigten Eigenschaften Führung, Angriff und Verteidigung, Grenzen und Zusammenspiel mit Level und Führungskapazität.
+- Wirkung dieser Eigenschaften in den Rollen Truppengeneral, Bürgermeister und Forschungsgeneral; Rollenplätze, Voraussetzungen, Wechsel und mögliche gleichzeitige Aufgaben.
+- Erfahrungserwerb in zivilen Rollen und Wirkung von Rollenwechseln auf laufende Vorgänge. Bürgermeister und Forschungsgeneral bleiben spätere Implementierungsaufträge.
 - Rekrutierungsbedingungen, mögliche Anzahlgrenzen und spätere Rücksetzung verteilter Punkte.
 - Kampf-Erfahrungsbelohnungen und Verteilung bei mehreren beteiligten Generälen; künftige Rolle von Aufklärungs-Erfahrung.
 
@@ -264,7 +269,7 @@ Als Diskussionsgrundlage, noch nicht beschlossen: Gesamtpunkte setzen sich aus G
 
 **NPC-Städte:** Gemeinsame Nutzung und allmähliche Ressourcenregeneration nach dem Farmen sind bestätigt. Stufen, Garnisonen, konkrete Vorratsgrößen und Regenerationsraten bleiben auszugestalten. Farmzüge brauchen Marschzeit, Kampfauswertung, Traglast und Rückkehr. Nahrung wird erst nach erfolgreicher Rückkehr gutgeschrieben. Gleichzeitige Angriffe dürfen denselben Vorrat nicht mehrfach plündern. Weitere Rohstoffe als Beute bleiben eine offene Entscheidung.
 
-**Generäle:** Rekrutierung, Name, Erfahrungspunkte, Level, Attribute und Zuweisung zu einer Armee. Vorgeschlagene Attribute: Führung, Angriff und Verteidigung. Eine vorgeschlagene Führungskapazität begrenzt die befehligten Truppen. Ein General kann nur einen aktiven Marsch gleichzeitig befehligen. Erfahrungsbelohnungen werden aus bestätigten Gefechten abgeleitet und nur einmal vergeben. Levelkurve, Obergrenze, Attributpunkte, Verwundung und Niederlagenfolgen sind offen; keine Originalwerte werden behauptet.
+**Generäle:** Rekrutierung, Name, Erfahrungspunkte, Level, Attribute und Zuweisung zu einer Armee. Bestätigte Attribute: Führung, Angriff und Verteidigung; deren konkrete Bonusformeln bleiben offen. Bestätigte spätere Einsatzrollen: Truppengeneral, Bürgermeister und Forschungsgeneral. Eine vorgeschlagene Führungskapazität begrenzt die befehligten Truppen. Ein General kann nur einen aktiven Marsch gleichzeitig befehligen. Erfahrungsbelohnungen werden aus bestätigten Gefechten abgeleitet und nur einmal vergeben. Levelkurve, Obergrenze, Attributpunkte, Verwundung und Niederlagenfolgen sind offen; keine Originalwerte werden behauptet.
 
 **Erster vollständiger PvE-Ablauf:** General zuweisen → Truppen wählen → NPC-Stadt angreifen → Kampfbericht erhalten → mit Nahrung zurückkehren → Erfahrung und möglichen Levelaufstieg anzeigen.
 
