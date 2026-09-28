@@ -58,7 +58,7 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 - Einheiten werden erst bei Ausbildungsabschluss verfügbar. Zeige stationierte, in Ausbildung befindliche und unterwegs gebundene Truppen getrennt.
 - Bestimme die Ausbildungsgeschwindigkeit nachvollziehbar aus der Kasernenstufe. Bereits bezahlte Aufträge dürfen durch einen Ausbau nicht stillschweigend verändert werden; verwende für diese Etappe beim Start festgeschriebene Zeiten.
 - Maximalmengen, Warteschlangengrenzen und ungültige Stückzahlen werden serverseitig geprüft. Kein negatives oder nicht ganzzahliges Rekrutieren.
-- Dauerhafter Truppenunterhalt, Waffenfabriken und weitere Einheiten sind noch nicht Teil dieses Auftrags.
+- Dauerhafter Nahrungsunterhalt ist als spätere Anforderung bestätigt und im Abschnitt „Geplanter Nahrungsunterhalt der Truppen“ beschrieben; jetzt noch nicht aktivieren. Waffenfabriken und weitere Einheiten bleiben ebenfalls spätere Aufgaben.
 
 ### Ein erster General pro Kommandant als Einstieg
 
@@ -191,7 +191,7 @@ Prüfe außerdem im Browser mit zwei unabhängigen Benutzerkontexten den vollst�
 
 ## Danach: vorbereitete Reihenfolge, noch nicht automatisch ausführen
 
-1. **Erste NPC-Farmzüge:** Infanterie und General entsenden, Garnison und Kampfregeln festlegen, Kampfausgang/Verluste, gemeinsame Nahrungsvorräte, unterschiedliche Traglast je Truppentyp gemäß dem folgenden Logistikabschnitt, Rückkehr mit Beute und allmähliche NPC-Regeneration. Kampfpunkte und Niederlageneinfluss werden hierbei angeschlossen. Vorab Kampf- und Verlustregeln als eigenen Auftrag ausarbeiten.
+1. **Erste NPC-Farmzüge:** Infanterie und General entsenden, Garnison und Kampfregeln festlegen, Kampfausgang/Verluste, gemeinsame Nahrungsvorräte, unterschiedliche Traglast je Truppentyp gemäß dem folgenden Logistikabschnitt, Rückkehr mit Beute und allmähliche NPC-Regeneration. Kampfpunkte und Niederlageneinfluss werden hierbei angeschlossen. Typabhängigen Nahrungsunterhalt gemeinsam mit oder unmittelbar nach diesem Farmkreislauf gemäß späterem Unterhaltsabschnitt einplanen. Vorab Kampf-, Verlust- und Nahrungsmangelregeln als eigenen Auftrag ausarbeiten.
 2. **Lager und Gebäudeabriss:** Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus, vollständiger Gebäudeabriss mit kleiner Rückerstattung kumulierter Investitionen. Überbestände und Rückerstattungsanteil vor Umsetzung festlegen.
 3. **Universitäten und Forschung:** Produktion, Kapazitäten und Freischaltungen verbessern; Forschungspunkte integrieren.
 4. **Spätere motorisierte Einheiten und Logistik:** LKWs mit hoher Traglast ohne Kampfkraft, Öl als Ressource, zivile Ölraffinerien und typabhängiger Ölbedarf zur Mobilmachung. Vorher die offenen Logistikregeln unten konkretisieren.
@@ -237,8 +237,43 @@ Nutzerergänzung vom 28.09.2026. Diese Anforderungen sind geplant, nicht als imp
 - Werte, Freischaltung, Herstellungsort, Kosten, Reisegeschwindigkeit und Schutzbedarf von LKWs. Keine Kampfkraft bedeutet nicht Unverwundbarkeit; Regeln für Beschädigung, Verlust oder Erbeutung sind noch offen.
 - Ob LKWs beim Transport die Führungskapazität eines Generals belegen und ob unbegleitete Transporte zulässig sind.
 - Ölbedarf je Truppentyp und Bedeutung von Mobilmachung: einmalige Kosten beim Entsenden oder eine andere Regel; außerdem Entfernungsabhängigkeit sowie Versorgung von Hin- und Rückweg.
-- Ölbedarf ist nicht automatisch Truppenunterhalt oder Rekrutierungskosten. Solche zusätzlichen Kosten sind nicht bestätigt.
+- Ölbedarf zur Mobilmachung ist von dem separat bestätigten laufenden Nahrungsunterhalt zu unterscheiden. Zusätzlicher laufender Ölunterhalt oder Öl als Rekrutierungskosten sind nicht bestätigt.
 - Zeitpunkt der Reservierung bzw. Abbuchung, Verhalten bei fehlendem Öl sowie mögliche Rückerstattung bei späterem Abbruch. Der Server muss Doppelverbrauch verhindern und einen begonnenen Einsatz nach Neustart konsistent fortsetzen.
 - Raffineriekosten, Ausbaustufen, Produktions- und Lagerwerte sowie ein erreichbarer Einstieg in die Ölwirtschaft. Die erste Raffinerie darf nicht Öl voraussetzen, das ohne sie noch nicht beschafft werden kann.
 - Bestehenden Armeen bei einer Migration keine rückwirkenden Ölrechnungen auferlegen. Laufende Einsätze bleiben an ihre beim Start geltenden Regeln gebunden.
+
+## Geplanter Nahrungsunterhalt der Truppen
+
+Nutzeranforderung vom 28.09.2026. Geplant für die Wirtschafts- und Farmmechanik, noch nicht als implementiert bestätigt. Der laufende Auftrag wird dadurch nicht automatisch um ein aktives Unterhaltssystem erweitert.
+
+### Bestätigte Anforderungen und Berechnung
+
+- Truppen verbrauchen fortlaufend Nahrung. Der Verbrauch pro Einheit und Zeit unterscheidet sich je Truppentyp.
+- Der Verbrauch wird regelmäßig verrechnet beziehungsweise als Abzug von der Nahrungsproduktion berücksichtigt. Dies sind zwei mögliche Darstellungen derselben Belastung, keine zwei getrennten Kosten.
+- Gesamtverbrauch pro Zeiteinheit = Summe aus versorgter Einheitenanzahl je Truppentyp × dessen Nahrungsbedarf pro Einheit und Zeiteinheit.
+- Nahrungsbilanz pro Zeiteinheit = tatsächliche Nahrungsproduktion minus Gesamtverbrauch. Eine negative Bilanz verbraucht vorhandene Vorräte; erfolgreiche Plünderungen sollen dieses Defizit ausgleichen können.
+- „Negative Nahrung“ wird hier als negative laufende Bilanz verstanden. Negative Lagerbestände oder Nahrungsschulden sind damit nicht beschlossen.
+- Nahrung aus einem Farmzug steht gemäß den bisherigen Regeln erst bei Rückkehr zur Verfügung. Erwartete Beute darf vorher keinen Verbrauch decken.
+- Nahrungsunterhalt ist unabhängig vom späteren Ölbedarf zur Mobilmachung. Beide Kostenarten werden getrennt konfiguriert und angezeigt.
+
+### Empfohlene Reihenfolge und noch offene Regeln
+
+- Empfehlung: Datenmodell und Wirtschaftsberechnung beim Lagerausbau vorbereiten; tatsächlichen Nahrungsunterhalt zusammen mit oder unmittelbar nach dem ersten funktionierenden NPC-Farmkreislauf aktivieren. Vor Aktivierung Verbrauchswerte und Verhalten bei leerem Lager festlegen.
+- Noch offen: konkrete Verbrauchswerte, Zeiteinheit, kontinuierliche Verrechnung oder feste Intervalle einschließlich Rundung.
+- Noch offen: Folgen bei aufgebrauchter Nahrung. Keine automatische Desertion, Truppenvernichtung, Kampfschwächung oder Verschuldung erfinden.
+- Noch offen: Versorgung stationierter Truppen, marschierender Armeen, späterer Unterstützungstruppen und Transporteinheiten wie LKWs. Für jede Gruppe müssen zahlende Stadt und Verbrauchszeitraum eindeutig festgelegt werden; keine doppelte Verrechnung und keine unbeabsichtigte Unterhaltsbefreiung durch Entsenden.
+- Noch offen: Verbrauchsbeginn bei Ausbildung und Behandlung späterer Verluste, Entlassungen oder Besitzwechsel. Technischer Vorschlag: ausgebildete Einheiten ab tatsächlicher Fertigstellung zählen, Verluste ab dem bestätigten Verlustzeitpunkt.
+- Verbrauch, Produktion, Marschzeiten und NPC-Regeneration müssen zusammen einen erreichbaren Versorgungskreislauf ermöglichen. Konkrete Balancewerte werden separat festgelegt.
+
+### Leitplanken für die spätere Codex-Umsetzung
+
+- Zeige Bruttoproduktion, Truppenverbrauch, Nettobilanz und Vorrat getrennt an. Bei negativem Nettoertrag optional die voraussichtliche Restversorgungsdauer anzeigen: Vorrat geteilt durch den Betrag des Nettoverbrauchs, mit Hinweis auf unveränderte aktuelle Raten.
+- Berechne den Verbrauch serverseitig auch bei Abwesenheit und Neustart. Browser-Timer oder offene Verbindungen bestimmen keine Kosten.
+- Verrechne Ereignisse chronologisch: Produktionsänderung, Ausbildungsabschluss, Truppenverlust, Rückkehr mit Nahrung sowie Erreichen eines leeren oder vollen Lagers. Ein zwischenzeitlich leeres Lager darf nicht durch später eintreffende Beute rückwirkend als versorgt gelten.
+- Für unveränderte Raten gilt innerhalb eines Zeitabschnitts: Bestandsänderung = Nettobilanz × verstrichene Zeit in der vereinbarten Zeiteinheit. Lagergrenzen und das spätere Mangelverhalten sind an ihren tatsächlichen Eintrittszeitpunkten anzuwenden.
+- Persistiere Verrechnungszeitpunkt und erforderliche Rundungsreste bzw. rechne mit hinreichender Genauigkeit. Häufigere Aktualisierungen, Reconnects oder mehrere Verbindungen dürfen weder zusätzlichen Verbrauch noch kostenlose Nahrung erzeugen.
+- Verrechne Unterhalt genau einmal: nicht zugleich als reduzierte Produktion und als zusätzliche volle Abbuchung.
+- Aktiviere Unterhalt mit dokumentiertem Startzeitpunkt und versionierter Migration. Bestehende Truppen erhalten keine rückwirkende Rechnung für Zeiten vor Einführung der Regel.
+- Zustandsänderungen werden dauerhaft im privaten JSON-Spielstand gespeichert und über WebSocket an berechtigte Verbindungen gemeldet.
+- Prüfe verschiedene Truppentypen, positive/null/negative Nettobilanz, Lagergrenzen, chronologische Ratenwechsel, Offlinebetrieb, kleine gegenüber großen Zeitschritten, Neustart und einmalige Beutegutschrift. Tests für Nahrungsmangel folgen den erst noch festzulegenden Regeln.
 
