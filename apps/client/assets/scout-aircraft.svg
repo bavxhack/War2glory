@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title description">
+  <title id="title">Aufklärungsflugzeug</title>
+  <desc id="description">Stilisiertes Propellerflugzeug über einer Landschaft.</desc>
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#98c7d2"/><stop offset="1" stop-color="#e5d6a3"/></linearGradient>
+    <linearGradient id="body" x2="1"><stop stop-color="#39483c"/><stop offset=".55" stop-color="#78816b"/><stop offset="1" stop-color="#28332c"/></linearGradient>
+  </defs>
+  <rect width="640" height="360" rx="28" fill="url(#sky)"/>
+  <path d="M0 285 105 224l92 40 107-92 99 77 92-52 145 82v81H0z" fill="#486443" opacity=".9"/>
+  <path d="M0 310 137 258l82 35 118-53 102 43 97-31 104 45v63H0z" fill="#283e2c"/>
+  <g transform="translate(92 55) rotate(-5 230 120)">
+    <path d="M73 119c54-26 140-38 251-30l84 8 58 28-59 17-91 2c-101 18-185 18-247-1z" fill="url(#body)" stroke="#17251e" stroke-width="8"/>
+    <path d="m245 100 59-73 37 3-20 76zM225 139l88 83-43 4-101-78z" fill="#596c59" stroke="#17251e" stroke-width="8" stroke-linejoin="round"/>
+    <path d="m391 99 41-52 30 2-16 58z" fill="#4c604f" stroke="#17251e" stroke-width="7"/>
+    <ellipse cx="74" cy="131" rx="15" ry="70" fill="none" stroke="#d6dfce" stroke-width="8" opacity=".75"/>
+    <circle cx="74" cy="131" r="14" fill="#b99b52" stroke="#17251e" stroke-width="7"/>
+    <path d="M125 106q37-31 75-10l-8 27-70 4z" fill="#a9d7db" stroke="#17251e" stroke-width="7"/>
+  </g>
+</svg>

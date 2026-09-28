@@ -24,8 +24,9 @@
       <div><span class="kicker">SPIELWELT <span id="world">…</span></span><h1 id="city-name">Deine Stadt</h1><p>Kommandant <strong id="commander">…</strong></p></div>
       <div class="connection"><span id="connection-dot"></span><span id="connection">Verbinde …</span><button id="logout" class="text-button">Abmelden</button></div>
     </header>
-    <nav class="view-tabs" aria-label="Spielansicht"><button id="show-city" class="active" aria-pressed="true">Stadt</button><button id="show-world" aria-pressed="false">Weltkarte</button></nav>
+    <nav class="view-tabs" aria-label="Spielansicht"><button id="show-city" class="active" aria-pressed="true">Stadt</button><button id="show-military" aria-pressed="false">Militär</button><button id="show-world" aria-pressed="false">Weltkarte</button></nav>
     <section aria-label="Rohstoffe" id="resources" class="resources"></section>
+    <section id="score" class="score-strip" aria-label="Kommandantenpunkte"></section>
     <div id="city-view" class="game-layout">
       <section class="map-panel" aria-labelledby="city-heading">
         <div class="heading"><div><span class="kicker">STADTANSICHT</span><h2 id="city-heading">Siedlung</h2></div><span>Grundstück auswählen</span></div>
@@ -36,12 +37,26 @@
         <section class="card queue" aria-labelledby="queue-heading"><div class="queue-title"><h2 id="queue-heading">Bauplan</h2><span id="queue-capacity"></span></div><ol id="queue-list"></ol></section>
       </aside>
     </div>
+    <section id="military-view" hidden class="game-layout" aria-labelledby="military-heading">
+      <section class="map-panel"><div class="heading"><div><span class="kicker">MILITÄRBEREICH</span><h2 id="military-heading">Kaserne &amp; Truppen</h2></div><span>Eigene Bauplätze</span></div><div id="military-grid" class="city-grid compact"></div></section>
+      <aside><section id="military-selection" class="card selection"><p>Wähle einen Militärbauplatz.</p></section><section id="forces" class="card"></section><section id="missions" class="card"></section><section id="reports" class="card"></section></aside>
+    </section>
     <section id="world-view" hidden aria-labelledby="world-heading">
       <div class="world-toolbar"><div><span class="kicker">GEMEINSAME WELT</span><h2 id="world-heading">Weltkarte</h2></div><form id="coordinate-search"><label>Koordinate <input id="coordinate" placeholder="z. B. 12, 8" inputmode="numeric" aria-label="Koordinate x, y"></label><button>Suchen</button></form><div class="zoom"><button id="zoom-out" aria-label="Verkleinern">−</button><output id="zoom-label">100 %</output><button id="zoom-in" aria-label="Vergrößern">+</button><button id="own-city">Zur eigenen Stadt</button></div></div>
-      <div class="world-layout"><div class="map-stage"><div id="world-map" class="world-map" role="grid" aria-label="Quadratische Weltkarte. Mit Maus oder Finger ziehen, mit Pfeiltasten verschieben." tabindex="0"></div><div class="pan-controls" aria-label="Karte verschieben"><button data-pan="up" aria-label="Karte nach oben verschieben">▲</button><button data-pan="left" aria-label="Karte nach links verschieben">◀</button><button data-pan="down" aria-label="Karte nach unten verschieben">▼</button><button data-pan="right" aria-label="Karte nach rechts verschieben">▶</button></div><p class="map-hint">Karte mit Maus oder Finger ziehen · Pfeiltasten funktionieren ebenfalls</p></div><aside class="map-sidebar"><section id="map-details" class="card"><p>Wähle ein Feld oder eine Stadt.</p></section><section class="card legend"><h3>Legende</h3><span><i class="marker own"></i>Eigene Stadt</span><span><i class="marker player"></i>Spielerstadt</span><span><i class="marker npc"></i>NPC-Stadt</span><small>Entfernung: Luftlinie in Kartenfeldern.</small></section></aside></div>
+      <div class="world-layout"><div class="map-stage"><div id="world-map" class="world-map" role="grid" aria-label="Quadratische Weltkarte. Mit Maus oder Finger ziehen, mit Pfeiltasten verschieben." tabindex="0"></div><div class="pan-controls" aria-label="Karte verschieben"><button data-pan="up" aria-label="Karte nach oben verschieben">▲</button><button data-pan="left" aria-label="Karte nach links verschieben">◀</button><button data-pan="down" aria-label="Karte nach unten verschieben">▼</button><button data-pan="right" aria-label="Karte nach rechts verschieben">▶</button></div><p class="map-hint">Karte mit Maus oder Finger ziehen · Pfeiltasten funktionieren ebenfalls</p></div><aside class="map-sidebar"><section id="map-details" class="card" tabindex="-1" aria-live="polite"><p>Wähle ein Feld oder eine Stadt.</p></section><section class="card legend"><h3>Legende</h3><span><i class="marker own"></i>Eigene Stadt</span><span><i class="marker player"></i>Spielerstadt</span><span><i class="marker npc"></i>NPC-Stadt</span><small>Entfernung: Luftlinie in Kartenfeldern.</small></section></aside></div>
     </section>
     <p id="message" role="status" aria-live="polite"></p>
-    <footer>Angriffe, Aufklärung, NPC-Farmen, Generäle, Bündnisse und Matrix-Föderation sind geplant, aber noch nicht implementiert.</footer>
+    <footer>NPC-Aufklärung ist als verlustfreie Testfassung aktiv. Kampf, Plünderung, PvP, Unterhalt und Matrix-Föderation sind noch nicht implementiert.</footer>
   </main>
+  <dialog id="scouting-dialog" class="mission-dialog" aria-labelledby="scouting-dialog-title">
+    <form id="scouting-form" method="dialog">
+      <div class="dialog-heading"><div><span class="kicker">EINSATZ PLANEN</span><h2 id="scouting-dialog-title">Stadt ausspähen</h2></div><button type="button" id="close-scouting" class="dialog-close" aria-label="Dialog schließen">×</button></div>
+      <p id="scouting-target"></p>
+      <label>General<select id="scouting-general" name="generalId" required></select></label>
+      <label>Anzahl Aufklärungsflugzeuge<input id="scouting-count" name="scouts" type="number" min="1" step="1" inputmode="numeric" required></label>
+      <div id="scouting-preview" class="mission-preview"></div>
+      <div class="dialog-actions"><button type="button" id="cancel-scouting" class="secondary">Abbrechen</button><button type="submit" id="confirm-scouting">Einsatz starten</button></div>
+    </form>
+  </dialog>
 </body>
 </html>

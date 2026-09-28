@@ -65,6 +65,7 @@ Die Weltkarte ist laut Nutzer und Repository umgesetzt. Der Nutzer möchte weite
 3. Erste NPC-Aufklärung mit zugewiesenem General und Spähern, Hin-/Rückmarsch und privaten zeitgestempelten Berichten.
 4. Neustartfeste JSON-Abläufe, WebSocket-Ereignisse, Migration und gezielte Tests.
 
+Diese Funktionen sind im Prototyp implementiert. Echte Angriffe, Verluste und Nahrung als Beute sind der nächste separate Schritt.
 Generäle sind laut neuer Nutzerangabe bereits angelegt. Der Umsetzungsstand der übrigen beauftragten Funktionen ist dadurch nicht zusätzlich bestätigt. Echte Angriffe, Verluste und Nahrung als Beute sind der nächste separate Schritt.
 
 ### Vorläufige Arbeitsvorschläge für den Review
