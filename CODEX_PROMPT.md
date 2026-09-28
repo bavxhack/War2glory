@@ -191,9 +191,54 @@ Prüfe außerdem im Browser mit zwei unabhängigen Benutzerkontexten den vollst�
 
 ## Danach: vorbereitete Reihenfolge, noch nicht automatisch ausführen
 
-1. **Erste NPC-Farmzüge:** Infanterie und General entsenden, Garnison und Kampfregeln festlegen, Kampfausgang/Verluste, gemeinsame Nahrungsvorräte, begrenzte Traglast, Rückkehr mit Beute und allmähliche NPC-Regeneration. Kampfpunkte und Niederlageneinfluss werden hierbei angeschlossen. Vorab Kampf- und Verlustregeln als eigenen Auftrag ausarbeiten.
+1. **Erste NPC-Farmzüge:** Infanterie und General entsenden, Garnison und Kampfregeln festlegen, Kampfausgang/Verluste, gemeinsame Nahrungsvorräte, unterschiedliche Traglast je Truppentyp gemäß dem folgenden Logistikabschnitt, Rückkehr mit Beute und allmähliche NPC-Regeneration. Kampfpunkte und Niederlageneinfluss werden hierbei angeschlossen. Vorab Kampf- und Verlustregeln als eigenen Auftrag ausarbeiten.
 2. **Lager und Gebäudeabriss:** Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus, vollständiger Gebäudeabriss mit kleiner Rückerstattung kumulierter Investitionen. Überbestände und Rückerstattungsanteil vor Umsetzung festlegen.
 3. **Universitäten und Forschung:** Produktion, Kapazitäten und Freischaltungen verbessern; Forschungspunkte integrieren.
-4. Danach weitere Einheiten und Waffensysteme, Bündnisse/Handel sowie Matrix-Föderation gemäß Projektplan.
+4. **Spätere motorisierte Einheiten und Logistik:** LKWs mit hoher Traglast ohne Kampfkraft, Öl als Ressource, zivile Ölraffinerien und typabhängiger Ölbedarf zur Mobilmachung. Vorher die offenen Logistikregeln unten konkretisieren.
+5. Danach weitere Einheiten und Waffensysteme, Bündnisse/Handel sowie Matrix-Föderation gemäß Projektplan.
+
+Empfehlung aus der anschließenden Planung: Lagerregeln vor dem ersten Farmzug abschließen. Dies ist eine vorgeschlagene Priorisierung, kein zusätzlicher Implementierungsauftrag.
 
 Der nächste Auftrag darf diese späteren Schritte nicht als bereits umgesetzt darstellen. Die hier verwendeten Prototypwerte sind ausdrücklich vorläufige Arbeitsvorschläge für den Review.
+
+## Geplante Logistik: Traglast, LKWs und Öl
+
+Nutzerergänzung vom 28.09.2026. Diese Anforderungen sind geplant, nicht als implementiert bestätigt. Sie erweitern die späteren Farm- und Einheitenaufträge; LKWs und Öl gehören nicht automatisch zum laufenden Auftrag 4.
+
+### Bestätigte Anforderungen
+
+- Jeder Truppentyp erhält eine eigene Transportkapazität je Einheit. Plünderbare Beute ist durch die verfügbare Transportkapazität der entsandten Truppen begrenzt.
+- LKWs sind spätere Transporteinheiten mit hoher Transportkapazität und ohne Kampfkraft. Ihre konkreten Werte sind noch offen.
+- Öl wird als weitere Ressource eingeführt. Der neue Gebäudetyp Ölraffinerie produziert Öl.
+- Öl wird für die Mobilmachung benötigt; unterschiedliche Truppentypen benötigen unterschiedliche Mengen. Zeitpunkt, Berechnungsgrundlage und konkrete Verbrauchswerte sind noch festzulegen.
+
+### Einordnung in die Entwicklung
+
+- Empfehlung des Planungschats: typabhängige Traglast bereits beim ersten NPC-Farmzug umsetzen. LKWs, Ölraffinerie und Ölverbrauch gemeinsam in einer späteren Etappe für motorisierte Einheiten ergänzen.
+- Jetzt bei ohnehin anstehenden Arbeiten Einheitenwerte und Ressourcen erweiterbar halten: Transportkapazität, Kampfkraft und späterer Ölbedarf sind getrennte Größen. Keine unnötige vollständige Umstellung und keine Ölpflicht für bisherige Märsche.
+- Lager, Produktion, Baukosten, Forschungswirkungen, WebSocket-Daten und JSON-Speicherung dürfen nicht dauerhaft auf genau drei Ressourcen festgelegt werden. Bestehende Spielstände und Regeln bleiben bei späterer Einführung von Öl erhalten.
+- Die Ölraffinerie ist ein Ressourcenproduktionsgebäude und gehört gemäß der bestätigten Bereichstrennung auf zivile Bauplätze, nicht auf Militärbauplätze.
+- Die stufenabhängige ressourcenspezifische Lagerwirkung von Produktionsgebäuden soll auch für Öl gelten; das Lagerhaus umfasst später ebenfalls Öl. Konkrete Werte im Öl-Auftrag festlegen.
+- Keine zusätzliche Rohöl-Ressource oder Verarbeitungskette erfinden: bislang bestätigt ist nur die Ölproduktion durch Raffinerien.
+
+### Vor dem ersten Farmzug konkret festlegen
+
+- Gesamttraglast ergibt sich aus der Summe: transportfähige Anzahl je Truppentyp × dessen Kapazität. Dieselbe Kapazität darf bei mehreren Beuteressourcen nicht mehrfach genutzt werden.
+- Technischer Vorschlag: Beute nach dem Kampf anhand der überlebenden, zum Transport fähigen Truppen begrenzen. Verlust- und Rückkehrregeln müssen vor Umsetzung festlegen, was mit Ladung bei späterem Kapazitätsverlust geschieht.
+- Beute darf weder die verfügbare Traglast noch den tatsächlich verfügbaren plünderbaren NPC-Vorrat überschreiten. Ohne Transportkapazität keine Beute.
+- In der ersten Nahrungsetappe kann die Nahrung innerhalb dieser beiden Grenzen geladen werden. Ressourcengewichte und Verteilungsprioritäten bei mehreren Beuteressourcen sind später gesondert festzulegen.
+- Der Server berechnet die Beute verbindlich. Entnahme aus dem gemeinsamen NPC-Bestand und Zuordnung zur Mission erfolgen konsistent und nur einmal; gleichzeitige Angriffe dürfen denselben Vorrat nicht mehrfach erhalten.
+- Beute bleibt während der Rückreise an die Mission gebunden und wird erst bei Rückkehr gutgeschrieben. Volle Heimatlager benötigen die zuvor vereinbarte Überbestandsregel.
+- Einsatzdialog und Bericht zeigen Traglast und tatsächliche Ladung. Unaufgeklärte gegnerische Vorräte dürfen dadurch vor dem Angriff nicht offengelegt werden.
+- Prüfe gemischte Truppen, fehlende Traglast, Verluste, knappe Vorräte, gleichzeitige Angriffe, Neustart und einmalige Rückkehrgutschrift.
+
+### Vor Einführung von LKWs und Öl konkret festlegen
+
+- Werte, Freischaltung, Herstellungsort, Kosten, Reisegeschwindigkeit und Schutzbedarf von LKWs. Keine Kampfkraft bedeutet nicht Unverwundbarkeit; Regeln für Beschädigung, Verlust oder Erbeutung sind noch offen.
+- Ob LKWs beim Transport die Führungskapazität eines Generals belegen und ob unbegleitete Transporte zulässig sind.
+- Ölbedarf je Truppentyp und Bedeutung von Mobilmachung: einmalige Kosten beim Entsenden oder eine andere Regel; außerdem Entfernungsabhängigkeit sowie Versorgung von Hin- und Rückweg.
+- Ölbedarf ist nicht automatisch Truppenunterhalt oder Rekrutierungskosten. Solche zusätzlichen Kosten sind nicht bestätigt.
+- Zeitpunkt der Reservierung bzw. Abbuchung, Verhalten bei fehlendem Öl sowie mögliche Rückerstattung bei späterem Abbruch. Der Server muss Doppelverbrauch verhindern und einen begonnenen Einsatz nach Neustart konsistent fortsetzen.
+- Raffineriekosten, Ausbaustufen, Produktions- und Lagerwerte sowie ein erreichbarer Einstieg in die Ölwirtschaft. Die erste Raffinerie darf nicht Öl voraussetzen, das ohne sie noch nicht beschafft werden kann.
+- Bestehenden Armeen bei einer Migration keine rückwirkenden Ölrechnungen auferlegen. Laufende Einsätze bleiben an ihre beim Start geltenden Regeln gebunden.
+
