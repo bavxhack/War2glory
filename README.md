@@ -54,13 +54,14 @@ Die Portfreigabe bindet standardmäßig nur an `127.0.0.1`. Das ist weiterhin ei
 
 Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft den Container-Build, veröffentlicht aus Sicherheitsgründen aber kein Image aus fremdem Pull-Request-Code. Bei jedem Branch-Push baut der Workflow anschließend ein AMD64-/ARM64-Image und lädt es selbstständig in die GitHub Container Registry hoch. Der Branch `main` erhält dabei `ghcr.io/bavxhack/war2glory:latest`, andere Branches erhalten ein bereinigtes Branch-Tag und jeder veröffentlichte Build zusätzlich ein `sha-…`-Tag. Tags wie `v0.2.0` erzeugen ein gleichnamiges Image-Tag. Der Upload verwendet ausschließlich das von GitHub bereitgestellte `GITHUB_TOKEN`; ein eigenes Registry-Passwort ist nicht nötig. Für öffentliche Images ist kein Registry-Login zum Herunterladen erforderlich. Die erstmalige Sichtbarkeit des Pakets wird in den GitHub-Paketeinstellungen des Repository-Eigentümers festgelegt.
 
-## Implementierter Stand 0.5
+## Implementierter Stand 0.6
 
 - Responsive Stadtlandschaft mit eigenen CSS-Grafiken für Gebäude, Wege, Grün und sichtbare Baustellen.
 - Registrierung, Anmeldung, Abmeldung und Sitzungswiederaufnahme; jeder Kommandant besitzt eine getrennte Stadt.
 - Ereignisbasierte Spielkommunikation über WebSocket statt privater HTTP-Spielendpunkte.
 - Holz, Stein und Nahrung; Sägewerk, Steinbruch und Bauernhof.
 - Neun feste Bauplätze; bestehende Gebäude können ausgebaut und freie Plätze bebaut werden.
+- Ressourcenspezifische Lagergrenzen, ausbaubare Lagerhäuser und sofortiger Gebäudeabriss mit serverseitiger Vorschau, nachgewiesener Teilrückerstattung und wieder nutzbaren Bauplätzen.
 - Eine serverseitig geprüfte, sequenzielle Warteschlange mit bis zu drei Bauaufträgen.
 - Server prüft Kosten, Belegung und Aufträge; wiederholte Auftrags-IDs werden nur einmal verarbeitet.
 - Atomare JSON-Spielstände pro Spieler, stabile Instanz-ID, ausdrückliche Übernahme der alten Demo-Stadt und Produktion während Abwesenheit.
@@ -71,7 +72,7 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Ein kostenloser Startgeneral und verlustfreie NPC-Aufklärung mit Hin-/Rückmarsch, privaten historischen Berichten und einmaliger Erstziel-Erfahrung.
 - Spielregeln und Serverintegration mit `npm test` prüfen.
 
-Provisorische Regeln: Jedes Gebäude produziert seine Stufe in Rohstoffen pro Sekunde. Neubau beziehungsweise Ausbau auf Stufe n kostet 40 × n Holz und 30 × n Stein und dauert 5 × n Sekunden. Kosten werden beim Einreihen genau einmal abgezogen; Abbruch und Rückerstattung sind noch nicht verfügbar. Jedes Ressourcenlager fasst 2000 Einheiten. Das sind eigene Demo-Werte, keine bestätigten War2Glory-Werte.
+Provisorische Regeln: Jedes Produktionsgebäude produziert seine Stufe in Rohstoffen pro Sekunde. Neubau beziehungsweise Ausbau auf Stufe n kostet 40 × n Holz und 30 × n Stein und dauert 5 × n Sekunden. Kosten werden beim Einreihen genau einmal abgezogen; ein Auftragsabbruch ist noch nicht verfügbar. Die Grundkapazität beträgt je Ressource 2000. Produktionsgebäude bringen ab Stufe 2 weitere 250 Einheiten je zusätzlicher Stufe für ihre Ressource, Lagerhäuser 500 je Stufe für alle Ressourcen. Ein sofortiger Abriss erstattet abgerundet 10 Prozent der nachgewiesenen Investitionen. Überbestände bleiben erhalten und pausieren die jeweilige Produktion. Das sind eigene Demo-Werte, keine bestätigten War2Glory-Werte.
 
 Auch 24×24 Felder, 18 NPC-Städte, deren Schwierigkeitsstufen 1–3 sowie die intern vorbereiteten 500 Nahrung Kapazität und 25 Nahrung pro Stunde sind eigene **Prototypwerte**, keine Originalwerte. Die Aufklärung verwendet vorläufig reine Luftlinienzeiten; Terrain-Wegfindung und andere Marscharten sind noch nicht implementiert. NPC-Vorräte sind gemeinsam in `world.json` vorbereitet, aber es gibt noch keine Regeneration, Plünderung oder Kampfaktion.
 
@@ -96,9 +97,9 @@ Dieser Stand bindet standardmäßig an 127.0.0.1. Konten und getrennte Spielerre
 
 Genau einen Prozess pro Weltverzeichnis starten. Die JSON-Ablage ist für den Prototyp gedacht, nicht für verteilte Serverprozesse. Aufträge werden vor der Erfolgsantwort gespeichert. Produktion wird anhand gespeicherter Zeitstempel nachberechnet. Vor manuellen Änderungen oder Backups den Server stoppen; zum Sichern den jeweiligen `data/<welt>/`-Ordner kopieren. Löschen dieses Ordners setzt die Welt einschließlich Instanz-ID zurück.
 
-Nicht enthalten: Passwortwiederherstellung, Abbruch von Bauaufträgen, Forschung, Kampf beziehungsweise tatsächliche NPC-Farmzüge, Truppenverluste, weitere Generäle, Bündnisse, Handel oder aktive Föderation. Der Quellcode wird im oben verlinkten Repository entwickelt; es gibt noch keine veröffentlichte Spielinstanz.
+Nicht enthalten: Passwortwiederherstellung, Abbruch von Bauaufträgen, Forschung, Kampf beziehungsweise tatsächliche NPC-Farmzüge, Truppenverluste, weitere Generäle, Bündnisse, Handel oder aktive Föderation. Bei migrierten Altgebäuden ohne Kostennachweis bleibt die frühere Investition ausdrücklich unbekannt und wird nicht aus heutigen Preisen geschätzt. Der Quellcode wird im oben verlinkten Repository entwickelt; es gibt noch keine veröffentlichte Spielinstanz.
 
-Planungsstand vom 27.09.2026: NPC-Städte zum Farmen von Nahrung und aufwertbare Generäle mit Truppenführung gehören zum Projektziel. Matrix ist der bevorzugte Ansatz für die Föderation. Aufklärung, erste Truppen und der Startgeneral sind nun als Prototyp implementiert; Kampf, Beute und Föderation bleiben geplant.
+Planungsstand vom 28.09.2026: NPC-Städte zum Farmen von Nahrung und aufwertbare Generäle mit Truppenführung gehören zum Projektziel. Matrix ist der bevorzugte Ansatz für die Föderation. Lagerwirtschaft, Abriss, Aufklärung, erste Truppen und der Startgeneral sind nun als Prototyp implementiert; Kampf, Beute und Föderation bleiben geplant.
 
 ## Zusammenarbeit
 

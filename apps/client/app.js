@@ -7,6 +7,7 @@ const authRoot = document.querySelector('#auth');
 const gameRoot = document.querySelector('#game');
 const form = document.querySelector('#auth-form');
 const gridRoot = document.querySelector('#city-grid');
+const resourcesRoot = document.querySelector('#resources');
 const selectionRoot = document.querySelector('#selection');
 const queueRoot = document.querySelector('#queue-list');
 const messageRoot = document.querySelector('#message');
@@ -24,6 +25,7 @@ let latestMapRequest;
 let mapDrag;
 let suppressMapClick = false;
 let scoutingTarget;
+let demolitionState;
 const pending = new Map();
 const trainingAmounts = new Map([['scout', 1], ['infantry', 1]]);
 
@@ -68,6 +70,7 @@ function connect() {
     else if (event.type === 'map.snapshot' && (!latestMapRequest || !event.requestId || event.requestId === latestMapRequest)) renderMap(event.payload);
     else if (event.type === 'map.changed') { if (mapState && event.payload.revision > mapState.revision) requestMap(); }
     else if (event.type === 'map.details') renderMapDetails(event.payload);
+    else if (event.type === 'building.preview') openDemolitionDialog(event.payload);
     else if (event.type === 'command.error') {
       (gameRoot.hidden ? document.querySelector('#auth-message') : messageRoot).textContent = event.payload.message;
       pending.delete(event.requestId); if (currentState) render(currentState);
@@ -95,11 +98,34 @@ form.addEventListener('submit', event => {
 document.querySelector('#logout').addEventListener('click', () => send('auth.logout'));
 
 function renderResources(state) {
-  document.querySelector('#resources').replaceChildren(...Object.entries(state.city.resources).map(([key, amount]) => {
-    const card = element('div', '', 'resource');
-    card.append(element('span', resourceIcons[key], 'resource-icon'));
-    const copy = element('div'); copy.append(element('span', resourceLabels[key]), element('strong', Math.floor(amount).toLocaleString('de-DE')), element('small', ` / ${state.capacity}`)); card.append(copy); return card;
-  }));
+  const activeResources = new Set(Object.keys(state.city.resources));
+  for (const card of resourcesRoot.querySelectorAll('[data-resource]')) {
+    if (!activeResources.has(card.dataset.resource)) card.remove();
+  }
+
+  for (const [key, amount] of Object.entries(state.city.resources)) {
+    let card = resourcesRoot.querySelector(`[data-resource="${key}"]`);
+    if (!card) {
+      card = element('div', '', 'resource');
+      card.dataset.resource = key;
+      const copy = element('div');
+      const amountNode = element('strong'); amountNode.dataset.role = 'amount';
+      const statusNode = element('small'); statusNode.dataset.role = 'status';
+      const details = element('details', '', 'capacity-details');
+      const breakdownNode = element('small'); breakdownNode.dataset.role = 'breakdown';
+      details.append(element('summary', 'Lagerdetails'), breakdownNode);
+      copy.append(element('span', resourceLabels[key]), amountNode, statusNode, details);
+      card.append(element('span', resourceIcons[key], 'resource-icon'), copy);
+      resourcesRoot.append(card);
+    }
+
+    const capacity = state.capacities[key]; const rate = state.productionRates[key];
+    const breakdown = state.capacityBreakdown[key];
+    card.querySelector('[data-role="amount"]').textContent = Math.floor(amount).toLocaleString('de-DE');
+    card.querySelector('[data-role="status"]').textContent = ` / ${capacity} · +${rate}/s${amount >= capacity ? ' · Produktion pausiert' : ''}`;
+    card.querySelector('[data-role="breakdown"]').textContent = `Grundkapazität ${breakdown.base}${breakdown.contributions.map(item => ` · ${state.buildings[item.building].label} Stufe ${item.level}: +${item.amount}`).join('')}`;
+    card.classList.toggle('overstock', amount > capacity);
+  }
 }
 
 function buildingArt(type) {
@@ -107,6 +133,7 @@ function buildingArt(type) {
   if (type === 'sawmill') art.innerHTML = '<i class="house"></i><i class="logs"></i>';
   if (type === 'quarry') art.innerHTML = '<i></i><i></i><i></i>';
   if (type === 'farm') art.innerHTML = '<i class="barn"></i><i class="field"></i>';
+  if (type === 'warehouse') art.innerHTML = '<i class="warehouse-box"></i><i class="warehouse-door"></i>';
   return art;
 }
 
@@ -162,6 +189,20 @@ function submitConstruction(slotId, building) {
   try { send('construction.enqueue', { slotId, building }, id); render(currentState); }
   catch (error) { pending.delete(id); messageRoot.textContent = error.message; }
 }
+function requestDemolition(slot) { send('building.preview', { slotId: slot.id }); }
+function capacitySummary(capacities) { return Object.entries(capacities).map(([resource, value]) => `${resourceLabels[resource]} ${value}`).join(' · '); }
+function openDemolitionDialog(preview) {
+  demolitionState = preview;
+  document.querySelector('#demolition-title').textContent = `${currentState.buildings[preview.building].label} · Stufe ${preview.level} abreißen?`;
+  document.querySelector('#demolition-preview').replaceChildren(
+    element('p', 'Das Gebäude wird sofort vollständig entfernt. Der Bauplatz wird frei.'),
+    element('strong', `Rückerstattung: ${preview.refund.wood} Holz · ${preview.refund.stone} Stein · ${preview.refund.food} Nahrung`),
+    element('p', preview.investmentComplete ? 'Berechnet aus allen nachgewiesenen bezahlten Investitionen (10 %, abgerundet).' : 'Frühere Baukosten sind nicht vollständig dokumentiert; erstattet werden nur nachgewiesene Investitionen.', preview.investmentComplete ? '' : 'notice'),
+    element('p', `Lager danach: ${capacitySummary(preview.capacityAfter)}. Vorhandene Überbestände bleiben erhalten.`),
+    element('p', `${preview.productionLoss ? `Produktionsverlust: ${resourceLabels[preview.productionLoss.resource]} −${preview.productionLoss.amount}/s. ` : ''}Kommandantenpunkte: ${preview.scoreBefore} → ${preview.scoreAfter}.`),
+  );
+  document.querySelector('#demolition-dialog').showModal();
+}
 function renderSelection(state) {
   const slot = state.city.buildingSlots.find(candidate => candidate.id === selectedSlotId);
   if (!slot) return selectionRoot.replaceChildren(element('p', 'Wähle ein Grundstück in der Stadt, um zu bauen oder auszubauen.'));
@@ -169,14 +210,16 @@ function renderSelection(state) {
   const content = [element('span', `GRUNDSTÜCK ${slot.id.split('-')[1]}`, 'kicker'), element('h2', slot.building ? state.buildings[slot.building].label : 'Freies Grundstück')];
   if (queued) content.push(element('p', 'Für dieses Grundstück ist bereits ein Auftrag eingeplant.', 'notice'));
   else if (slot.building) {
-    content.push(element('p', `Stufe ${slot.level} · ${slot.level} ${resourceLabels[state.buildings[slot.building].resource]} pro Sekunde`));
+    const resource = state.buildings[slot.building].resource;
+    content.push(element('p', resource ? `Stufe ${slot.level} · ${slot.level} ${resourceLabels[resource]} pro Sekunde` : `Stufe ${slot.level} · erhöht alle Lagerkapazitäten`));
     const quote = state.offers.upgrade[slot.id];
-    if (quote) content.push(actionButton(`Auf Stufe ${quote.level} ausbauen`, quoteText(quote), pending.size > 0 || !canAfford(state, quote), () => submitConstruction(slot.id, slot.building)));
+    if (quote) content.push(actionButton(`Auf Stufe ${quote.level} ausbauen`, `${quoteText(quote)} · Lager danach: ${capacitySummary(quote.capacityAfter)}`, pending.size > 0 || !canAfford(state, quote), () => submitConstruction(slot.id, slot.building)));
     else content.push(element('p', 'Maximale Stufe erreicht.', 'notice'));
+    content.push(actionButton('Gebäude abreißen', 'Vorschau mit Rückerstattung und Folgen öffnen', pending.size > 0, () => requestDemolition(slot)));
   } else {
     const actions = element('div', '', 'actions');
     for (const [key, building] of Object.entries(state.buildings).filter(([, building]) => building.area === 'civil')) { const quote = state.offers.build[key]; actions.append(actionButton(building.label, quoteText(quote), pending.size > 0 || !canAfford(state, quote), () => submitConstruction(slot.id, key))); }
-    content.push(element('p', 'Errichte ein Produktionsgebäude.'), actions);
+    content.push(element('p', 'Errichte ein Produktions- oder Lagergebäude.'), actions);
   }
   selectionRoot.replaceChildren(...content);
 }
@@ -218,6 +261,7 @@ function renderMilitary(state) {
     const content = [element('h2', `Kaserne · Stufe ${selected.level}`)]; const quote = state.offers.upgrade[selected.id];
     content.push(element('p', `Ausbildungswarteschlange dieser Kaserne: ${barracksQueue.length} / ${state.militaryRules.trainingQueueLength}`, 'barracks-capacity'));
     if (quote) content.push(actionButton('Kaserne ausbauen', barracksQueue.length ? 'Während der Ausbildung gesperrt' : quoteText(quote), barracksQueue.length > 0 || !canAfford(state, quote), () => submitConstruction(selected.id, 'barracks')));
+    content.push(actionButton('Kaserne abreißen', barracksQueue.length ? 'Während der Ausbildung gesperrt' : 'Vorschau öffnen; Truppen und Generäle bleiben erhalten', barracksQueue.length > 0, () => requestDemolition(selected)));
     content.push(element('p', 'Gib eine Truppenmenge ein. Die gesamte Gruppe wird am Ende des Auftrags fertig und blockiert die Kaserne entsprechend lange.', 'notice'));
     for (const [unit, definition] of Object.entries(state.units)) content.push(unitTrainingForm(state, unit, definition, selected));
     selection.replaceChildren(...content);
@@ -333,6 +377,13 @@ document.querySelector('#scouting-form').addEventListener('submit', event => {
   if (!scoutingTarget || !generalId || !Number.isInteger(scouts)) return;
   send('scouting.start', { targetId: scoutingTarget.id, generalId, scouts });
   document.querySelector('#scouting-dialog').close(); messageRoot.textContent = `${scouts} Aufklärungsflugzeuge wurden mit dem ausgewählten General entsandt.`;
+});
+for (const id of ['close-demolition', 'cancel-demolition']) document.querySelector(`#${id}`).addEventListener('click', () => document.querySelector('#demolition-dialog').close());
+document.querySelector('#demolition-form').addEventListener('submit', event => {
+  event.preventDefault();
+  if (!demolitionState) return;
+  send('building.demolish', { slotId: demolitionState.slotId, buildingId: demolitionState.buildingId, version: demolitionState.version });
+  document.querySelector('#demolition-dialog').close(); demolitionState = null;
 });
 document.querySelector('#coordinate-search').addEventListener('submit', event => { event.preventDefault(); const match = document.querySelector('#coordinate').value.match(/^\s*(\d+)\s*[,; ]\s*(\d+)\s*$/); if (!match) return messageRoot.textContent = 'Koordinate als x, y eingeben.'; requestMap({ x: Number(match[1]), y: Number(match[2]) }); });
 document.querySelector('#own-city').addEventListener('click', () => { if (mapState?.ownCity) requestMap(mapState.ownCity); });

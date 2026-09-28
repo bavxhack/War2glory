@@ -8,6 +8,9 @@ import {
   MAX_QUEUE_LENGTH,
   newCity,
   commanderScore,
+  demolishBuilding,
+  demolitionPreview,
+  resourceCapacities,
 } from '../packages/game-core/index.js';
 import { advanceMilitary, barracksIsBusy, enqueueTraining, generalLevel, newMilitary, startScoutMission } from '../packages/game-core/military.js';
 import { mapDistance, publicMap, randomFreeLocation, terrainAt } from '../packages/game-core/world.js';
@@ -59,6 +62,40 @@ test('Volle Warteschlange, belegte Plätze, unbekannte Gebäude und Rohstoffmang
 test('Lagergrenze und rückwärts laufende Uhr', () => {
   assert.equal(advanceCity(newCity(0), 100000000).resources.wood, CAPACITY);
   assert.deepEqual(advanceCity(newCity(1000), 0), newCity(1000));
+});
+
+test('Produktionsgebäude und Lagerhäuser erhöhen ressourcenspezifische Kapazitäten erst nach Abschluss', () => {
+  let city = newCity(0);
+  city.resources = { wood: 2000, stone: 2000, food: 2000 };
+  city = enqueueConstruction(city, command('upgrade-sawmill', 'plot-1', 'sawmill'), 0);
+  city = enqueueConstruction(city, command('warehouse-one', 'plot-4', 'warehouse'), 0);
+  city.resources = { wood: 2200, stone: 2200, food: 2200 };
+  assert.deepEqual(resourceCapacities(city), { wood: 2000, stone: 2000, food: 2000 });
+  city = advanceCity(city, 15_000);
+  assert.deepEqual(resourceCapacities(city), { wood: 2750, stone: 2500, food: 2500 });
+  assert.equal(city.resources.wood, 2210, 'im vollen Lager pausierte Produktion wird nicht nachgeholt');
+});
+
+test('Abriss erstattet nur nachgewiesene Investitionen und erhält Überbestand', () => {
+  let city = newCity(0);
+  city.resources = { wood: 1000, stone: 1000, food: 2500 };
+  city = advanceCity(enqueueConstruction(city, command('warehouse-build', 'plot-4', 'warehouse'), 0), 5000);
+  const { preview } = demolitionPreview(city, 'plot-4', 5000);
+  assert.deepEqual(preview.refund, { wood: 4, stone: 3, food: 0 });
+  assert.deepEqual(preview.capacityAfter, { wood: 2000, stone: 2000, food: 2000 });
+  const demolished = demolishBuilding(city, preview, 5000).city;
+  assert.equal(demolished.resources.food, 2500);
+  assert.equal(demolished.buildingSlots[3].building, null);
+  assert.throws(() => demolishBuilding(city, { ...preview, version: 'stale' }, 5000), /veraltet/);
+  assert.equal(commanderScore(demolished).total, 30);
+});
+
+test('Unbekannte Altinvestitionen werden nicht aus aktuellen Preisen rekonstruiert', () => {
+  const city = newCity(0); const slot = city.buildingSlots[0];
+  slot.investment = { complete: false, paid: { wood: 80, stone: 0, food: 0 } };
+  const { preview } = demolitionPreview(city, slot.id, 0);
+  assert.equal(preview.investmentComplete, false);
+  assert.deepEqual(preview.refund, { wood: 8, stone: 0, food: 0 });
 });
 
 test('Kartendistanz verwendet dokumentierte euklidische Luftlinie', () => {
