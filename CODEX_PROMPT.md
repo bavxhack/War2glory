@@ -1,145 +1,126 @@
-# Codex-Auftrag 3: Gemeinsame Weltkarte und NPC-Städte
+# Codex-Auftrag 4: Kommandantenpunkte, erste Armeen und NPC-Aufklärung
 
-## Arbeitsweise und Ausgangspunkt
+## Auftrag und Arbeitsweise
 
-Dieser Text ist ein Implementierungsauftrag an Codex. Der begleitende Planungschat erstellt ausschließlich Anforderungen und Anweisungen; Codex programmiert, prüft und öffnet einen Pull Request.
+Arbeite im Repository bavxhack/War2glory vom aktuellen main aus. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/FEDERATION.md; prüfe vorhandene Änderungen und offene Pull Requests. Bewahre fremde Arbeit.
 
-Arbeite im Repository bavxhack/War2glory auf dem aktuellen Stand von main. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/FEDERATION.md. Prüfe vorhandene Änderungen und offene Pull Requests. Erhalte fremde Arbeit.
+Der Planungschat erstellt nur Anweisungen. Du, Codex, implementierst diesen Auftrag, prüfst ihn und öffnest einen Pull Request. Dieser Auftrag ersetzt Auftrag 3. Die Weltkarte wird nicht erneut gebaut.
 
-Laut aktuellem Projektplan sind Stadtansicht, Bauplätze, Bauwarteschlange, Konten mit eigenen Städten, WebSocket-Spielkommunikation und getrennte JSON-Spielstände umgesetzt. Prüfe den Code und die vorhandenen Tests selbst. Dieser Auftrag ersetzt Auftrag 2 und baut auf dessen Ergebnis auf.
+Ziel ist ein erster vollständiger Ablauf:
+eigene Punkte sehen → Kaserne bauen → Späher ausbilden → General zuweisen → NPC-Stadt aufklären → Hin- und Rückmarsch verfolgen → privaten Bericht erhalten → denselben Fortschritt nach erneutem Login vorfinden.
 
-## Vom Nutzer bestätigte Spielentscheidungen
+Implementiere die Abschnitte A bis D in überprüfbaren Schritten innerhalb dieses Auftrags. Die danach beschriebenen weiteren Etappen sind Ausblick, nicht automatisch mit umzusetzen.
 
-- Die Weltkarte besteht aus quadratischen Feldern.
-- Gelände und Stadtpositionen sind von Anfang an vollständig sichtbar. Es gibt keinen Erkundungsnebel, der Teile der Karte verdeckt.
-- Genaue Informationen über fremde Städte erhält ein Spieler erst durch Aufklärung in einer späteren Etappe.
-- NPC-Städte werden von allen Spielern derselben Welt gemeinsam genutzt. Es gibt keine persönlichen Kopien und keine getrennten Nahrungsvorräte pro Angreifer.
-- Nach späteren Farmangriffen füllen sich die NPC-Ressourcen allmählich bis zu einer Obergrenze wieder auf.
-- Zunächst existiert eine gemeinsame Karte pro Serverwelt. Wie Karten später über Matrix verbunden werden, bleibt offen.
+## Ausgangspunkt und feste Anforderungen
 
-## Ziel dieser Etappe
+Laut aktuellem Repository bestehen Konten mit eigenen JSON-Spielständen, eine Stadt mit neun Bauplätzen und Bauwarteschlange sowie eine gemeinsame quadratische Weltkarte mit NPC-Städten. Gelände und Stadtpositionen sind von Anfang an sichtbar. Genaue NPC- und fremde Spielerinformationen sind nicht öffentlich. Die NPCs gehören gemeinsam zur Welt, nicht einzelnen Spielern.
 
-Ein Spieler kann zwischen seiner Stadt und einer gemeinsamen Weltkarte wechseln, seine Stadt verorten, andere Spieler- und NPC-Städte auswählen und öffentliche Informationen sowie Entfernungen ansehen. Neue und bestehende Konten erhalten dauerhaft eindeutige Stadtpositionen.
+Der vorhandene WebSocket-Endpunkt ist laut docs/WEBSOCKET.md /game mit einem versionierten Ereignisformat aus version, type, requestId und payload. world.json enthält unter anderem Karte, NPCs und Stadtpositionen; accounts.json und Spielerdateien ergänzen die Ablage. Überprüfe diese Angaben im Code. Erhalte Protokollkonventionen, Anmeldung, Host-/Origin-Prüfungen, Deduplizierung und Zugriffsrechte.
 
-Angriffe, Aufklärung, Truppenmärsche und das tatsächliche Farmen gehören noch nicht zu diesem Auftrag. Bereite das Datenmodell dafür vor, ohne zusätzliche Spielsysteme vorzeitig einzubauen.
+Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden Testregeln sind Arbeitsvorschläge des Planungschats für einen spielbaren, überprüfbaren Prototyp und keine vom Nutzer einzeln bestätigten Balancewerte. Halte sie zentral konfigurierbar und dokumentiere sie im Pull Request. Sie werden nicht als endgültige Spielregeln ausgegeben. Behalte bestehende Werte, soweit sie nicht ausdrücklich betroffen sind.
 
-## 1. Gemeinsame, dauerhafte Welt
+## A. Kommandantenpunkte zuerst
 
-- Erstelle ein endliches quadratisches Koordinatenraster mit nachvollziehbarem Koordinatensystem und festen Grenzen. Es gibt zunächst keinen Kartenrand-Umbruch.
-- Verwalte Kartengröße, NPC-Dichte und technische Generierungsparameter zentral. Wähle handhabbare vorläufige Standardwerte und dokumentiere sie ausdrücklich als eigene Prototypwerte.
-- Erzeuge die Karte einmal je Welt und speichere sie in deren serverseitigem JSON-Verzeichnis. Ein Neustart oder erneuter Login darf sie nicht neu würfeln.
-- Vergib stabile IDs an Städte und NPCs; Koordinaten allein ersetzen keine Identität.
-- Verhindere doppelt belegte Stadtfelder. Neue Spieler erhalten serverseitig einen freien, geeigneten Standort. Ein Client darf seinen Standort nicht frei setzen.
-- Berücksichtige gleichzeitige Registrierungen und eine volle Karte. Fehler dürfen weder Doppelbelegung noch unbrauchbare halbfertige Konten hinterlassen.
-- Ordne vorhandenen Spielern beim ersten Laden einmalig einen Standort zu. Erhalte dabei Konten, Sitzungen, Ressourcen, Gebäude, Aufträge und bisherige Identitäten.
-- Definiere die verbindliche Quelle der Stadtpositionen. Wenn Daten in Welt- und Spielerdateien zusammenhängen, verhindere oder repariere inkonsistente Zwischenstände nach einem Abbruch.
-- Versioniere das neue Format und sichere bestehende Daten vor der Migration. Unbekannte Versionen oder beschädigte Dateien werden verständlich abgewiesen und nicht stillschweigend ersetzt.
-- Behalte den Betrieb mit genau einem Schreibprozess pro Welt und JSON-Persistenz bei.
+- Führe eine serverseitige Punktewertung je Kommandant und Serverwelt ein, getrennt von General-Erfahrung.
+- Zeige dem Eigentümer Gesamtpunkte und Teilbereiche: Gebäude, Forschung, Kampf einschließlich Niederlageneinfluss.
+- Vorläufige Gebäudewertung für diesen Prototyp: 10 Punkte je fertiggestellter Gebäudestufe. Die Summe aller vorhandenen Gebäudelevel wird mit 10 multipliziert. Beispiel: drei Gebäude auf Stufe 1 ergeben 30 Punkte; ein Upgrade eines davon auf Stufe 2 ergibt insgesamt 40 Punkte.
+- Geplante oder laufende Bauaufträge zählen erst ab Fertigstellung. Die neue Kaserne zählt nach derselben Regel.
+- Gebäudepunkte werden aus dem aktuellen Gebäudebestand abgeleitet. Ein späterer Abriss entfernt den zugehörigen Beitrag; Wiederaufbauen darf keinen dauerhaften Zusatzgewinn erzeugen.
+- Forschungs- und Kampfbeiträge sind bislang nicht aktiv. Zeige sie als noch nicht verfügbare Bereiche ohne erfundene historische Leistungen. Bereite getrennte, versionierte Berechnungsbausteine vor.
+- Behalte Niederlagen als erforderlichen späteren Einfluss fest; implementiere in dieser Etappe noch keine erfundenen Siege, Abzüge oder Kampfhistorien. Ihre Regeln werden mit dem Kampfsystem festgelegt.
+- Die Gesamtwertung dieser ersten Fassung ist nicht negativ. Öffentliche Rangliste und fremde Punkteaufschlüsselungen gehören noch nicht dazu.
+- Vorhandene Gebäude erhalten bei der Migration dieselbe Ausgangsbewertung wie neu errichtete Gebäude. Reconnects, Neustarts oder erneute Ereignisverarbeitung dürfen die Punkte nicht erhöhen.
+- Ein gespeicherter Punktestand ist nur ein abgeleiteter Wert bzw. nachvollziehbar belegter Ereignisstand, niemals ein frei setzbarer Clientwert. Änderungen an den Punktregeln benötigen eine Versions-/Neuberechnungsstrategie.
 
-## 2. Darstellung und Bedienung
+## B. Kaserne, Einheiten und Generäle
 
-- Ergänze eine funktionierende Navigation zwischen Stadtansicht und Weltkarte.
-- Stelle quadratische Felder, Gelände und Städte deutlich erkennbar dar. Eigene Stadt, fremde Spielerstädte und NPC-Städte müssen unterscheidbar sein.
-- Nutze das vorhandene Erscheinungsbild und eigene oder nachvollziehbar lizenzierte Grafiken. Die Karte soll eine Landschaft darstellen, keine große Tabelle aus Textfeldern.
-- Ermögliche Verschieben, Vergrößern/Verkleinern, Koordinatensuche und „Zur eigenen Stadt“. Begrenze Bewegung und Zoom sinnvoll.
-- Zeige Koordinaten und eine verständliche Legende. Ein ausgewähltes Feld öffnet eine Detailansicht.
-- Unterstütze Desktop, Touchbedienung und Tastatur. Auswahl und Fokus dürfen durch Serverereignisse nicht verloren gehen.
-- Die vollständige Karte ist für angemeldete Spieler zugänglich. Ein Laden nach sichtbarem Kartenausschnitt ist zur Begrenzung der Datenmenge erlaubt und darf keine Erkundungsfreischaltung voraussetzen.
-- Vermeide das Rendern unnötig vieler unsichtbarer DOM-Elemente. Wähle eine einfache, nachvollziehbare Darstellung ohne pauschalen Frameworkwechsel.
-- Halte die bestehende Stadtansicht, Bauwarteschlange und Rückkehr zur eigenen Stadt funktionsfähig.
+### Kaserne und Ausbildung
 
-## 3. Öffentliche und geheime Informationen
+- Ergänze eine ausbaubare Kaserne auf einem regulären freien Bauplatz. Sie verwendet die vorhandene Bauwarteschlange und serverseitige Angebote.
+- Produktionsgebäude und nicht produzierende Gebäude müssen in der Spiellogik sauber unterschieden sein. Eine Kaserne erzeugt keine Rohstoffe und darf deren Produktion nicht beschädigen.
+- Ermögliche zunächst zwei Einheitenarten: Späher für Aufklärung und Infanterie als vorbereitete erste Kampfeinheit. Infanterie kann ausgebildet werden; Angriffe sind noch nicht verfügbar.
+- Verwende eine eigene, begrenzte Ausbildungswarteschlange mit serverseitiger Ressourcenprüfung, einmaliger Zahlung und persistierten Start-/Endzeitpunkten.
+- Wähle günstige, zentral konfigurierbare Testkosten und Ausbildungszeiten, sodass eine neue Stadt ohne Spezialwerkzeuge Späher ausbilden kann. Dokumentiere jede Zahl als Prototypwert und erläutere die Einheiten.
+- Einheiten werden erst bei Ausbildungsabschluss verfügbar. Zeige stationierte, in Ausbildung befindliche und unterwegs gebundene Truppen getrennt.
+- Bestimme die Ausbildungsgeschwindigkeit nachvollziehbar aus der Kasernenstufe. Bereits bezahlte Aufträge dürfen durch einen Ausbau nicht stillschweigend verändert werden; verwende für diese Etappe beim Start festgeschriebene Zeiten.
+- Maximalmengen, Warteschlangengrenzen und ungültige Stückzahlen werden serverseitig geprüft. Kein negatives oder nicht ganzzahliges Rekrutieren.
+- Dauerhafter Truppenunterhalt, Waffenfabriken und weitere Einheiten sind noch nicht Teil dieses Auftrags.
 
-Öffentlich dürfen angezeigt und übertragen werden:
-- Koordinaten und Geländetyp.
-- Stadt-ID, Stadtname und Typ: eigene Stadt, Spielerstadt oder NPC.
-- Bei Spielerstädten der bereits öffentliche Kommandantenname.
-- Bei NPCs eine allgemeine Schwierigkeitsstufe.
-- Entfernung von der eigenen Stadt.
+### Ein erster General pro Kommandant
 
-Vor späterer Aufklärung bleiben bei fremden Spieler- und NPC-Städten verborgen:
-- Genaue Ressourcenbestände und Lagerkapazitäten.
-- Exakte Garnison, Truppenzusammensetzung und Verteidigungswerte.
-- Interne Produktions-/Regenerationswerte und Zeitstempel, aus denen sich verborgene Bestände ableiten lassen.
-- Private Gebäude-, Bauauftrags-, Konto- und Sitzungsdaten.
+- Stelle als vorläufige Einstiegsregel jedem neuen und bestehenden Kommandanten genau einen kostenlosen Startgeneral bereit, einmalig und idempotent. Mehrfachlogin und Migration dürfen keine weiteren erzeugen.
+- Speichere stabile ID, Name, Level, gesamte Erfahrung, Führungskapazität und aktuellen Einsatzstatus.
+- Der General befehligt die zugewiesenen Truppen. Für jeden aktiven Aufklärungsauftrag werden ein freier General und verfügbare Späher benötigt.
+- Ein General kann nur einen Einsatz zugleich führen. Unterwegs gebundene Truppen dürfen weder nochmals entsandt noch als stationiert gezählt werden.
+- Vorläufiges Levelmodell: Startlevel 1; mindestens 50 × L × (L − 1) gesamte Erfahrung für Level L; vorläufige Obergrenze Level 10. Somit beginnt Level 2 bei 100 und Level 3 bei 300 Erfahrung.
+- Vorläufige Führungskapazität: 20 × Level Einheiten. Das ist eine Testregel, keine Originalmechanik.
+- Für den ersten erfolgreich zurückgekehrten Aufklärungseinsatz zu einer bestimmten NPC-ID erhält ein Kommandant 10 Erfahrung für den eingesetzten General. Weitere Einsätze zum gleichen Ziel geben in dieser Etappe keine weitere Erfahrung. Speichere die bereits belohnten NPC-IDs dauerhaft.
+- Erfahrung und Level gehören dem General, nicht zur Kommandantenpunktewertung. Stelle Fortschritt und die Wirkung des nächsten Levels verständlich dar.
+- Weitere Generäle, Ausrüstung, Angriff-/Verteidigungsattribute und rekrutierungsabhängige Qualität bleiben spätere Erweiterungen.
 
-Diese Trennung muss der Server durchsetzen. Verborgene Daten dürfen nicht lediglich in der Oberfläche ausgeblendet werden und nicht über Detailereignisse, Fehlermeldungen oder abgeleitete Metadaten nach außen gelangen. Daten der eigenen Stadt bleiben im bestehenden authentifizierten Stadtkanal verfügbar.
+## C. Erste Aktion auf der Weltkarte: NPC-Aufklärung
 
-Beschrifte noch unbekannte Details verständlich mit „Aufklärung erforderlich“. Es gibt in dieser Etappe weder eine funktionierende Aufklärungsaktion noch ausgedachte Aufklärungsberichte.
+- Ergänze bei NPC-Städten eine funktionierende Aktion „Aufklären“. Bei Spielerstädten bleibt diese Aktion für diese Etappe gesperrt bzw. eindeutig als noch nicht verfügbar gekennzeichnet.
+- Öffne einen Einsatzdialog mit Ziel, General, auswählbarer Späherzahl, Entfernung, voraussichtlicher Hin- und Rückkehrzeit sowie den tatsächlich geltenden Voraussetzungen.
+- Eine bestätigte Entsendung bindet General und Truppen serverseitig genau einmal. Ereignis-IDs verhindern doppelte Einsätze.
+- Verwende vorläufig einfache Luftlinienreisen ohne Terrain-Wegfindung. Beispielregel: Hinstrecke in Sekunden = Maximum aus 5 und aufgerundeter Entfernung × 5; Rückweg gleich lang. Dokumentiere ausdrücklich, dass Gelände in dieser Testfassung noch keine Wegsperren oder Geschwindigkeitsänderungen erzeugt.
+- Persistiere eine eindeutige Einsatz-ID, Eigentümer, Ziel-ID, General-ID, Truppen, Status und verbindliche Zeitpunkte.
+- Unterstütze mindestens die Zustände Hinmarsch, Rückmarsch und abgeschlossen. Zeige aktive eigene Einsätze, verbleibende Zeit und Zielkoordinaten in einer Übersicht und auf der Karte.
+- Ein abgeschlossener Hinmarsch erzeugt eine Aufnahme der tatsächlich zu diesem Zeitpunkt bekannten internen NPC-Daten. Der private Bericht wird erst nach Rückkehr für den Spieler sichtbar.
+- Der Bericht trägt Ziel, Erfassungszeit und Rückkehrzeit. Er ist eine historische Aufnahme, kein dauerhafter Live-Zugriff. Spätere Änderungen am NPC dürfen einen alten Bericht nicht rückwirkend ändern.
+- Übermittle ausschließlich Daten, die im Spielmodell tatsächlich existieren. NPC-Nahrung und Lagergrenze dürfen im berechtigten Bericht erscheinen. Noch nicht implementierte Garnisonen als „noch nicht modelliert“ kennzeichnen, nicht als militärisch unverteidigt oder als erfundene Einheiten ausgeben.
+- Die öffentliche Weltkarte und ihre normalen Detailantworten bleiben unverändert eingeschränkt. Erkenntnisse gehören ausschließlich in den privaten Berichtskanal des Auftraggebers.
+- In diesem ersten Prototyp gelingen zulässige NPC-Aufklärungen ohne Späherverluste. Später folgen gegnerische Aufklärung, Entdeckung und Kampfrisiken. Diese Einschränkung sichtbar dokumentieren.
+- Bei Rückkehr werden Späher und General genau einmal frei, der Bericht wird zugänglich und gegebenenfalls einmalig Erfahrung vergeben.
+- Noch keine Nahrungsgutschrift: Aufklärung ist keine Plünderung. Kein PvP, kein Kampf, kein Truppenverlust und keine Auswertung fiktiver Siege.
+- Noch keine Abbruch-/Rückrufaktion. Unzulässige oder nicht abgeschlossene Funktionen dürfen keine scheinbar funktionierenden Schaltflächen erhalten.
 
-## 4. Gemeinsame NPCs und spätere Regeneration vorbereiten
+## D. Dauerhafte, zeitlich korrekte Abläufe
 
-- Erzeuge mehrere gemeinsam sichtbare NPC-Städte mit stabiler Identität, Position und vorläufiger Schwierigkeitsstufe.
-- Lege ihre verbindlichen Daten in der gemeinsamen Weltablage ab, nicht in privaten Kopien je Spieler.
-- Bereite ein versioniertes internes Modell für gemeinsam geteilte Ressourcenbestände, Obergrenzen und zeitbasierte Regeneration vor. Nahrung ist der erste vorgesehene Farmrohstoff; weitere Beutearten sind noch nicht entschieden.
-- Halte diese internen Werte aus öffentlichen Kartendaten heraus.
-- Dokumentiere die spätere Regel: nach einer Plünderung allmähliche Auffüllung bis zur Obergrenze, auch während Serverausfall oder Abwesenheit zeitlich korrekt nachberechenbar. Kein sofortiger vollständiger Reset.
-- Lege spätere Beuteentnahme als serverseitigen, serialisierten Vorgang an einer gemeinsamen NPC-Identität konzeptionell fest, damit derselbe Vorrat nicht mehrfach vergeben werden kann.
-- Implementiere jetzt keine Plünderungsfunktion, keine Beutegutschrift und keinen künstlichen Farmknopf. Eine aktive Regenerations-/Kampfmechanik folgt mit dem Farmzug-System.
+- Sämtliche dynamischen Befehle, Bestätigungen, Ausbildungsabschlüsse, Einsätze, Berichte, Punkte und Generaländerungen laufen über das bestehende WebSocket-System. Kein HTTP-Spielpolling.
+- Der Server bestimmt Identität, Besitz, verfügbares Material, Kosten und Zeit. Manipulierte Spieler-, General-, Einsatz- oder Berichts-IDs dürfen keinen Zugriff auf fremde Daten bewirken.
+- Erhalte JSON-Persistenz und einen Schreibprozess pro Welt. Versioniere Migrationen und sichere bestehende Daten.
+- Speichere Ressourcenabbuchung, Ausbildungsauftrag bzw. Einsatzreservierung konsistent, bevor eine Erfolgsbestätigung gesendet wird.
+- Verarbeite fällige Abschlüsse chronologisch, auch nach langem Offlinebetrieb. Ausbildung, Bauabschlüsse, Hin-/Rückkehr und Belohnungen müssen in der korrekten Reihenfolge rekonstruiert werden.
+- Für Offline-Aufklärung verwende den vorgesehenen Ankunftszeitpunkt als fachlichen Zeitpunkt. Ein erst nach Neustart laufender Handler darf keine erst später entstandenen Ressourcen als damaligen Bericht ausgeben. Solange NPC-Bestände noch statisch sind, dokumentiere diese vereinfachte Grundlage; die spätere Regeneration muss zeitabhängig rekonstruierbar bleiben.
+- Wiederholung desselben Ereignisses sowie Absturz zwischen Speicherung und Antwort dürfen weder Truppen verdoppeln noch Erfahrung mehrfach vergeben. Entwurf und Tests müssen auch wiederaufgenommene Einsätze umfassen.
+- Halte Transport, Speicherung, Punkteberechnung, Ausbildung, Generäle und Einsatzregeln getrennt. Verwende die bestehende JavaScript-Struktur.
+- Private Informationen dürfen weder über Kartendaten noch über neue Übersichten oder Fehlerantworten an andere Spieler gelangen.
+- Große Zustandsänderungen müssen bis zum Speichern konsistent bleiben; atomarer Dateiaustausch allein ersetzt nicht die Abstimmung logisch zusammengehöriger Änderungen.
 
-## 5. Entfernungen und WebSocket-Ereignisse
+## Prüfungen und Abnahmekriterien
 
-- Berechne und dokumentiere eine einheitliche Entfernung in Kartenfeldern. Ein einfacher geometrischer Abstand ist für diese Etappe ausreichend; kennzeichne ihn als Luftlinie und nicht als spätere tatsächliche Marschroute.
-- Es gibt noch keine verbindlichen Marschzeiten, Geländekosten oder Wegfindung. Diese hängen später von Truppen und weiteren Regeln ab.
-- Nutze für alle dynamischen Kartenanfragen und Änderungen das vorhandene versionierte WebSocket-Protokoll. Kein HTTP-Spielpolling und kein zweiter REST-Spielkanal.
-- Ergänze geeignete Ereignisse für Karteninitialisierung bzw. Ausschnitte, öffentliche Felddetails und Kartenänderungen. Die genauen Namen sollen zur bestehenden Implementierung passen.
-- Teile neu entstandene Spielerstädte den verbundenen berechtigten Spielern mit. Sende nicht sekündlich die vollständige unveränderte Karte.
-- Prüfe Anmeldung, Koordinaten, Ausschnittsgröße, Rate und erlaubte Felder. Manipulierte IDs dürfen keine privaten Zustände zurückliefern.
-- Nach Wiederverbindung wird die Karte konsistent abgeglichen. Ignoriere veraltete Antworten bei raschem Verschieben oder Wechseln der Auswahl.
+Führe die vorhandenen Tests aus und ergänze gezielte Prüfungen für:
 
-## 6. Prüfungen und Abnahme
+1. Gebäudepunkte bei Migration, Neubau, Upgrade und mehrfacher Zustandsberechnung; keine Punkte für bloß wartende Aufträge.
+2. Zwei Spieler mit getrennten Truppen, Generälen, Punkten, Berichten und Einsätzen.
+3. Kasernenbau, einmalige Ausbildungskosten, Warteschlangengrenzen und Offline-Abschlüsse.
+4. Einmalige Vergabe des Startgenerals und korrekte Level-/Führungsschwellen.
+5. Auswahl nur eigener freier Generäle und verfügbarer Späher; keine Überbuchung durch gleichzeitige Verbindungen.
+6. Hinmarsch, Datenaufnahme, Rückmarsch, Rückgabe und einmalige Erfahrungsbelohnung.
+7. Wiederholte Aufklärung derselben NPC-ID liefert einen neuen Bericht, aber keine erneute Erstaufklärungs-Erfahrung.
+8. Neustart während Ausbildung, Hinmarsch und Rückmarsch; korrektes Nachholen bereits fälliger Ereignisse.
+9. Wiederholte oder manipulierte Befehle; gleiche Anfrage-ID mit anderem Inhalt.
+10. Private Berichte sind erst nach Rückkehr und nur für ihren Eigentümer abrufbar; öffentliche NPC-Details verraten weiterhin keine Vorräte.
+11. Speicherfehler und erneute Zustellung verursachen keine doppelte Zahlung, Einheit oder Belohnung.
+12. Unveränderte bestehende Stadt-, Karten-, Konto- und WebSocket-Funktionen.
 
-Prüfe bestehende Funktionen und ergänze gezielte Tests:
+Prüfe außerdem im Browser mit zwei unabhängigen Benutzerkontexten den vollständigen Spielablauf sowie Desktop- und Mobilbedienung. Erstelle Screenshots von Punkteanzeige, Ausbildung, Einsatzübersicht und Bericht. Wenn eine Prüfung nicht möglich ist, benenne sie genau.
 
-1. Zwei Spieler sehen dieselbe Welt und dieselben NPC-IDs; ihre eigenen Städte stehen auf unterschiedlichen Feldern.
-2. Gleichzeitige Registrierungen können keinen Standort doppelt belegen.
-3. Koordinaten, Weltidentität und NPCs bleiben über Neustart und erneuten Login stabil.
-4. Bestehende Konten werden ohne Verlust ihrer Städte und Bauaufträge migriert. Wiederholte Migration erzeugt keine neuen Positionen.
-5. Eine volle Karte und Speicherfehler führen zu nachvollziehbaren, konsistenten Ergebnissen.
-6. Kartendaten und öffentliche Detailantworten enthalten keine privaten Bestände, Garnisonen, Produktions-/Regenerationsdaten oder Zugangsdaten.
-7. Ungültige Koordinaten, fremde IDs und übergroße Kartenanfragen werden abgefangen.
-8. Neu registrierte Städte erscheinen bei anderen Spielern über WebSocket-Ereignisse ohne Neuladen.
-9. Rückkehr nach Verbindungsabbruch liefert einen konsistenten Kartenstand.
-10. Die dokumentierte Distanzberechnung stimmt für gleiche, waagerecht, senkrecht und diagonal versetzte Koordinaten.
-11. Unterschiedliche Serverwelten besitzen getrennte Karten und Zustände.
+## Ergebnis und Lieferung
 
-Prüfe die Oberfläche auf Desktop und Smartphone, einschließlich Auswahl, Koordinatensuche, Zoom, Verschieben, Tastaturbedienung und Rückkehr zur eigenen Stadt. Füge Screenshots zum Ergebnis hinzu. Benenne nicht ausführbare Prüfungen offen; erfinde keine Testergebnisse.
+- Erstelle getrennte nachvollziehbare Commits für Punkte, Ausbildung/Generäle und Aufklärung.
+- Liefere einen vollständigen spielbaren Ablauf und einen Pull Request; nicht eigenständig zusammenführen oder deployen.
+- Dokumentiere die Testregeln gesammelt mit Formeln und Beispielen. Zeige in der PR-Beschreibung, welche Entscheidungen bewusst vorläufig sind.
+- Aktualisiere README, Projektplan sowie Protokoll-/Speicherdokumentation. Passe Container/CI nur soweit nötig an.
+- Berichte auf Deutsch, was implementiert, getestet und noch offen ist.
+- Ersetze keine eigene Forschung oder keinen eigenen Originalregelsatz durch behauptete War2Glory-Fakten.
 
-## Ergebnis und anschließende Etappen
+## Danach: vorbereitete Reihenfolge, noch nicht automatisch ausführen
 
-- Aktualisiere README, Projektplan und die Protokoll-/Speicherdokumentation mit dem tatsächlich erreichten Stand.
-- Erhalte Docker-/Compose-/CI-Funktionalität und passe sie nur an, wenn es durch diese Etappe erforderlich wird.
-- Arbeite auf einem eigenen Branch und öffne einen Pull Request mit Änderungen, Migrationshinweisen, Prüfungen und verbleibenden Grenzen. Nicht selbst zusammenführen oder produktiv deployen.
-- Antworte auf Deutsch. Implementierter Stand, vorbereitete Datenstrukturen und spätere Mechaniken müssen eindeutig getrennt bleiben.
-- JavaScript bleibt die Projektsprache; die Spiellogik bleibt unabhängig von Oberfläche und Transport.
-- Nach diesem Weltkartenauftrag hat das Grundsystem für Kommandantenpunkte hohe Priorität; die Bewertungsregeln werden vor dem separaten Implementierungsauftrag abgestimmt. Danach folgen die weiteren geplanten Systeme für Forschung, Truppen und Generäle sowie Aufklärung und NPC-Farmzüge. Matrix-Föderation und serverübergreifende Gefechte folgen später.
-- Entscheide reversible technische Details selbst und dokumentiere Prototypwerte. Die oben bestätigten Spielentscheidungen werden nicht erneut zur Abstimmung gestellt.
+1. **Erste NPC-Farmzüge:** Infanterie und General entsenden, Garnison und Kampfregeln festlegen, Kampfausgang/Verluste, gemeinsame Nahrungsvorräte, begrenzte Traglast, Rückkehr mit Beute und allmähliche NPC-Regeneration. Kampfpunkte und Niederlageneinfluss werden hierbei angeschlossen. Vorab Kampf- und Verlustregeln als eigenen Auftrag ausarbeiten.
+2. **Lager und Gebäudeabriss:** Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus, vollständiger Gebäudeabriss mit kleiner Rückerstattung kumulierter Investitionen. Überbestände und Rückerstattungsanteil vor Umsetzung festlegen.
+3. **Universitäten und Forschung:** Produktion, Kapazitäten und Freischaltungen verbessern; Forschungspunkte integrieren.
+4. Danach weitere Einheiten und Waffensysteme, Bündnisse/Handel sowie Matrix-Föderation gemäß Projektplan.
 
-## Zusätzlicher Ausblick: Lager und Gebäudeabriss (nicht Teil dieses Auftrags)
-
-Der Nutzer hat folgende spätere Anforderungen ergänzt; sie sind in docs/PROJECT.md genauer festgehalten:
-
-- Höhere Stufen der Produktionsgebäude erhöhen neben der Produktion auch die Lagerkapazität ihrer jeweiligen Ressource.
-- Ein neuer, ausbaubarer Gebäudetyp Lagerhaus erhöht die Lagerkapazität aller Ressourcen.
-- Gebäude können später abgerissen werden. Der Bauplatz wird frei; ein noch festzulegender kleiner Anteil der kumulierten Investitionen aus Neubau und abgeschlossenen Ausbaustufen wird je Ressourcenart zurückerstattet.
-- Kapazitätskurven, Rückerstattungsanteil, Umgang mit Überbeständen und laufenden Bauaufträgen sowie die Migration fehlender Investitionshistorien sind noch abzustimmen.
-
-Diese Punkte jetzt nur als dokumentierte zukünftige Anforderungen erhalten. Keine Lagerhaus-, Abriss- oder Rückerstattungsimplementierung und keine zusätzlichen Balanceentscheidungen in den laufenden Weltkartenauftrag aufnehmen. Falls in diesem Auftrag bestehende Ressourcendaten berührt werden, ihre spätere Erweiterbarkeit erhalten, ohne den vereinbarten Umfang auszuweiten.
-
-## Zusätzlicher Ausblick: Universitäten und Forschung (nicht Teil dieses Auftrags)
-
-Für spätere Etappen sind Universitäten als Forschungsgebäude verbindlich vorgemerkt. Forschung soll Ressourcenproduktion und Lagerkapazität verbessern sowie später Waffensysteme, Truppengattungen und zusätzliche Gebäudetypen mit weiteren Verbesserungen beeinflussen bzw. freischalten.
-
-Die konkreten Technologien, Voraussetzungen, Werte, Forschungszeiten, Universitätsstufen, Parallelität und Gültigkeit pro Stadt oder Spielerkonto sind noch abzustimmen. Forschungsboni müssen später mit Gebäudestufen und Lagerhauskapazitäten nachvollziehbar verrechnet werden; dazu wurde noch keine Formel festgelegt. Details und offene Entscheidungen stehen in docs/PROJECT.md.
-
-Diese Forschungsanforderungen in der Planung erhalten. Im aktuellen Weltkartenauftrag weder Forschung implementieren noch Technologie-, Kosten- oder Bonuswerte eigenmächtig festlegen. Der vereinbarte Umfang dieses Auftrags bleibt unverändert.
-
-## Priorisierter Folgeauftrag: Kommandantenpunkte
-
-Der Nutzer fordert eine zeitnahe Punktewertung pro Kommandant, beeinflusst durch Gebäude, Forschung, Kämpfe und Niederlagen. Sie ist von der Erfahrung einzelner Generäle getrennt. Das Grundsystem wird als nächste eigenständige Etappe nach der Weltkarte priorisiert.
-
-Zunächst können die vorhandenen Gebäude bewertet werden; Forschungs- und Kampfbeiträge werden später an echte, bestätigte Abschlüsse und Gefechte angebunden. Gesamtpunkte und ihre Zusammensetzung müssen serverseitig nachvollziehbar, dauerhaft konsistent und gegen doppelte Ereignisverarbeitung geschützt sein.
-
-Konkrete Gewichtungen, die Wirkung von Niederlagen, der Umgang mit Gebäudeabriss und eine mögliche Untergrenze sind noch nicht beschlossen. Auch öffentliche Sichtbarkeit und eine Rangliste sind noch offen. Details stehen in docs/PROJECT.md.
-
-Der aktuelle Auftrag bleibt die Weltkarte. Punktregeln nicht nebenbei erfinden oder ungefragt implementieren. Die Priorität und die beschriebenen Anforderungen in der Planung erhalten, damit anschließend ein eigener abgestimmter Codex-Auftrag erstellt werden kann.
+Der nächste Auftrag darf diese späteren Schritte nicht als bereits umgesetzt darstellen. Die hier verwendeten Prototypwerte sind ausdrücklich vorläufige Arbeitsvorschläge für den Review.
