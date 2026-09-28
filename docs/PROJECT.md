@@ -15,7 +15,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Grundsystem in Auftrag 4; Gebäude-Testregel vorgeschlagen, Forschung/Kämpfe später |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung in Auftrag 4; noch nicht implementiert |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Kaserne/erste Truppen/Startgeneral in Auftrag 4; Forschung weiterhin später |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Separater Militärbereich/Kaserne/erste Truppen/Startgeneral in Auftrag 4; Forschung weiterhin später |
 | 4b | Kämpfe, NPC-Farmzüge, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -60,7 +60,7 @@ Kartengröße, NPC-Anzahl, Schwierigkeitsstufen und interne Vorratswerte sind re
 Die Weltkarte ist laut Nutzer und Repository umgesetzt. Der Nutzer möchte weitere Arbeitsanweisungen, damit dort sinnvolle Aktionen möglich werden. CODEX_PROMPT.md enthält dafür Auftrag 4 mit folgenden zusammenhängenden Teilen:
 
 1. Kommandantenpunkte, zunächst aus fertiggestellten Gebäuden; spätere Forschungs- und Kampfbeiträge getrennt vorbereiten.
-2. Ausbaubare Kaserne, persistente Ausbildung von Spähern und Infanterie sowie ein General mit Erfahrung, Level und Führungskapazität.
+2. Eigene Militärseite mit getrennten militärischen Bauplätzen, ausbaubarer Kaserne, persistenter Ausbildung von Spähern und Infanterie sowie einem General mit Erfahrung, Level und Führungskapazität.
 3. Erste NPC-Aufklärung mit zugewiesenem General und Spähern, Hin-/Rückmarsch und privaten zeitgestempelten Berichten.
 4. Neustartfeste JSON-Abläufe, WebSocket-Ereignisse, Migration und gezielte Tests.
 
@@ -115,6 +115,19 @@ Die endgültige Punktgewichtung, Niederlageneinflüsse, militärische Balance un
 - Der Weltkartenschritt mit dauerhaften Stadtpositionen, öffentlichen Details und gemeinsamen NPC-Identitäten ist laut aktuellem Projektstand umgesetzt. Auftrag 4 ergänzt erste Truppen/Generäle und NPC-Aufklärung; Kämpfe, Beuteentnahme und aktive Regeneration folgen danach.
 - Eine gemeinsame Karte pro Serverwelt dient als Ausgangspunkt. Die spätere Verbindung von Welten über Matrix ist damit noch nicht festgelegt.
 - In diesem Planungschat entstehen nur Codex-Anweisungen; die Umsetzung und ihre Prüfungen übernimmt Codex.
+
+## Bestätigte Trennung von Stadt- und Militärbauplätzen vom 28.09.2026
+
+Diese Anforderung ergänzt den aktuellen Auftrag 4 und ist noch nicht als implementiert bestätigt.
+
+- Militärgebäude erhalten zusätzliche, eigene Bauplätze, vorzugsweise auf einer zweiten Seite. Auftrag 4 setzt dies als Seite „Militär“ neben „Stadt“ und „Weltkarte“ um.
+- Auf Militärbauplätzen dürfen keine Ressourcengebäude stehen. Kaserne und künftige Militärgebäude gehören in den Militärbereich; die bisherigen neun Bauplätze bleiben der zivile Bereich.
+- Die Trennung gilt im gespeicherten Spielmodell und in der serverseitigen Bauprüfung, nicht allein in der Darstellung.
+- Beide Bereiche gehören zur gleichen Stadt und teilen Ressourcen und Kommandantenpunkte. Bestehende Gebäude, Ausbaustufen und bezahlte Aufträge bleiben bei Migration erhalten.
+- Falls bereits militärische Gebäude auf bisherigen Plätzen existieren, werden sie mit ihren Aufträgen verlustfrei auf Militärplätze übernommen; die bisherigen Plätze werden frei.
+- Die genaue Zahl der Militärbauplätze ist noch offen. Codex verwendet zunächst eine zentral konfigurierbare, ausdrücklich vorläufige Zahl.
+- Als technische Fortführung bleibt für Auftrag 4 die bisherige gemeinsame Bauwarteschlange bestehen. Zusätzliche parallele Bauwarteschlangen sind nicht beschlossen. Die Kasernenausbildung besitzt die im Auftrag vorgesehene eigene Warteschlange.
+- Die spätere Zuordnung von Lagerhaus und Universität wird in deren jeweiliger Spezifikation festgelegt.
 
 ## Bestätigte Gebäude- und Lageranforderungen vom 27.09.2026
 
