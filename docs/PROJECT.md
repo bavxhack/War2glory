@@ -16,7 +16,8 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Grundsystem in Auftrag 4; Gebäude-Testregel vorgeschlagen, Forschung/Kämpfe später |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung in Auftrag 4; noch nicht implementiert |
 | 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle laut Nutzer angelegt; Mehrfachverwaltung/Skillgrundlage in Abschnitt E von Auftrag 4; Forschung weiterhin später |
-| 4b | Kämpfe, NPC-Farmzüge, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
+| 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
+| 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -87,7 +88,10 @@ Die endgültige Punktgewichtung, Niederlageneinflüsse, militärische Balance un
 - NPC-Farmzüge mit echter Garnison, Kampf, Verlusten, Beutetransport und allmählicher Regeneration der gemeinsam genutzten Nahrungsvorräte. Dabei Kampf- und Niederlagenpunkte anschließen.
 - Stufenabhängige Lagerkapazität, Lagerhaus und Gebäudeabriss nach Klärung der offenen Regeln.
 - Universitäten/Forschung einschließlich Forschungspunkten; weitere Truppen und Waffensysteme.
+- Später LKWs und Ölwirtschaft einschließlich ziviler Raffinerien und typabhängiger Mobilmachungskosten; Regeln gemäß Logistikabschnitt vorher festlegen.
 - Anschließend Bündnisse, Handel und Matrix-Föderation gemäß den bestehenden Zielen.
+
+Aktuelle Empfehlung des Planungschats: Lager und Überbestandsregeln vor den ersten Farmzügen abschließen. Die ursprüngliche Liste ist kein Auftrag, unentschiedene Regeln vorwegzunehmen.
 
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 
@@ -123,6 +127,47 @@ Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht autom
 - Kampf-Erfahrungsbelohnungen und Verteilung bei mehreren beteiligten Generälen; künftige Rolle von Aufklärungs-Erfahrung.
 
 Technischer Vorschlag für die Kostenbasis: insgesamt erworbene Skillpunkte einschließlich bereits verteilter Punkte. Das Ausgeben freier Punkte soll den nächsten Punkt nicht billiger machen. Insgesamt verdiente und bereits umgerechnete Erfahrung sowie freie und verteilte Skillpunkte werden getrennt nachvollziehbar geführt. Diese Auslegung und alle konkreten Balancewerte sind noch keine einzeln bestätigten Nutzerentscheidungen.
+
+## Geplante Logistik: Traglast, LKWs und Öl
+
+Nutzerergänzung vom 28.09.2026. Diese Anforderungen sind geplant, nicht als implementiert bestätigt. Sie erweitern die späteren Farm- und Einheitenaufträge; LKWs und Öl gehören nicht automatisch zum laufenden Auftrag 4.
+
+### Bestätigte Anforderungen
+
+- Jeder Truppentyp erhält eine eigene Transportkapazität je Einheit. Plünderbare Beute ist durch die verfügbare Transportkapazität der entsandten Truppen begrenzt.
+- LKWs sind spätere Transporteinheiten mit hoher Transportkapazität und ohne Kampfkraft. Ihre konkreten Werte sind noch offen.
+- Öl wird als weitere Ressource eingeführt. Der neue Gebäudetyp Ölraffinerie produziert Öl.
+- Öl wird für die Mobilmachung benötigt; unterschiedliche Truppentypen benötigen unterschiedliche Mengen. Zeitpunkt, Berechnungsgrundlage und konkrete Verbrauchswerte sind noch festzulegen.
+
+### Einordnung in die Entwicklung
+
+- Empfehlung des Planungschats: typabhängige Traglast bereits beim ersten NPC-Farmzug umsetzen. LKWs, Ölraffinerie und Ölverbrauch gemeinsam in einer späteren Etappe für motorisierte Einheiten ergänzen.
+- Jetzt bei ohnehin anstehenden Arbeiten Einheitenwerte und Ressourcen erweiterbar halten: Transportkapazität, Kampfkraft und späterer Ölbedarf sind getrennte Größen. Keine unnötige vollständige Umstellung und keine Ölpflicht für bisherige Märsche.
+- Lager, Produktion, Baukosten, Forschungswirkungen, WebSocket-Daten und JSON-Speicherung dürfen nicht dauerhaft auf genau drei Ressourcen festgelegt werden. Bestehende Spielstände und Regeln bleiben bei späterer Einführung von Öl erhalten.
+- Die Ölraffinerie ist ein Ressourcenproduktionsgebäude und gehört gemäß der bestätigten Bereichstrennung auf zivile Bauplätze, nicht auf Militärbauplätze.
+- Die stufenabhängige ressourcenspezifische Lagerwirkung von Produktionsgebäuden soll auch für Öl gelten; das Lagerhaus umfasst später ebenfalls Öl. Konkrete Werte im Öl-Auftrag festlegen.
+- Keine zusätzliche Rohöl-Ressource oder Verarbeitungskette erfinden: bislang bestätigt ist nur die Ölproduktion durch Raffinerien.
+
+### Vor dem ersten Farmzug konkret festlegen
+
+- Gesamttraglast ergibt sich aus der Summe: transportfähige Anzahl je Truppentyp × dessen Kapazität. Dieselbe Kapazität darf bei mehreren Beuteressourcen nicht mehrfach genutzt werden.
+- Technischer Vorschlag: Beute nach dem Kampf anhand der überlebenden, zum Transport fähigen Truppen begrenzen. Verlust- und Rückkehrregeln müssen vor Umsetzung festlegen, was mit Ladung bei späterem Kapazitätsverlust geschieht.
+- Beute darf weder die verfügbare Traglast noch den tatsächlich verfügbaren plünderbaren NPC-Vorrat überschreiten. Ohne Transportkapazität keine Beute.
+- In der ersten Nahrungsetappe kann die Nahrung innerhalb dieser beiden Grenzen geladen werden. Ressourcengewichte und Verteilungsprioritäten bei mehreren Beuteressourcen sind später gesondert festzulegen.
+- Der Server berechnet die Beute verbindlich. Entnahme aus dem gemeinsamen NPC-Bestand und Zuordnung zur Mission erfolgen konsistent und nur einmal; gleichzeitige Angriffe dürfen denselben Vorrat nicht mehrfach erhalten.
+- Beute bleibt während der Rückreise an die Mission gebunden und wird erst bei Rückkehr gutgeschrieben. Volle Heimatlager benötigen die zuvor vereinbarte Überbestandsregel.
+- Einsatzdialog und Bericht zeigen Traglast und tatsächliche Ladung. Unaufgeklärte gegnerische Vorräte dürfen dadurch vor dem Angriff nicht offengelegt werden.
+- Prüfe gemischte Truppen, fehlende Traglast, Verluste, knappe Vorräte, gleichzeitige Angriffe, Neustart und einmalige Rückkehrgutschrift.
+
+### Vor Einführung von LKWs und Öl konkret festlegen
+
+- Werte, Freischaltung, Herstellungsort, Kosten, Reisegeschwindigkeit und Schutzbedarf von LKWs. Keine Kampfkraft bedeutet nicht Unverwundbarkeit; Regeln für Beschädigung, Verlust oder Erbeutung sind noch offen.
+- Ob LKWs beim Transport die Führungskapazität eines Generals belegen und ob unbegleitete Transporte zulässig sind.
+- Ölbedarf je Truppentyp und Bedeutung von Mobilmachung: einmalige Kosten beim Entsenden oder eine andere Regel; außerdem Entfernungsabhängigkeit sowie Versorgung von Hin- und Rückweg.
+- Ölbedarf ist nicht automatisch Truppenunterhalt oder Rekrutierungskosten. Solche zusätzlichen Kosten sind nicht bestätigt.
+- Zeitpunkt der Reservierung bzw. Abbuchung, Verhalten bei fehlendem Öl sowie mögliche Rückerstattung bei späterem Abbruch. Der Server muss Doppelverbrauch verhindern und einen begonnenen Einsatz nach Neustart konsistent fortsetzen.
+- Raffineriekosten, Ausbaustufen, Produktions- und Lagerwerte sowie ein erreichbarer Einstieg in die Ölwirtschaft. Die erste Raffinerie darf nicht Öl voraussetzen, das ohne sie noch nicht beschafft werden kann.
+- Bestehenden Armeen bei einer Migration keine rückwirkenden Ölrechnungen auferlegen. Laufende Einsätze bleiben an ihre beim Start geltenden Regeln gebunden.
 
 ## Entscheidungen für diesen Prototyp
 
