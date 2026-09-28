@@ -23,6 +23,7 @@ let mapSize = 11;
 let latestMapRequest;
 let mapDrag;
 let suppressMapClick = false;
+let scoutingTarget;
 const pending = new Map();
 const trainingAmounts = new Map([['scout', 1], ['infantry', 1]]);
 
@@ -237,7 +238,8 @@ function renderMilitary(state) {
     item.append(element('span', String(position + 1), 'queue-position'), element('strong', `${job.amount} ${state.units[job.unit].label}`), element('span', `Kaserne ${job.barracksSlotId.split('-').at(-1)} · ${status}`)); trainingList.append(item);
   });
   const trainingTotal = military.trainingQueue.reduce((total, job) => total + job.amount, 0);
-  document.querySelector('#forces').replaceChildren(element('h2', 'Streitkräfte'), unitCards, element('h3', `In Ausbildung: ${trainingTotal}`), trainingList, element('p', `${general.name}: Level ${general.level}, ${general.experience} EP, Führung ${general.leadership}, ${general.status === 'idle' ? 'bereit' : 'unterwegs'}`));
+  const deployedScouts = military.missions.filter(mission => mission.status !== 'completed').reduce((total, mission) => total + mission.scouts, 0);
+  document.querySelector('#forces').replaceChildren(element('h2', 'Streitkräfte'), unitCards, element('p', `Unterwegs gebunden: ${deployedScouts} Aufklärungsflugzeuge`, 'deployed-forces'), element('h3', `In Ausbildung: ${trainingTotal}`), trainingList, element('p', `${general.name}: Level ${general.level}, ${general.experience} EP, Führung ${general.leadership}, ${general.status === 'idle' ? 'bereit' : 'unterwegs und nicht verfügbar'}`));
   document.querySelector('#missions').replaceChildren(element('h2', 'Einsätze'), ...military.missions.filter(item => item.status !== 'completed').map(item => element('p', `${item.targetName} (${item.coordinates.x},${item.coordinates.y}) · ${item.status === 'outbound' ? 'Hinmarsch' : 'Rückmarsch'} · ${formatDuration((item.status === 'outbound' ? item.arrivesAt : item.returnsAt) - state.serverTime)}`)), ...(military.missions.every(item => item.status === 'completed') ? [element('p', 'Keine aktiven Einsätze.')] : []));
   document.querySelector('#reports').replaceChildren(element('h2', 'Aufklärungsberichte'), ...military.reports.map(report => element('p', `${report.targetName}: Nahrung ${report.intelligence.food?.amount ?? '?'} / ${report.intelligence.food?.capacity ?? '?'}; Garnison noch nicht modelliert.`)), ...(military.reports.length ? [] : [element('p', 'Berichte werden erst nach der Rückkehr sichtbar.') ]));
 }
@@ -292,13 +294,46 @@ function renderMapDetails({ entity, terrain }) {
     if (entity.type === 'npc' && currentState) {
       const general = currentState.military.generals.find(item => item.status === 'idle'); const scouts = currentState.military.units.scout;
       const reason = !general ? 'Kein freier General' : scouts < 1 ? 'Zuerst Aufklärungsflugzeuge ausbilden' : `Hinweg ca. ${Math.max(5, Math.ceil(distance) * 5)} s`;
-      content.push(actionButton('Stadt ausspähen', reason, !general || scouts < 1, () => send('scouting.start', { targetId: entity.id, generalId: general.id, scouts: 1 })));
+      content.push(actionButton('Stadt ausspähen', reason, !general || scouts < 1, () => openScoutingDialog(entity)));
     }
     if (entity.type === 'player-city') content.push(element('p', 'Spielerstädte können in diesem Prototyp noch nicht ausgespäht werden.', 'notice'));
   }
   detailsRoot.replaceChildren(...content); detailsRoot.classList.add('has-selection'); detailsRoot.focus({ preventScroll: true });
   if (matchMedia('(max-width: 900px)').matches) detailsRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+function updateScoutingPreview() {
+  const preview = document.querySelector('#scouting-preview'); const countInput = document.querySelector('#scouting-count'); const generalSelect = document.querySelector('#scouting-general');
+  const general = currentState?.military.generals.find(item => item.id === generalSelect.value); const scouts = Number(countInput.value);
+  const distance = Number.isFinite(scoutingTarget?.distance) ? scoutingTarget.distance : 0; const oneWaySeconds = Math.max(5, Math.ceil(distance) * 5);
+  const valid = general && Number.isInteger(scouts) && scouts >= 1 && scouts <= currentState.military.units.scout && scouts <= general.leadership;
+  preview.replaceChildren(element('strong', `${oneWaySeconds} s Hinweg · ${oneWaySeconds} s Rückweg`), element('span', general ? `Führungskapazität: ${general.leadership} · stationiert: ${currentState.military.units.scout}` : 'Bitte einen freien General auswählen.'));
+  document.querySelector('#confirm-scouting').disabled = !valid;
+}
+
+function openScoutingDialog(entity) {
+  scoutingTarget = entity;
+  document.querySelector('#scouting-target').textContent = `${entity.name} · Koordinate ${entity.x}, ${entity.y} · Entfernung ${entity.distance.toFixed(2)}`;
+  const generals = currentState.military.generals; const select = document.querySelector('#scouting-general');
+  select.replaceChildren(...generals.map(general => {
+    const option = element('option', `${general.name} · Level ${general.level} · Führung ${general.leadership}${general.status === 'idle' ? '' : ' · nicht verfügbar'}`);
+    option.value = general.id; option.disabled = general.status !== 'idle'; return option;
+  }));
+  select.value = generals.find(general => general.status === 'idle')?.id ?? '';
+  const count = document.querySelector('#scouting-count'); count.max = String(currentState.military.units.scout); count.value = String(Math.min(currentState.military.units.scout, generals.find(general => general.id === select.value)?.leadership ?? 1));
+  updateScoutingPreview(); document.querySelector('#scouting-dialog').showModal(); count.focus(); count.select();
+}
+
+document.querySelector('#scouting-count').addEventListener('input', updateScoutingPreview);
+document.querySelector('#scouting-general').addEventListener('change', updateScoutingPreview);
+for (const id of ['close-scouting', 'cancel-scouting']) document.querySelector(`#${id}`).addEventListener('click', () => document.querySelector('#scouting-dialog').close());
+document.querySelector('#scouting-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const generalId = document.querySelector('#scouting-general').value; const scouts = Number(document.querySelector('#scouting-count').value);
+  if (!scoutingTarget || !generalId || !Number.isInteger(scouts)) return;
+  send('scouting.start', { targetId: scoutingTarget.id, generalId, scouts });
+  document.querySelector('#scouting-dialog').close(); messageRoot.textContent = `${scouts} Aufklärungsflugzeuge wurden mit dem ausgewählten General entsandt.`;
+});
 document.querySelector('#coordinate-search').addEventListener('submit', event => { event.preventDefault(); const match = document.querySelector('#coordinate').value.match(/^\s*(\d+)\s*[,; ]\s*(\d+)\s*$/); if (!match) return messageRoot.textContent = 'Koordinate als x, y eingeben.'; requestMap({ x: Number(match[1]), y: Number(match[2]) }); });
 document.querySelector('#own-city').addEventListener('click', () => { if (mapState?.ownCity) requestMap(mapState.ownCity); });
 document.querySelector('#zoom-in').addEventListener('click', () => { mapSize = Math.max(5, mapSize - 2); document.querySelector('#zoom-label').value = `${Math.round(1100 / mapSize)} %`; requestMap(); });

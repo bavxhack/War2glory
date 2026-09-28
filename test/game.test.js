@@ -112,8 +112,9 @@ test('Ausbildung, General und Aufklärung werden zeitlich und einmalig fortgesch
   assert.equal(training.military.units.scout, 0); assert.equal(training.city.resources.wood, 180);
   military = advanceMilitary(training.military, 4000);
   assert.equal(military.units.scout, 2);
-  military = startScoutMission(military, { id: 'mission-1', generalId: 'general-p1', scouts: 1 }, 4000, { x: 0, y: 0 }, { id: 'npc-1', kind: 'npc', name: 'Ziel', x: 1, y: 0 });
-  assert.equal(military.units.scout, 1); assert.equal(military.generals[0].status, 'scouting');
+  military = startScoutMission(military, { id: 'mission-1', generalId: 'general-p1', scouts: 2 }, 4000, { x: 0, y: 0 }, { id: 'npc-1', kind: 'npc', name: 'Ziel', x: 1, y: 0 });
+  assert.equal(military.units.scout, 0); assert.equal(military.generals[0].status, 'scouting');
+  assert.throws(() => startScoutMission(military, { id: 'mission-2', generalId: 'general-p1', scouts: 1 }, 4000, { x: 0, y: 0 }, { id: 'npc-2', kind: 'npc', name: 'Zweites Ziel', x: 2, y: 0 }), /freier General/);
   const npc = new Map([['npc-1', { resources: { food: { amount: 321, capacity: 500 } } }]]);
   military = advanceMilitary(military, 9000, npc);
   assert.equal(military.reports.length, 0); assert.equal(military.missions[0].status, 'returning');

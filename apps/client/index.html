@@ -48,5 +48,15 @@
     <p id="message" role="status" aria-live="polite"></p>
     <footer>NPC-Aufklärung ist als verlustfreie Testfassung aktiv. Kampf, Plünderung, PvP, Unterhalt und Matrix-Föderation sind noch nicht implementiert.</footer>
   </main>
+  <dialog id="scouting-dialog" class="mission-dialog" aria-labelledby="scouting-dialog-title">
+    <form id="scouting-form" method="dialog">
+      <div class="dialog-heading"><div><span class="kicker">EINSATZ PLANEN</span><h2 id="scouting-dialog-title">Stadt ausspähen</h2></div><button type="button" id="close-scouting" class="dialog-close" aria-label="Dialog schließen">×</button></div>
+      <p id="scouting-target"></p>
+      <label>General<select id="scouting-general" name="generalId" required></select></label>
+      <label>Anzahl Aufklärungsflugzeuge<input id="scouting-count" name="scouts" type="number" min="1" step="1" inputmode="numeric" required></label>
+      <div id="scouting-preview" class="mission-preview"></div>
+      <div class="dialog-actions"><button type="button" id="cancel-scouting" class="secondary">Abbrechen</button><button type="submit" id="confirm-scouting">Einsatz starten</button></div>
+    </form>
+  </dialog>
 </body>
 </html>

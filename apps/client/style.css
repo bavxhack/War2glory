@@ -47,5 +47,20 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .plot-training-queue i.active { background: #d5e59b; color: #172017; box-shadow: 0 0 0 2px #f0efaa55; }
 .plot-training-queue i.waiting { background: #d68f3e; color: #25190d; }
 #map-details.has-selection { border-color: #d5e59b; box-shadow: 0 0 0 2px #d5e59b22; }
+.deployed-forces { padding: .55rem .7rem; border-radius: .5rem; background: #2f3824; color: #e8d59a; }
+.mission-dialog { width: min(520px, calc(100% - 2rem)); padding: 0; border: 1px solid #74866a; border-radius: 1rem; background: #172017; color: #f7f2df; box-shadow: 0 24px 80px #000b; }
+.mission-dialog::backdrop { background: #050805bb; backdrop-filter: blur(3px); }
+.mission-dialog form { display: grid; gap: 1rem; padding: 1.25rem; }
+.dialog-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.dialog-heading h2 { margin: .2rem 0 0; }
+.dialog-close { width: 2.25rem; height: 2.25rem; border: 1px solid #65755d; border-radius: 50%; background: #253522; color: #fff; font-size: 1.4rem; cursor: pointer; }
+.mission-dialog label { display: grid; gap: .35rem; color: #d9dfd3; font-size: .85rem; font-weight: 700; }
+.mission-dialog input,.mission-dialog select { width: 100%; padding: .75rem; border: 1px solid #65755d; border-radius: .55rem; background: #0b110b; color: #fff; font: inherit; }
+.mission-preview { display: grid; gap: .3rem; padding: .8rem; border-radius: .65rem; background: #2f3824; }
+.mission-preview span { color: #c6d0c0; font-size: .82rem; }
+.dialog-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: .65rem; }
+.dialog-actions button { min-height: 44px; border: 0; border-radius: .55rem; background: #d5e59b; color: #172017; font-weight: 850; cursor: pointer; }
+.dialog-actions button.secondary { border: 1px solid #65755d; background: #253522; color: #eef1e9; }
+.dialog-actions button:disabled { background: #465345; color: #adb7aa; cursor: not-allowed; }
 @media (max-width: 700px) { .city-grid.compact { min-height: 300px; } .view-tabs { overflow-x: auto; } }
 @media (max-width: 460px) { .unit-visuals { grid-template-columns: 1fr; } }
