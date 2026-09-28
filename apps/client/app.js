@@ -1,4 +1,5 @@
 import { createRequestId } from './request-id.js';
+import { dragToPan } from './map-navigation.js';
 
 const resourceLabels = { wood: 'Holz', stone: 'Stein', food: 'Nahrung' };
 const resourceIcons = { wood: '▰', stone: '◆', food: '●' };
@@ -19,6 +20,8 @@ let selectedMapId;
 let mapCenter = { x: 7, y: 7 };
 let mapSize = 11;
 let latestMapRequest;
+let mapDrag;
+let suppressMapClick = false;
 const pending = new Map();
 
 function element(tag, text = '', className = '') { const node = document.createElement(tag); node.textContent = text; node.className = className; return node; }
@@ -199,5 +202,23 @@ document.querySelector('#coordinate-search').addEventListener('submit', event =>
 document.querySelector('#own-city').addEventListener('click', () => { if (mapState?.ownCity) requestMap(mapState.ownCity); });
 document.querySelector('#zoom-in').addEventListener('click', () => { mapSize = Math.max(5, mapSize - 2); document.querySelector('#zoom-label').value = `${Math.round(1100 / mapSize)} %`; requestMap(); });
 document.querySelector('#zoom-out').addEventListener('click', () => { mapSize = Math.min(15, mapSize + 2); document.querySelector('#zoom-label').value = `${Math.round(1100 / mapSize)} %`; requestMap(); });
-document.querySelector('#world-map').addEventListener('keydown', event => { const offsets = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }; if (!offsets[event.key]) return; event.preventDefault(); const [x, y] = offsets[event.key]; requestMap({ x: mapCenter.x + x, y: mapCenter.y + y }); });
+function panMap(x, y) { requestMap({ x: mapCenter.x + x, y: mapCenter.y + y }); }
+const panOffsets = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
+document.querySelectorAll('[data-pan]').forEach(button => button.addEventListener('click', () => panMap(...panOffsets[button.dataset.pan])));
+const worldMap = document.querySelector('#world-map');
+worldMap.addEventListener('keydown', event => { const offsets = { ArrowLeft: panOffsets.left, ArrowRight: panOffsets.right, ArrowUp: panOffsets.up, ArrowDown: panOffsets.down }; if (!offsets[event.key]) return; event.preventDefault(); panMap(...offsets[event.key]); });
+worldMap.addEventListener('pointerdown', event => {
+  if (event.button !== 0 || !event.isPrimary) return;
+  mapDrag = { pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY } };
+  worldMap.setPointerCapture(event.pointerId); worldMap.classList.add('dragging');
+});
+worldMap.addEventListener('pointerup', event => {
+  if (mapDrag?.pointerId !== event.pointerId) return;
+  const tile = worldMap.querySelector('.world-tile');
+  const offset = dragToPan(mapDrag.start, { x: event.clientX, y: event.clientY }, tile?.getBoundingClientRect().width || 46);
+  mapDrag = null; worldMap.classList.remove('dragging'); worldMap.releasePointerCapture(event.pointerId);
+  if (offset.x || offset.y) { suppressMapClick = true; panMap(offset.x, offset.y); }
+});
+worldMap.addEventListener('pointercancel', event => { if (mapDrag?.pointerId === event.pointerId) { mapDrag = null; worldMap.classList.remove('dragging'); } });
+worldMap.addEventListener('click', event => { if (!suppressMapClick) return; event.preventDefault(); event.stopPropagation(); suppressMapClick = false; }, true);
 connect();

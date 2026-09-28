@@ -47,7 +47,7 @@ Datenbank, Passwortwiederherstellung, E-Mail-Verifikation und produktiver Mehrpr
 
 - Jede Serverwelt besitzt eine einmal erzeugte, versionierte 24×24-Karte. Gelände, 18 NPC-Identitäten und Spielerpositionen bleiben in `world.json` stabil.
 - Registrierung und Migration wählen unter der serialisierten Weltsperre zufällig aus allen freien, nicht als Wasser markierten Feldern. Dadurch entstehen neue Städte nicht systematisch direkt nebeneinander; bereits belegte Felder bleiben ausgeschlossen. Stadt-IDs bleiben unabhängig von ihren Koordinaten stabil.
-- Angemeldete Spieler laden begrenzte Ausschnitte per WebSocket, suchen Koordinaten, verschieben und zoomen die Karte und sehen neue Spielerstädte per Push.
+- Angemeldete Spieler laden begrenzte Ausschnitte per WebSocket, suchen Koordinaten, verschieben die Karte durch Ziehen mit Maus oder Touch sowie über Richtungstasten und zoomen die Karte. Neue Spielerstädte erscheinen per Push.
 - Öffentliche Antworten enthalten Gelände, Namen, Stadtart, Kommandantenname beziehungsweise NPC-Schwierigkeit und euklidische Luftlinienentfernung. Interne NPC-Vorräte sowie fremde Stadt-, Konto- und Baudaten werden nicht übertragen.
 - Das interne NPC-Modell sieht Nahrung, Kapazität, Regenerationsrate und Zeitstempel vor. Regeneration, Plünderung, Garnison, Marsch und Kampf sind ausdrücklich noch nicht aktiv.
 

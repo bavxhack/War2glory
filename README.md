@@ -66,7 +66,7 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Atomare JSON-Spielstände pro Spieler, stabile Instanz-ID, ausdrückliche Übernahme der alten Demo-Stadt und Produktion während Abwesenheit.
 - Maschinenlesbare Serverbeschreibung als Vorbereitung auf Föderation.
 - Dauerhafte gemeinsame 24×24-Weltkarte mit Gelände, zufällig vergebenen eindeutigen Spielerpositionen und 18 gemeinsam sichtbaren NPC-Städten.
-- Kartenwechsel, Ausschnittsnavigation, Koordinatensuche, Zoom, Tastaturbedienung und öffentliche Stadtinformationen über WebSocket.
+- Kartenwechsel, Verschieben per Maus, Touch, Richtungstasten oder Pfeiltasten, Koordinatensuche, Zoom und öffentliche Stadtinformationen über WebSocket.
 - Spielregeln und Serverintegration mit `npm test` prüfen.
 
 Provisorische Regeln: Jedes Gebäude produziert seine Stufe in Rohstoffen pro Sekunde. Neubau beziehungsweise Ausbau auf Stufe n kostet 40 × n Holz und 30 × n Stein und dauert 5 × n Sekunden. Kosten werden beim Einreihen genau einmal abgezogen; Abbruch und Rückerstattung sind noch nicht verfügbar. Jedes Ressourcenlager fasst 2000 Einheiten. Das sind eigene Demo-Werte, keine bestätigten War2Glory-Werte.
