@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "start": "node apps/server/index.js",
     "dev": "vite --config apps/client/vite.config.js",
@@ -14,6 +16,11 @@
     "start:alpha": "node apps/server/index.js --world alpha --port 3000",
     "start:beta": "node apps/server/index.js --world beta --port 3001"
   },
-  "dependencies": { "react": "^19.1.1", "react-dom": "^19.1.1" },
-  "devDependencies": { "@vitejs/plugin-react": "^5.0.2", "vite": "^7.1.7" }
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "vite": "^7.1.7"
+  }
 }
