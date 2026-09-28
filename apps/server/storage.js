@@ -3,10 +3,11 @@ import { copyFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/pr
 import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
 import { newCity, RULESET } from '../../packages/game-core/index.js';
+import { newMilitary } from '../../packages/game-core/military.js';
 import { randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 1;
+export const PLAYER_SCHEMA_VERSION = 2;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -88,7 +89,7 @@ export class WorldStorage {
       const player = {
         schemaVersion: PLAYER_SCHEMA_VERSION, ruleset: RULESET, playerId, commanderName: displayName,
         city: { ...newCity(now), name: typeof cityName === 'string' && cityName.trim().length >= 3 && cityName.trim().length <= 32 ? cityName.trim() : `${displayName}s Stadt` },
-        processedCommands: [], createdAt: now,
+        military: newMilitary(playerId), processedCommands: [], createdAt: now,
       };
       const account = { playerId, displayName, normalized, password: credentials, createdAt: now };
       const entity = this.#allocatePlayerCity(player, account);
@@ -134,7 +135,18 @@ export class WorldStorage {
   }
 
   playerFile(playerId) { return join(this.playersDirectory, `${playerId}.json`); }
-  loadPlayer(playerId) { return readJson(this.playerFile(playerId)); }
+  async loadPlayer(playerId) {
+    const player = await readJson(this.playerFile(playerId));
+    if (player.schemaVersion === 1) {
+      player.schemaVersion = PLAYER_SCHEMA_VERSION;
+      player.city.buildingSlots = player.city.buildingSlots.map(slot => ({ area: 'civil', ...slot }));
+      player.city.militarySlots ??= newCity(player.city.updatedAt).militarySlots;
+      player.military = newMilitary(player.playerId);
+      await this.savePlayer(player);
+    }
+    if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
+    return player;
+  }
   savePlayer(player) { return atomicWrite(this.playerFile(player.playerId), player); }
 
   async #newSession(playerId) {

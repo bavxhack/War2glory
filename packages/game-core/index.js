@@ -1,13 +1,15 @@
-export const RULESET = 'prototype-0.2';
+export const RULESET = 'prototype-0.4';
 export const BUILDINGS = Object.freeze({
-  sawmill: Object.freeze({ label: 'Sägewerk', resource: 'wood' }),
-  quarry: Object.freeze({ label: 'Steinbruch', resource: 'stone' }),
-  farm: Object.freeze({ label: 'Bauernhof', resource: 'food' }),
+  sawmill: Object.freeze({ label: 'Sägewerk', resource: 'wood', area: 'civil' }),
+  quarry: Object.freeze({ label: 'Steinbruch', resource: 'stone', area: 'civil' }),
+  farm: Object.freeze({ label: 'Bauernhof', resource: 'food', area: 'civil' }),
+  barracks: Object.freeze({ label: 'Kaserne', resource: null, area: 'military' }),
 });
 export const CAPACITY = 2000;
 export const MAX_LEVEL = 10;
 export const MAX_QUEUE_LENGTH = 3;
 export const BUILDING_SLOT_COUNT = 9;
+export const MILITARY_SLOT_COUNT = 4;
 
 const slotId = index => `plot-${index + 1}`;
 
@@ -17,9 +19,11 @@ export function newCity(now) {
     resources: { wood: 200, stone: 200, food: 200 },
     buildingSlots: Array.from({ length: BUILDING_SLOT_COUNT }, (_, index) => ({
       id: slotId(index),
+      area: 'civil',
       building: index < 3 ? Object.keys(BUILDINGS)[index] : null,
       level: index < 3 ? 1 : 0,
     })),
+    militarySlots: Array.from({ length: MILITARY_SLOT_COUNT }, (_, index) => ({ id: `military-plot-${index + 1}`, area: 'military', building: null, level: 0 })),
     constructionQueue: [],
     updatedAt: now,
   };
@@ -38,7 +42,7 @@ export function constructionQuote(level) {
 
 export function cityOffers(city) {
   const build = Object.fromEntries(Object.keys(BUILDINGS).map(building => [building, constructionQuote(1)]));
-  const upgrade = Object.fromEntries(city.buildingSlots
+  const upgrade = Object.fromEntries(allSlots(city)
     .filter(slot => slot.building && slot.level < MAX_LEVEL && !city.constructionQueue.some(job => job.slotId === slot.id))
     .map(slot => [slot.id, constructionQuote(slot.level + 1)]));
   return { build, upgrade };
@@ -46,16 +50,17 @@ export function cityOffers(city) {
 
 function produce(city, until) {
   const seconds = Math.max(0, until - city.updatedAt) / 1000;
-  for (const slot of city.buildingSlots) {
+  for (const slot of allSlots(city)) {
     if (!slot.building) continue;
     const resource = BUILDINGS[slot.building].resource;
+    if (!resource) continue;
     city.resources[resource] = Math.min(CAPACITY, city.resources[resource] + seconds * slot.level);
   }
   city.updatedAt = until;
 }
 
 function finishConstruction(city, job) {
-  const slot = city.buildingSlots.find(candidate => candidate.id === job.slotId);
+  const slot = allSlots(city).find(candidate => candidate.id === job.slotId);
   slot.building = job.building;
   slot.level = job.level;
   city.constructionQueue.shift();
@@ -81,8 +86,10 @@ export function enqueueConstruction(previous, command, now) {
     throw new Error('Bauplatz und Gebäudetyp werden benötigt.');
   }
   if (!Object.hasOwn(BUILDINGS, command.building)) throw new Error('Unbekanntes Gebäude.');
-  const slot = city.buildingSlots.find(candidate => candidate.id === command.slotId);
+  const slot = allSlots(city).find(candidate => candidate.id === command.slotId);
   if (!slot) throw new Error('Unbekannter Bauplatz.');
+  const area = slot.area ?? 'civil';
+  if (BUILDINGS[command.building].area !== area) throw new Error('Dieses Gebäude ist auf diesem Baubereich nicht erlaubt.');
   if (city.constructionQueue.some(job => job.slotId === slot.id)) {
     throw new Error('Für diesen Bauplatz ist bereits ein Auftrag vorgemerkt.');
   }
@@ -106,4 +113,11 @@ export function enqueueConstruction(previous, command, now) {
     finishesAt: startsAt + quote.durationMs,
   });
   return city;
+}
+
+export function allSlots(city) { return [...city.buildingSlots, ...(city.militarySlots ?? [])]; }
+
+export function commanderScore(city) {
+  const buildings = allSlots(city).reduce((score, slot) => score + (slot.building ? slot.level * 10 : 0), 0);
+  return { version: 1, total: Math.max(0, buildings), buildings, research: null, combat: null, defeatInfluence: null };
 }

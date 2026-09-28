@@ -19,3 +19,8 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 @media(max-width:900px){.game-layout{grid-template-columns:1fr}.city-scene{min-height:560px;padding:20px}.city-grid{gap:28px 24px}.plot{min-height:145px}aside{padding-top:0}.resources{position:sticky;top:0;z-index:4}}
 @media(max-width:900px){.world-layout{grid-template-columns:1fr}.world-toolbar{align-items:flex-start;flex-wrap:wrap}.world-map{aspect-ratio:auto;min-height:70vh}.map-sidebar{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){main{padding:10px}.topbar{align-items:flex-start}.connection{padding:8px;font-size:11px}.city-scene{min-height:480px;padding:12px}.city-grid{gap:23px 10px}.plot{min-height:125px;padding:6px}.building-art{transform:scale(.72);margin-bottom:-9px}.plot strong{font-size:11px}.plot small{font-size:10px}.resources{gap:5px}.resource{padding:8px;gap:5px}.resource-icon{display:none}.resource strong{font-size:18px}.heading>span{display:none}.auth-actions{grid-template-columns:1fr}}
+.score-strip { margin: 0 auto 1rem; max-width: 1400px; padding: .7rem 1rem; border: 1px solid rgba(214,174,92,.35); border-radius: .6rem; background: rgba(34,38,34,.88); color: #ead8ad; font-size: .9rem; }
+.city-grid.compact { min-height: 420px; grid-template-columns: repeat(2, minmax(130px, 1fr)); align-content: center; }
+.plot.barracks { background: linear-gradient(145deg, #67645a, #343631); }
+#forces p, #missions p, #reports p { margin: .55rem 0; }
+@media (max-width: 700px) { .city-grid.compact { min-height: 300px; } .view-tabs { overflow-x: auto; } }

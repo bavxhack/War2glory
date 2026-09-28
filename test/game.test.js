@@ -7,7 +7,9 @@ import {
   enqueueConstruction,
   MAX_QUEUE_LENGTH,
   newCity,
+  commanderScore,
 } from '../packages/game-core/index.js';
+import { advanceMilitary, enqueueTraining, generalLevel, newMilitary, startScoutMission } from '../packages/game-core/military.js';
 import { mapDistance, publicMap, randomFreeLocation, terrainAt } from '../packages/game-core/world.js';
 
 const command = (id, slotId, building) => ({ id, slotId, building });
@@ -91,4 +93,32 @@ test('Zufällige Stadtpositionen wählen nur freie, bebaubare Felder', () => {
     assert.equal(map.entities.some(entity => entity.x === location.x && entity.y === location.y), false);
     assert.notEqual(terrainAt(location.x, location.y, map.seed), 'water');
   }
+});
+
+test('Militärplätze sind getrennt und fertige Gebäude ergeben abgeleitete Punkte', () => {
+  let city = newCity(0);
+  assert.equal(commanderScore(city).total, 30);
+  assert.throws(() => enqueueConstruction(city, command('bad-area', 'plot-4', 'barracks'), 0), /Baubereich/);
+  city = enqueueConstruction(city, command('barracks-1', 'military-plot-1', 'barracks'), 0);
+  assert.equal(commanderScore(city).total, 30, 'wartende Aufträge zählen nicht');
+  city = advanceCity(city, 5000);
+  assert.equal(commanderScore(city).total, 40);
+});
+
+test('Ausbildung, General und Aufklärung werden zeitlich und einmalig fortgeschrieben', () => {
+  const city = newCity(0); city.militarySlots[0] = { ...city.militarySlots[0], building: 'barracks', level: 1 };
+  let military = newMilitary('p1');
+  const training = enqueueTraining(military, city, { id: 'train-1', unit: 'scout', amount: 2 }, 0);
+  assert.equal(training.military.units.scout, 0); assert.equal(training.city.resources.wood, 180);
+  military = advanceMilitary(training.military, 4000);
+  assert.equal(military.units.scout, 2);
+  military = startScoutMission(military, { id: 'mission-1', generalId: 'general-p1', scouts: 1 }, 4000, { x: 0, y: 0 }, { id: 'npc-1', kind: 'npc', name: 'Ziel', x: 1, y: 0 });
+  assert.equal(military.units.scout, 1); assert.equal(military.generals[0].status, 'scouting');
+  const npc = new Map([['npc-1', { resources: { food: { amount: 321, capacity: 500 } } }]]);
+  military = advanceMilitary(military, 9000, npc);
+  assert.equal(military.reports.length, 0); assert.equal(military.missions[0].status, 'returning');
+  military = advanceMilitary(military, 14000, npc);
+  assert.equal(military.units.scout, 2); assert.equal(military.reports[0].intelligence.food.amount, 321); assert.equal(military.generals[0].experience, 10);
+  assert.equal(advanceMilitary(military, 20000, npc).generals[0].experience, 10);
+  assert.equal(generalLevel(100), 2); assert.equal(generalLevel(300), 3);
 });

@@ -13,9 +13,9 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Geplant; eigene spätere Ausbauetappe |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
-| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Grundsystem in Auftrag 4; Gebäude-Testregel vorgeschlagen, Forschung/Kämpfe später |
-| 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung in Auftrag 4; noch nicht implementiert |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Separater Militärbereich/Kaserne/erste Truppen/Startgeneral in Auftrag 4; Forschung weiterhin später |
+| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte implementiert; Forschung/Kämpfe später |
+| 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | Erste verlustfreie NPC-Aufklärung implementiert |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Militärbereich/Kaserne/erste Truppen/Startgeneral implementiert; Forschung später |
 | 4b | Kämpfe, NPC-Farmzüge, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -64,7 +64,7 @@ Die Weltkarte ist laut Nutzer und Repository umgesetzt. Der Nutzer möchte weite
 3. Erste NPC-Aufklärung mit zugewiesenem General und Spähern, Hin-/Rückmarsch und privaten zeitgestempelten Berichten.
 4. Neustartfeste JSON-Abläufe, WebSocket-Ereignisse, Migration und gezielte Tests.
 
-Diese Funktionen sind beauftragt, nicht als implementiert bestätigt. Echte Angriffe, Verluste und Nahrung als Beute sind der nächste separate Schritt.
+Diese Funktionen sind im Prototyp implementiert. Echte Angriffe, Verluste und Nahrung als Beute sind der nächste separate Schritt.
 
 ### Vorläufige Arbeitsvorschläge für den Review
 
