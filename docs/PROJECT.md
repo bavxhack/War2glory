@@ -10,12 +10,12 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | --- | --- | --- |
 | 0 | Startbarer Server, lokale Demo-Stadt, Rohstoffe, Ausbau, Speichern, Tests | Implementiert |
 | 1 | Stadtkarte, feste Bauplätze, Errichten/Ausbauen und Warteschlange | Implementiert |
-| 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Geplant; eigene spätere Ausbauetappe |
+| 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Aktueller Auftrag 5; noch nicht implementiert bestätigt |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
-| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Grundsystem in Auftrag 4; Gebäude-Testregel vorgeschlagen, Forschung/Kämpfe später |
-| 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung in Auftrag 4; noch nicht implementiert |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle laut Nutzer angelegt; Mehrfachverwaltung/Skillgrundlage in Abschnitt E von Auftrag 4; Forschung weiterhin später |
+| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte laut README umgesetzt; Forschung/Kämpfe später |
+| 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle laut Nutzer angelegt; Mehrfachverwaltung/Skillgrundlage als folgende Etappe geplant; Forschung weiterhin später |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Nahrungsunterhalt, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant; Unterhalt mit oder unmittelbar nach dem Farmkreislauf empfohlen |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
@@ -56,17 +56,16 @@ Datenbank, Passwortwiederherstellung, E-Mail-Verifikation und produktiver Mehrpr
 
 Kartengröße, NPC-Anzahl, Schwierigkeitsstufen und interne Vorratswerte sind reversible eigene Prototypwerte und keine bestätigten War2Glory-Werte.
 
-## Aktueller Codex-Auftrag vom 28.09.2026: Punkte und erste NPC-Einsätze
+## Vorheriger Codex-Auftrag 4: Punkte und erste NPC-Einsätze
 
-Die Weltkarte ist laut Nutzer und Repository umgesetzt. Der Nutzer möchte weitere Arbeitsanweisungen, damit dort sinnvolle Aktionen möglich werden. CODEX_PROMPT.md enthält dafür Auftrag 4 mit folgenden zusammenhängenden Teilen:
+Die Weltkarte ist laut Nutzer und Repository umgesetzt. Der Nutzer möchte weitere Arbeitsanweisungen, damit dort sinnvolle Aktionen möglich werden. Der vorherige Auftrag 4 (im Git-Verlauf von CODEX_PROMPT.md) umfasst folgende zusammenhängende Teile:
 
 1. Kommandantenpunkte, zunächst aus fertiggestellten Gebäuden; spätere Forschungs- und Kampfbeiträge getrennt vorbereiten.
 2. Eigene Militärseite mit getrennten militärischen Bauplätzen, ausbaubarer Kaserne, persistenter Ausbildung von Spähern und Infanterie sowie einem General mit Erfahrung, Level und Führungskapazität.
 3. Erste NPC-Aufklärung mit zugewiesenem General und Spähern, Hin-/Rückmarsch und privaten zeitgestempelten Berichten.
 4. Neustartfeste JSON-Abläufe, WebSocket-Ereignisse, Migration und gezielte Tests.
 
-Diese Funktionen sind im Prototyp implementiert. Echte Angriffe, Verluste und Nahrung als Beute sind der nächste separate Schritt.
-Generäle sind laut neuer Nutzerangabe bereits angelegt. Der Umsetzungsstand der übrigen beauftragten Funktionen ist dadurch nicht zusätzlich bestätigt. Echte Angriffe, Verluste und Nahrung als Beute sind der nächste separate Schritt.
+Diese Grundfunktionen werden in der aktuellen README als Prototyp beschrieben. Der Nutzer bestätigt Schritt 1 der zuletzt vorgeschlagenen Reihenfolge als umgesetzt. Der Planungschat hat keine Laufzeittests durchgeführt. Mehrfachverwaltung/Skills, Kämpfe, Verluste und Nahrung als Beute sind dadurch nicht zusätzlich als implementiert bestätigt.
 
 ### Vorläufige Arbeitsvorschläge für den Review
 
@@ -83,20 +82,36 @@ Die folgenden Werte wurden vom Planungschat zur Konkretisierung des Codex-Auftra
 
 Die endgültige Punktgewichtung, Niederlageneinflüsse, militärische Balance und weitere zuvor offene Produktentscheidungen bleiben abzustimmen. Diese Vorschläge machen den Prototyp prüfbar und ändern nicht den Status offener Langfristentscheidungen.
 
-### Weitere Arbeitsfolge nach Auftrag 4
+## Aktueller Auftrag 5: Lagerwirtschaft und Abriss
 
-- Zunächst Generalverwaltung und Skillgrundlage gemäß Ergänzung vom 28.09.2026 und Abschnitt E des Codex-Auftrags erweitern; offene Balance- und Rekrutierungsregeln anschließend gemeinsam festlegen.
-- NPC-Farmzüge mit echter Garnison, Kampf, Verlusten, Beutetransport und allmählicher Regeneration der gemeinsam genutzten Nahrungsvorräte. Dabei Kampf- und Niederlagenpunkte anschließen. Typabhängigen laufenden Nahrungsunterhalt gemeinsam mit oder unmittelbar nach dem Farmkreislauf einführen, sobald Verbrauchs- und Mangelregeln festgelegt sind.
-- Stufenabhängige Lagerkapazität, Lagerhaus und Gebäudeabriss nach Klärung der offenen Regeln.
-- Universitäten/Forschung einschließlich Forschungspunkten; weitere Truppen und Waffensysteme.
-- Später LKWs und Ölwirtschaft einschließlich ziviler Raffinerien und typabhängiger Mobilmachungskosten; Regeln gemäß Logistikabschnitt vorher festlegen.
-- Anschließend Bündnisse, Handel und Matrix-Föderation gemäß den bestehenden Zielen.
+Dies entspricht Schritt 2 der zuletzt vorgeschlagenen Reihenfolge. CODEX_PROMPT.md enthält jetzt den ausführbaren Auftrag für ressourcenspezifische Lagerkapazitäten, ausbaubare zivile Lagerhäuser, Investitionsnachweise und Gebäudeabriss. Noch nicht als implementiert bestätigt.
 
-Aktuelle Empfehlung des Planungschats: Lager und Überbestandsregeln vor den ersten Farmzügen abschließen. Die ursprüngliche Liste ist kein Auftrag, unentschiedene Regeln vorwegzunehmen.
+### Vorläufige Arbeitsvorschläge, keine endgültigen Nutzerentscheidungen
+
+- Bisherige Grundkapazität je Ressource erhalten (laut README 2000).
+- Produktionsgebäudebeitrag: 250 × max(0, Stufe − 1) zur eigenen Ressource. Lagerhausbeitrag: 500 × Stufe zu jeder aktiven Ressource. Mehrere Beiträge addieren sich.
+- Beispiel: Grundkapazität 2000 plus Sägewerk Stufe 3 (500) plus Lagerhaus Stufe 2 (1000) ergibt 3500 Holzkapazität.
+- Lagerhaus nutzt zunächst die vorhandene zivile Baukosten-/Zeitkurve und Stufenobergrenze.
+- Vollständiger sofortiger Abriss nach Vorschau und Bestätigung; bei laufenden/wartenden Bau- oder zugehörigen Ausbildungsaufträgen gesperrt.
+- Je Ressource abgerundet 10 Prozent der nachweislich bezahlten Investitionen in abgeschlossene Stufen zurückgeben. Beispiel: 240 Holz und 180 Stein ergeben 24 Holz und 18 Stein.
+- Unbekannte Altinvestitionen ausdrücklich markieren und nicht aus heutigen Preisen erfinden. Vorläufig nur belegte Beträge erstatten; bei fehlender Historie kann die Rückerstattung null sein. Diese Einschränkung vor Abriss anzeigen und im PR zur Prüfung ausweisen.
+- Vorhandene Vorräte und Abrissrückerstattungen bleiben bei Kapazitätsverlust erhalten. Überbestand blockiert positive Produktion der betroffenen Ressource, bleibt ausgebbar und wird nicht stillschweigend vernichtet.
+- Neue Bauinvestitionen mit tatsächlichen Zahlungen dokumentieren; Migration, Offline-Abrechnung und wiederholte Befehle müssen konsistent bleiben.
+- Die Details in Auftrag 5 konkretisieren den Prototyp. Sie stellen die zuvor offenen Regeln nicht als endgültig vom Nutzer beschlossen dar.
+
+### Weitere Reihenfolge
+
+1. Auftrag 5: Lagerwirtschaft und Abriss.
+2. Generalverwaltung mit mehreren Generälen und Skillgrundlage vervollständigen; Kostenkurve und Bonuswirkungen gemeinsam festlegen. Bereits vorhandene Ausbildung und Aufklärung erhalten, verbleibende Lücken gezielt schließen.
+3. NPC-Farmzüge mit Garnison, Kampf, Verlusten, typabhängiger Traglast, gemeinsamer Beute und Regeneration; General-Erfahrung sowie Kampf-/Niederlagenpunkte ergänzen.
+4. Laufenden typabhängigen Nahrungsunterhalt mit oder unmittelbar nach dem Farmkreislauf aktivieren, nachdem Verbrauchs- und Mangelregeln festgelegt sind.
+5. Universität/Forschung und anschließend die Rollen Bürgermeister/Forschungsgeneral.
+6. LKWs und Ölwirtschaft einschließlich ziviler Raffinerien und typabhängiger Mobilmachungskosten; die konkrete Einordnung gegenüber Forschung bei der Etappenplanung prüfen.
+7. Weitere Einheiten, Bündnisse, Handel, Unterstützung und PvP; anschließend aktive Matrix-Föderation. Identitäten und Protokolle schon vorher erweiterbar halten.
 
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 
-Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Der nächste Projektschritt erweitert die Generalverwaltung; Abschnitt E in CODEX_PROMPT.md enthält die Arbeitsanweisungen.
+Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung bleibt eine folgende Etappe nach dem jetzigen Lagerauftrag. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
 
 ### Bestätigte Anforderungen
 
@@ -131,7 +146,7 @@ Technischer Vorschlag für die Kostenbasis: insgesamt erworbene Skillpunkte eins
 
 ## Geplante Logistik: Traglast, LKWs und Öl
 
-Nutzerergänzung vom 28.09.2026. Diese Anforderungen sind geplant, nicht als implementiert bestätigt. Sie erweitern die späteren Farm- und Einheitenaufträge; LKWs und Öl gehören nicht automatisch zum laufenden Auftrag 4.
+Nutzerergänzung vom 28.09.2026. Diese Anforderungen sind geplant, nicht als implementiert bestätigt. Sie erweitern die späteren Farm- und Einheitenaufträge; LKWs und Öl gehören nicht automatisch zum aktuellen Lagerauftrag 5.
 
 ### Bestätigte Anforderungen
 
@@ -235,7 +250,7 @@ Nutzeranforderung vom 28.09.2026. Geplant für die Wirtschafts- und Farmmechanik
 
 ## Bestätigte Trennung von Stadt- und Militärbauplätzen vom 28.09.2026
 
-Diese Anforderung ergänzt den aktuellen Auftrag 4 und ist noch nicht als implementiert bestätigt.
+Die Trennung wurde in Auftrag 4 verlangt und wird inzwischen in der README beschrieben; der Nutzer bestätigt den zugehörigen Schritt 1 als umgesetzt.
 
 - Militärgebäude erhalten zusätzliche, eigene Bauplätze, vorzugsweise auf einer zweiten Seite. Auftrag 4 setzt dies als Seite „Militär“ neben „Stadt“ und „Weltkarte“ um.
 - Auf Militärbauplätzen dürfen keine Ressourcengebäude stehen. Kaserne und künftige Militärgebäude gehören in den Militärbereich; die bisherigen neun Bauplätze bleiben der zivile Bereich.
@@ -248,7 +263,7 @@ Diese Anforderung ergänzt den aktuellen Auftrag 4 und ist noch nicht als implem
 
 ## Bestätigte Gebäude- und Lageranforderungen vom 27.09.2026
 
-Diese Anforderungen sind für eine spätere Ausbauetappe aufgenommen. Sie sind noch nicht umgesetzt und gehören nicht zum aktuellen Auftrag 4.
+Diese bestätigten Anforderungen werden im aktuellen Auftrag 5 umgesetzt. Die folgende ursprüngliche Anforderungsliste bleibt erhalten; vorläufige Zahlen und Grenzfallregeln des neuen Auftrags stehen im Abschnitt „Aktueller Auftrag 5“ und in CODEX_PROMPT.md.
 
 ### Lagerkapazität durch Gebäudeausbau
 
@@ -276,11 +291,11 @@ Diese Anforderungen sind für eine spätere Ausbauetappe aufgenommen. Sie sind n
 - Vor Umsetzung sind Regeln für volle Lager bzw. Überbestände nach Kapazitätsverlust, die Aufnahme der Rückerstattung und Gebäude mit aktiven oder wartenden Bauaufträgen festzulegen. Bestehende Vorräte dürfen nicht ohne eine abgestimmte Regel stillschweigend verschwinden.
 - Abriss und Rückerstattung müssen später serverseitig geprüft, gemeinsam dauerhaft gespeichert und bei wiederholten Befehlen nur einmal ausgeführt werden. Die Oberfläche soll vor Bestätigung den Rückerstattungsbetrag und die Kapazitätsfolgen anzeigen.
 
-Die konkrete Ausgestaltung dieser Ausbauetappe bleibt abzustimmen. Der aktuelle Auftrag 4 ergänzt Punkte, erste Armeen und NPC-Aufklärung.
+Auftrag 5 konkretisiert die Ausbauetappe mit ausdrücklich vorläufigen Arbeitsvorschlägen. Diese ersetzen keine endgültige Abstimmung der Balance und Altbestandsregeln.
 
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
-Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Auftrag 4.
+Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Lagerauftrag 5.
 
 ### Universität und Forschungsbereiche
 
@@ -314,7 +329,7 @@ Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universitä
 
 ## Kommandanten-Punktesystem: hohe Priorität
 
-Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden. Sein Grundsystem ist deshalb der erste Teil von Auftrag 4; Forschungs- und Kampfbeiträge folgen mit den jeweiligen Spielsystemen. Es ist noch nicht implementiert.
+Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden. Sein Gebäude-Grundsystem wurde in Auftrag 4 eingeführt und wird in der README als implementiert beschrieben; Forschungs- und Kampfbeiträge folgen mit den jeweiligen Spielsystemen.
 
 ### Umfang und schrittweise Einführung
 
