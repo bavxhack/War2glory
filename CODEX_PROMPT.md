@@ -1,102 +1,97 @@
-# Codex-Auftrag 5: Lagerwirtschaft, Lagerhaus und Gebäudeabriss
+# Codex-Auftrag 6: Bestehende Spieloberfläche schrittweise auf React und Vite umstellen
 
-## Auftrag und Ausgangspunkt
+## Ziel und Arbeitsweise
 
-Dies ist Schritt 2 der zuletzt vorgeschlagenen Entwicklungsreihenfolge. Der Nutzer meldet Schritt 1 als umgesetzt. Ersetze keine fertigen Systeme: Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/FEDERATION.md und prüfe Code, offene PRs und vorhandene Änderungen. Bewahre fremde Arbeit.
+Der Nutzer hat das empfohlene Refactoring beauftragt und meldet das Lagerhaus als umgesetzt. README und Projektplan beschreiben inzwischen auch Lagerwirtschaft und Abriss als implementiert. Prüfe diesen Ausgangspunkt im Code; der Planungschat hat keine eigenen Laufzeittests durchgeführt.
 
-Die README beschreibt bereits getrennte zivile/militärische Bauplätze, Kommandantenpunkte, Ausbildung, Startgeneral und NPC-Aufklärung. Verifiziere diese Ausgangslage im Code. Der Planungschat hat dafür keine Laufzeittests durchgeführt. Aussagen über Implementierung und Tests müssen auf deiner eigenen Prüfung beruhen.
+Arbeite vom aktuellen main im Repository bavxhack/War2glory aus. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md, docs/DEVELOPMENT.md und docs/FEDERATION.md. Prüfe offene PRs und bestehende Änderungen und bewahre fremde Arbeit. Dieser Auftrag ersetzt Auftrag 5 als aktuellen Arbeitsauftrag; die Spielregeln aus Auftrag 5 bleiben bestehen.
 
-Der Planungschat erstellt nur Anweisungen. Du implementierst den folgenden begrenzten Auftrag in JavaScript, prüfst ihn und lieferst einen Pull Request. Dieser Auftrag löst Auftrag 4 als aktuellen Arbeitsauftrag ab; dessen noch offene General- und Zukunftsanforderungen bleiben in docs/PROJECT.md erhalten.
+Der Planungschat erstellt ausschließlich Anweisungen. Du, Codex, führst das Refactoring und seine Prüfungen durch und öffnest einen Pull Request. Ziel ist dieselbe vollständig bedienbare Anwendung mit einer wartbaren React-Oberfläche. Migriere in überprüfbaren Abschnitten, führe aber den gesamten hier beschriebenen Frontend-Umfang zu Ende.
 
-Ziel: Lagergrenzen je Ressource verstehen → Produktionsgebäude ausbauen → Kapazitätszuwachs sehen → Lagerhaus bauen/ausbauen → Gebäude mit nachvollziehbarer Teilrückerstattung abreißen → Platz neu bebauen → nach Wiederbeitritt denselben korrekten Zustand erhalten.
+## 1. Bestandsaufnahme und verbindliche Grenzen
 
-## A. Vorläufige, zentrale Prototypregeln
+- Erfasse vor Änderungen die tatsächlich vorhandenen Bildschirme, Dialoge, Interaktionen, WebSocket-Nachrichten, Clientzustände und Testabdeckung. Halte eine kompakte Funktionsliste für die spätere Abnahme fest.
+- Nimm Referenz-Screenshots der vorhandenen Stadt, Militärseite, Weltkarte, Lageranzeige und Abrissvorschau auf, soweit ausführbar.
+- Behalte JavaScript mit ES-Modulen bei; React-Komponenten dürfen JSX verwenden. Kein zusätzlicher TypeScript-Umbau.
+- React übernimmt Darstellung und lokale Bedienzustände. Server und packages/game-core bleiben für Regeln, Preise, Eigentum, Zeit, Punkte und Fortschritt verbindlich.
+- Erhalte bestehende WebSocket-Nachrichten und serverseitige JSON-Spielstände. Das Refactoring benötigt keine Spielstandmigration, Ressourcenänderung oder Rücksetzung.
+- Änderungen am Server dürfen nur der nötigen Auslieferung des Frontend-Builds dienen, nicht der Neuimplementierung von Spielregeln oder Authentifizierung.
+- Bestehende Stadtdarstellung, Gebäude, Texte, CSS-Grafiken und mobile Bedienung erhalten. Kein gleichzeitiges Redesign und kein Ersatz der vorhandenen Karte durch eine Demo.
+- Öl, Nahrungsunterhalt, Kämpfe, Forschung, zusätzliche Generalrekrutierung und neue Skillregeln bleiben spätere Aufgaben. Schon vorhandene Funktionen vollständig übernehmen.
+- Die frühere Leitlinie „ohne Framework zum Einstieg“ ist durch die Nutzerentscheidung für React im Frontend erweitert; der Spielkern bleibt frameworkunabhängig.
 
-Die folgenden Zahlen und Grenzfallregeln sind Vorschläge des Planungschats für einen reviewbaren Prototyp, keine einzeln bestätigten Nutzerentscheidungen oder Originalwerte. Implementiere sie zentral konfigurierbar und dokumentiere sie gesammelt im PR. Bestehende anderweitige Spielregeln bleiben erhalten.
+## 2. React-/Vite-Grundlage und Betrieb
 
-- Behalte die bisherige Grundlagerkapazität je Ressource bei; laut README sind dies aktuell 2000. Überprüfe den tatsächlichen Ausgangswert.
-- Jedes fertiggestellte Produktionsgebäude erhöht die Kapazität seiner Ressource um 250 je Stufe oberhalb Stufe 1: Beitrag = 250 × max(0, Gebäudestufe − 1). Dadurch bleiben die bisherigen Startlager mit Gebäuden auf Stufe 1 unverändert.
-- Ein Lagerhaus erhöht jede aktuell aktive Ressourcenlagerkapazität um 500 × seine fertiggestellte Stufe. Beiträge mehrerer Lagerhäuser und Produktionsgebäude addieren sich.
-- Gesamtkapazität je Ressource = Grundkapazität + passende Produktionsgebäudebeiträge + Lagerhausbeiträge. Ohne Gebäude bleibt die Grundkapazität bestehen.
-- Beispiel bei Grundkapazität 2000: Sägewerk Stufe 3 bringt 500 zusätzliches Holzlager; Lagerhaus Stufe 2 bringt 1000 für jede Ressource. Holzkapazität: 2000 + 500 + 1000 = 3500. Ohne weitere passende Gebäude haben Stein und Nahrung jeweils 3000.
-- Lagerhausbau und -ausbau nutzen für diesen Prototyp die vorhandene allgemeine Baukosten-/Bauzeitkurve und Stufenobergrenze. Falls der Code bereits unterschiedliche Kurven je Gebäudetyp besitzt, wähle explizit die bestehende Kurve eines zivilen Produktionsgebäudes als Testvorlage und dokumentiere die Auswahl.
-- Abriss erfolgt nach ausdrücklicher Bestätigung sofort und vollständig, nicht stufenweise. Keine zusätzliche Abrissgebühr oder Abrisswarteschlange.
-- Rückerstattung je Ressource = abgerundet 10 Prozent der nachweislich bezahlten Investitionen in Neubau und fertiggestellte Ausbaustufen. Beispiel: nachgewiesene 240 Holz und 180 Stein ergeben 24 Holz und 18 Stein. Kosten aktuell unfertiger Aufträge gehören nicht dazu.
-- Nach Kapazitätsverlust bleiben vorhandene Vorräte erhalten. Auch Abrissrückerstattungen werden vollständig aufgenommen; dadurch darf vorläufig Überbestand entstehen. Diese Ausnahme betrifft in diesem Auftrag nur Erhalt vorhandener Vorräte und Abrissrückerstattungen, nicht automatisch spätere Beute oder Handel.
-- Bei vollem Lager oder Überbestand pausiert nur die positive Produktion der betroffenen Ressource. Ausgaben bleiben möglich. Sobald wieder Platz besteht, wird Produktion ab diesem Zeitpunkt fortgesetzt. Keine nachträgliche Nachproduktion für die blockierte Zeit.
+- Führe React, React DOM, Vite und die erforderliche JSX-Integration im vorhandenen Repository ein. Wähle zueinander und zur Projektlaufzeit passende stabile Versionen anhand offizieller Dokumentation; Lockfile committen.
+- Behalte apps/client als Frontendbereich. Nutze die vorhandene Projektstruktur, ohne einen unnötigen Monorepo-, Serverframework- oder Paketmanagerumbau.
+- Ergänze nachvollziehbare npm-Skripte für Entwicklung, Frontend-Build und bestehende Tests. Halte Abhängigkeiten begrenzt; zusätzliche State-, UI- oder Routingbibliotheken nur bei konkret begründetem Bedarf.
+- Für die Entwicklung darf Vite Assets ausliefern und den bestehenden WebSocket-Endpunkt /game an den Spielserver weiterleiten. Gleiche Protokoll-/Pfadangaben mit docs/WEBSOCKET.md ab.
+- Erhalte Host-/Origin-Prüfungen und bestehende Sitzungsübergabe. Erlaube nur erforderliche Entwicklungsursprünge in einer expliziten Entwicklungskonfiguration. Keine globale Freigabe aller Origins oder Abschaltung bestehender Schutzprüfungen.
+- Im normalen Betrieb liefert der bestehende Node-Server den gebauten Client aus. Kein Vite-Entwicklungsserver im Produktivcontainer.
+- npm start und die vorhandenen Welt-/Portoptionen sowie start:alpha und start:beta müssen nach dokumentierter Installation und Build weiter funktionieren. Bei fehlendem Build eine verständliche Anleitung statt leerer Seite liefern.
+- Docker und CI für reproduzierbaren Paketinstallationsschritt, Tests und Frontend-Build anpassen. Das vorhandene Spielstand-Volume und ein Serverprozess je Welt bleiben erhalten.
+- Baue Browserassets ohne Servermodule, Dateisystemzugriffe, private Spielstände oder Geheimnisse. Keine Tokens in öffentliche Frontend-Konfiguration aufnehmen.
+- Assets mit passenden MIME-Typen und sicheren Pfaden ausliefern; Fehler bei unbekannten Assets nicht durch ein HTML-Dokument verdecken. Bestehende statische öffentliche Endpunkte erhalten.
+- Übernimm die bestehende Seitennavigation zunächst möglichst direkt. Falls echte neue URL-Routen nötig sind, definiere gezielte SPA-Fallbacks, ohne /game oder andere Serverendpunkte zu verschlucken.
+- Dokumentiere die neuen Installations-/Buildschritte, Ports, Entwicklungskonfiguration und Containerabläufe.
 
-## B. Lagerkapazitäten und neues Lagerhaus
+## 3. Gemeinsamer Clientzustand und WebSocket-Lebenszyklus
 
-- Berechne Lagerkapazitäten je Ressource aus verbindlichen Gebäudeständen. Keine verstreuten festen Obergrenzen in Browser, Produktion, Speicherung oder Angeboten.
-- Sägewerk wirkt auf Holz, Steinbruch auf Stein, Bauernhof auf Nahrung. Produktion und Lagerwirkung bleiben getrennt; ein Ausbau erhöht weiterhin die bestehende Produktion.
-- Das Lagerhaus ist ein ausbaubares ziviles Gebäude ohne eigene Rohstoffproduktion. Es darf nur auf freien zivilen Plätzen entstehen; Militärplätze sind serverseitig gesperrt.
-- Verwende vorhandene Bauangebote und die gemeinsame Bauwarteschlange. Ein fertiggestelltes Lagerhaus zählt nach der bestehenden Gebäudepunktregel.
-- Ein geplanter oder laufender Bau erhöht noch keine Kapazität. Neubau und Ausbau wirken ab ihrem tatsächlichen Abschlusszeitpunkt.
-- Zeige je Ressource Bestand, Kapazität und Produktionsrate. Erkläre Kapazitätsbeiträge in einer verständlichen Detailansicht.
-- Zeige vor Bau/Ausbau die aktuelle und anschließende Lagerwirkung. Überbestand muss sichtbar sein, auch wenn der Lagerbalken optisch bereits voll ist.
-- Erhalte das Erscheinungsbild der Stadt und ergänze eine erkennbare Lagerhausdarstellung.
+- Trenne Transport, serverbestätigten Clientzustand und React-Komponenten. Eine zentrale Transportschicht pro Browsertab verwaltet Verbindung, Anmeldung/Sitzungswiederaufnahme, Ereignisverteilung und offene Anfragen.
+- React-Komponenten abonnieren Zustände und rufen benannte Aktionen auf. Keine eigenständige WebSocket-Verbindung je Komponente und kein zweiter paralleler Ereigniszustand für dieselben Spieldaten.
+- Verwende eine überschaubare Zustandslösung; lokale Formularentwürfe, ausgewählter Bauplatz und offene Dialoge bleiben lokale Bedienzustände. Dauerhafter Fortschritt kommt weiterhin vom Server.
+- Erhalte requestId, Fehlerantworten und Deduplizierung. Eine Mutation wird durch eine Benutzeraktion ausgelöst, nicht als Nebeneffekt eines Renderns oder bloßen Komponenten-Mounts.
+- Nach Verbindungsabbruch ausstehende Mutationen nicht blind mit neuen IDs erneut senden. Nutze das bestehende Wiederaufnahmeverfahren und gleiche den bestätigten Zustand ab.
+- Abonnements, Listener, Timer und Reconnect-Versuche sauber aufräumen. Navigation, Hot Reload und React Strict Mode dürfen keine doppelten Verbindungen, Aktionen oder unkontrollierten Wiederverbindungszyklen erzeugen.
+- Bei Logout, Sitzungsablauf und Kontowechsel private Zustände sowie offene Dialoge/Anfragen zuverlässig trennen. Verspätete Antworten einer alten Sitzung dürfen nicht im neuen Konto erscheinen.
+- Datenfluss bleibt ereignisbasiert. Kein neues HTTP-Polling für Spielstände. HTTP für statische HTML-/CSS-/JS-Assets ist weiterhin normal.
+- Sichtbare Countdowns oder interpolierte Ressourcenanzeigen dürfen lokal aktualisiert werden, aber keine Bauabschlüsse, Ressourcenbuchungen oder Punkte verbindlich berechnen. Nach Servermeldungen korrigieren.
+- Verhindere unnötige Neuberechnung der gesamten Weltkarte bei jedem Countdown. Getrennte Ansichten gezielt abonnieren; Optimierungen nur bei beobachtbarem Bedarf.
 
-## C. Nachvollziehbare Investitionen und Migration
+## 4. Migration der vorhandenen Oberfläche
 
-- Führe je Gebäude eine dauerhafte Investitionsgrundlage nach Ressourcenart und Zahlungsherkunft. Bei Beauftragung wird der tatsächlich bezahlte Betrag am Auftrag festgehalten; bei Fertigstellung genau einmal dem Gebäude zugerechnet.
-- Änderungen an Preistabellen dürfen frühere Investitionen nicht verändern. Ein Preisangebot allein belegt keine Zahlung.
-- Kostenlose Startgebäude haben für ihre kostenlose Ausgangsstufe keine bezahlte Investition. Tatsächlich bezahlte spätere Upgrades zählen.
-- Migriere Altgebäude und laufende Aufträge anhand vorhandener belastbarer Zahlungs-/Auftragsdaten, soweit solche Daten existieren.
-- Vorläufige konservative Regel für fehlende Historie: unbekannte Altinvestitionen nicht aus heutigen Preisen erfinden. Markiere sie als unbekannt und berücksichtige nur nachweisbare Beträge. Das kann für ein Altgebäude zunächst eine Rückerstattung von null ergeben.
-- Zeige diese Einschränkung vor Abriss ausdrücklich an: „Frühere Baukosten sind nicht vollständig dokumentiert; erstattet werden nur nachgewiesene Investitionen.“ Stelle null nicht als Beweis dar, dass das Gebäude kostenlos war.
-- Dokumentiere Umfang und Folgen dieser Altbestandsregel im PR als offene Produktentscheidung. Kein behauptet vollständiger historischer Kostennachweis.
-- Nach Abriss erhält ein Neubau auf demselben Platz eine neue Gebäudeidentität und eigene Investitionsgrundlage. Er darf keine Investitionen des Vorgängers erben.
-- Sichere bestehende Daten und versioniere Migrationen. Wiederholte Migration darf weder Grundkapazität noch Investitionen, Gebäude oder Punkte vervielfachen. Unbekannte Speicherversionen nicht überschreiben.
-- Bestehende Gebäude, Platz-IDs, Ressourcen, Generäle, Einsätze und bereits bezahlte Aufträge bleiben erhalten.
+Führe diese Reihenfolge in nachvollziehbaren Commits durch:
 
-## D. Abriss mit Vorschau und sicheren Zustandsübergängen
+1. React-App-Grundgerüst, Anmeldung/Sitzungszustand, Navigation, Verbindungsanzeige, Ressourcen-/Punkteanzeige und gemeinsame Dialogbausteine.
+2. Stadtansicht mit Gebäudeplätzen, Auswahl, Angeboten, Bau-/Ausbauaktionen, Warteschlange, Lagerhaus und Kapazitätsdetails.
+3. Abrissvorschau und Bestätigung einschließlich historischer Investitionshinweise, Kapazitäts-/Produktions-/Punkteänderungen und serverseitiger Sperren.
+4. Militärbereich mit eigenen Bauplätzen, vorhandenen Kasernen, Ausbildung, Warteschlangen, Truppen und aktueller Generaldarstellung.
+5. Weltkarte einschließlich Koordinatensuche, Ausschnittsladen, Zoom, Maus-/Touch-Verschieben, Auswahl, öffentlichen Details und vorhandener Aufklärung.
+6. Einsatzauswahl, Hin-/Rückmarschübersicht und private historische Berichte sowie alle weiteren in der Bestandsaufnahme gefundenen bestehenden Interaktionen.
 
-- Biete Abriss für eigene fertiggestellte Gebäude im jeweiligen Baubereich an. Ein leerer Platz oder fremdes Gebäude ist kein gültiges Ziel.
-- Ein Gebäude mit laufendem oder wartendem Bau-/Ausbauauftrag darf nicht abgerissen werden. Keine stillschweigende Stornierung.
-- Eine Kaserne mit laufender oder wartender Ausbildung darf nicht abgerissen werden. Bereits fertige stationierte oder marschierende Truppen und Generäle bleiben beim Abriss einer sonst ungebundenen Kaserne bestehen. Falls der aktuelle Code weitere echte Abhängigkeiten enthält, verhindere deren Beschädigung und erkläre eine Sperre konkret.
-- Zukünftige Gebäude mit Forschung oder anderen Belegungen benötigen eigene Abrissregeln; diese Mechaniken jetzt nicht implementieren.
-- Zeige im Bestätigungsmodal Gebäudetyp/Stufe, vollständigen Verlust des Gebäudes, genaue Rückerstattung und deren Datengrundlage, Produktionsverlust, Kapazitäten danach, möglichen Überbestand und Punkteänderung.
-- Abbrechen verändert nichts. Nach Bestätigung werden Gebäude entfernt, Platz freigegeben, Rückerstattung verbucht und Produktion, Kapazitäten sowie Gebäudepunkte neu berechnet.
-- Der Server prüft Eigentum, stabile Gebäudeidentität, Platz, Abhängigkeiten und aktuellen Zustand erneut. Clientwerte für Rückerstattung oder Kapazitäten sind nicht verbindlich.
-- Bindung der Bestätigung an Gebäudeversion bzw. relevanten Angebotsstand: Hat sich seit der Vorschau etwa Stufe, Investition oder Belegung geändert, lehne sie ohne Nebenwirkungen ab und liefere eine aktualisierte Vorschau.
-- Abriss, Gutschrift, neue Kapazitäten, Punkte und Deduplizierungsnachweis müssen gemeinsam konsistent gespeichert sein, bevor Erfolg bestätigt wird.
-- Gleiche Anfrage mehrfach führt zu derselben Antwort ohne weitere Gutschrift. Gleiche Anfrage-ID mit anderem Inhalt ablehnen. Parallele Verbindungen dürfen denselben Abriss nicht doppelt ausführen.
-- Ein erneuter Befehl für ein abgerissenes Gebäude darf kein inzwischen auf demselben Platz neu gebautes Gebäude treffen.
+- Baue fachlich verständliche Komponenten und Hooks, keine einzige riesige App-Komponente. Gemeinsame Dialoge, Ressourcenwerte und Warteschlangenanzeigen wiederverwenden, ohne unnötig ein allgemeines UI-Framework zu entwickeln.
+- Während der Migration darf ein klar abgegrenzter alter Teil übergangsweise bestehen. React und alter DOM-Code dürfen nie dieselben Elemente gleichzeitig verwalten.
+- Am Ende müssen sämtliche bestehenden Spielbildschirme im React-Client erreichbar sein. Überholte DOM-Renderer und Eventhandler entfernen; keine dauerhaft parallelen Frontends.
+- Vorhandene reine Karten-/Geometrie-/Formatierungsfunktionen können weiterverwendet werden. Falls eine imperative Grafikfläche existiert, über eine kontrollierte React-Komponente mit vollständigem Aufräumen integrieren.
+- Erhalte Kartenposition und Zoom bei gewöhnlichen Spielereignissen. Gesuchte Koordinaten, Bauplatzwahl und Formulare dürfen nicht durch jede Servermeldung ungewollt zurückgesetzt werden.
+- Erfolgs-, Fehler-, Lade- und Verbindungszustände müssen verständlich bleiben. Während unklarer Serverbestätigung keine scheinbar abgeschlossenen Käufe oder Abrisse anzeigen.
+- Nutzernamen und andere variable Texte sicher als Text darstellen. Kein ungeprüftes HTML für Benutzerinhalte.
+- Dialoge mit Tastatur bedienen können: sinnvolle Fokusführung, Escape/Abbrechen, beschriftete Felder und Fokusrückkehr. Responsive Stadt-/Militär-/Kartenbedienung erhalten.
 
-## E. Zeit, Kommunikation und Vorbereitung späterer Systeme
+## 5. Prüfungen und Abnahme
 
-- Alle dynamischen Spielbefehle und Änderungen laufen über das bestehende WebSocket-Protokoll. Kein HTTP-Spielpolling und keine clientseitig verbindliche Wirtschaftsberechnung.
-- Erhalte JSON-Persistenz und den bestehenden einzelnen Schreibprozess pro Welt. Folge der vorhandenen Serialisierung und Besitzertrennung.
-- Verrechne Produktion chronologisch über Kapazitäts-/Ratenwechsel hinweg. Vor einer Mutation zunächst den Zustand bis zum wirksamen Zeitpunkt abrechnen.
-- Bei Offline-Bauabschlüssen gilt die neue Kapazität erst ab dem echten Abschlusszeitpunkt. Ein Neustart darf keine rückwirkende Produktion in zuvor volle Lager erlauben.
-- Überbestand darf beim Laden, Tick oder Reconnect nicht stillschweigend auf die Grenze gekürzt werden.
-- Halte Ressourcen und Gebäudewirkungen erweiterbar, damit später Öl und Forschung hinzukommen. Öl jetzt nicht aktivieren; die Ölraffinerie bleibt ein späteres ziviles Produktionsgebäude.
-- Trenne intern Produktion, Bestandsänderungen und Kapazitäten so, dass später Nahrungsunterhalt korrekt ergänzt werden kann. Noch keine Unterhaltsabbuchungen, negativen Vorräte, Hungerfolgen oder Ölpflicht.
-- Keine neue Generalrekrutierung, Skillbalance, Universität, Kampfaktion, NPC-Regeneration, LKWs oder Matrix-Verbindung in diesem Auftrag.
+- Führe die vorhandenen Regel- und Serverintegrationstests aus. Passe Tests nicht so an, dass ungewollt geänderte Spielregeln als korrekt gelten.
+- Ergänze gezielte Frontend-/Integrationstests für zentrale Risiken des Umbaus statt Tests, die nur die Komponentenstruktur nachbilden.
+- Prüfe reproduzierbare Installation mit Lockfile, Frontend-Build und Start des gebauten Clients über den normalen Node-Server sowie den Container-Build.
+- Prüfe mindestens folgende Abläufe mit zwei unabhängigen Benutzerkontexten:
+  - Registrierung/Login, Reload, Logout/Kontowechsel und Sitzungswiederaufnahme.
+  - Bauen/Ausbauen, Warteschlangen, Kapazitätszuwachs und Lagerhaus.
+  - Abrissvorschau abbrechen bzw. bestätigen, gesperrter Abriss, Überbestand und aktualisierte Gebäudepunkte.
+  - Getrennte zivile/militärische Bauangebote und vorhandene Ausbildungsabläufe.
+  - Kartenbedienung, NPC-Aufklärung, Einsätze und private Berichte; keine privaten Daten beim zweiten Nutzer.
+  - Verbindung während einer Mutation unterbrechen, erneut verbinden und Zustand abgleichen: keine doppelte Zahlung, Auftragserzeugung oder Rückerstattung.
+  - Wiederholte Navigation und Strict Mode ohne doppelte aktive Listener/Verbindungen und ohne mehrfach gesendete Mutationen.
+- Mit einem vorhandenen Testspielstand arbeiten, der Gebäude, Lagerhaus, Truppen und laufende Vorgänge enthält. Produktionsdaten weder ins Repository kopieren noch überschreiben.
+- Vergleiche fachlich relevante Zustände vor/nach Umstellung; normale zeitabhängige Produktion und fällige Ereignisse berücksichtigen.
+- Browserprüfung in Desktop- und schmaler Mobilansicht: Stadt, Militär, Lager-/Abrissdialog, Karte, Missions-/Berichtsansicht. Nutze die Referenz-Screenshots zur Kontrolle; geliefertes Ergebnis mit Screenshots dokumentieren.
+- Keine neuen Konsolenfehler, fehlenden Assets oder endlosen Reconnects im normalen Betrieb.
+- Falls Tests mangels Werkzeug/Zugriff nicht ausführbar sind, benenne die Lücke konkret. Keine ungetestete Funktion als geprüft darstellen.
 
-## F. Gezielte Prüfungen und Abnahme
+## 6. Lieferung und nächste Arbeit
 
-Führe die bestehende Testsuite aus und ergänze aussagekräftige Regel-/Integrationstests:
-
-1. Ressourcenspezifische Beiträge, mehrere Produktionsgebäude und Lagerhäuser; keine Wirkung unfertiger Aufträge.
-2. Lagerhaus nur auf zivilen Plätzen, einschließlich direkt manipulierter WebSocket-Anfragen.
-3. Offline-Produktion bei zunächst vollem Lager und späterem Bauabschluss; korrekte zeitliche Grenzen.
-4. Überbestand nach Abriss bleibt bestehen; nur die betroffene Produktion pausiert und setzt nach Ausgaben korrekt wieder ein.
-5. Rückerstattung aus kumulierten nachgewiesenen Kosten, Preisänderungen, kostenlose Startstufen und unbekannte Altkosten.
-6. Idempotente Migration sowie laufende vor der Migration bezahlte Aufträge; keine erfundenen Kosten.
-7. Abrisssperren für Bau und Ausbildung, veraltete Vorschau und unveränderte Armeen/Generäle.
-8. Mehrfacher Abrissbefehl, widersprüchliche Anfrage-ID, zwei Verbindungen und Abriss/Neubau auf demselben Platz.
-9. Speicherfehler und Neustart: keine doppelte Gutschrift oder teilweise bestätigte Änderung.
-10. Kommandantenpunkte nach Ausbau/Abriss/Neubau ohne dauerhafte Zusatzpunkte.
-11. Zwei Spieler: fremde Angebote, Investitionsdaten und Gebäude bleiben geschützt.
-12. Regression für Anmeldung, Stadt/Militär, Ausbildung, Weltkarte und bestehende Aufklärung.
-
-Browser-Abnahme auf Desktop und Mobilansicht: Lagerhaus bauen/ausbauen, Kapazitäten prüfen, Abrissvorschau öffnen/abbrechen/bestätigen, Überbestand sehen, neu bauen, reconnecten. Screenshots von Lageranzeige, Lagerhaus und Abrissmodal liefern. Nicht mögliche Prüfungen ausdrücklich benennen.
-
-## Ergebnis und nächste Etappen
-
-- Liefere nachvollziehbare Commits und einen Pull Request. Nicht eigenständig mergen oder deployen.
-- Aktualisiere README, docs/PROJECT.md und erforderliche Protokoll-/Speicherdokumentation anhand des tatsächlich implementierten Stands. Entferne widersprüchliche Aussagen über feste Lagergrenzen.
-- Berichte auf Deutsch: geändertes Verhalten, Tests, Migrationseinschränkungen und sämtliche vorläufigen Regeln. Insbesondere 250/500 Kapazitätsbeiträge, 10 Prozent Rückerstattung, sofortiger Abriss, Überbestand und unbekannte Altinvestitionen im PR sichtbar zur Prüfung aufführen.
-- Danach: Generalverwaltung/Skillregeln vervollständigen, verbleibende Ausbildungs-/Aufklärungslücken schließen, NPC-Farmzüge mit typabhängiger Traglast und anschließend bzw. gleichzeitig abgestimmtem Nahrungsunterhalt.
-- Später Universität/Forschung, Bürgermeister und Forschungsgeneral, LKWs/Ölwirtschaft, weitere Einheiten, Bündnisse/Handel/PvP und Föderation. Die bestätigten Zukunftsanforderungen in docs/PROJECT.md bleiben erhalten.
+- Liefere die vollständige Migration in einem reviewbaren Pull Request mit nachvollziehbaren Teilcommits. Nicht eigenständig zusammenführen oder deployen.
+- Beschreibe auf Deutsch Motivation, neue Frontendstruktur, Betriebsschritte, durchgeführte Tests und verbleibende Einschränkungen.
+- Aktualisiere README, Entwicklungs-/WebSocket-Dokumentation, Projektplan und erforderliche Projektleitlinien anhand des tatsächlichen Ergebnisses. Alte Aussagen „keine npm-Abhängigkeiten“ erst mit der Implementierung ersetzen.
+- Dokumentiere React/Vite als Grundlage künftiger Oberfläche, ohne den Spielkern an React zu koppeln.
+- Keine Balanceänderungen oder neuen Spielmechaniken in diesen PR mischen.
+- Danach folgt die Generalverwaltung mit mehreren Generälen und später die im Projektplan beschriebenen Farm-, Unterhalts-, Forschungs- und Föderationsschritte.
