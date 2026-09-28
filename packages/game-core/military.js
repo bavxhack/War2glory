@@ -18,8 +18,12 @@ export function generalLevel(experience) {
   return level;
 }
 
-export function barracksIsBusy(military) {
-  return military.trainingQueue.length > 0;
+export function trainingQueueForBarracks(military, barracksSlotId) {
+  return military.trainingQueue.filter(job => job.barracksSlotId === barracksSlotId);
+}
+
+export function barracksIsBusy(military, barracksSlotId) {
+  return trainingQueueForBarracks(military, barracksSlotId).length > 0;
 }
 
 export function newMilitary(playerId) {
@@ -28,9 +32,9 @@ export function newMilitary(playerId) {
 
 export function advanceMilitary(previous, now, npcById = new Map()) {
   const military = structuredClone(previous);
-  while (military.trainingQueue[0]?.finishesAt <= now) {
-    const job = military.trainingQueue.shift(); military.units[job.unit] += job.amount;
-  }
+  const completedTraining = military.trainingQueue.filter(job => job.finishesAt <= now);
+  for (const job of completedTraining) military.units[job.unit] += job.amount;
+  military.trainingQueue = military.trainingQueue.filter(job => job.finishesAt > now);
   for (const mission of military.missions) {
     if (mission.status === 'outbound' && mission.arrivesAt <= now) {
       mission.status = 'returning';
@@ -56,16 +60,18 @@ export function enqueueTraining(previous, city, command, now) {
   const military = advanceMilitary(previous, now); const definition = UNITS[command.unit];
   if (!definition) throw new Error('Unbekannter Einheitentyp.');
   if (!Number.isInteger(command.amount) || command.amount < 1 || command.amount > MILITARY_RULES.maxTrainingAmount) throw new Error('Ungültige Ausbildungsmenge.');
-  if (military.trainingQueue.length >= MILITARY_RULES.trainingQueueLength) throw new Error('Die Ausbildungswarteschlange ist voll.');
-  const barracksLevel = city.militarySlots?.find(slot => slot.building === 'barracks')?.level ?? 0;
-  if (!barracksLevel) throw new Error('Eine fertige Kaserne wird benötigt.');
-  if (city.constructionQueue.some(job => job.building === 'barracks')) throw new Error('Die Kaserne wird gerade ausgebaut.');
+  if (typeof command.barracksSlotId !== 'string') throw new Error('Eine eigene Kaserne muss ausgewählt werden.');
+  const barracks = city.militarySlots?.find(slot => slot.id === command.barracksSlotId && slot.building === 'barracks');
+  if (!barracks) throw new Error('Eine eigene fertige Kaserne wird benötigt.');
+  const barracksQueue = trainingQueueForBarracks(military, barracks.id);
+  if (barracksQueue.length >= MILITARY_RULES.trainingQueueLength) throw new Error('Die Ausbildungswarteschlange dieser Kaserne ist voll.');
+  if (city.constructionQueue.some(job => job.slotId === barracks.id)) throw new Error('Die Kaserne wird gerade ausgebaut.');
   for (const [resource, unitCost] of Object.entries(definition.cost)) if (city.resources[resource] < unitCost * command.amount) throw new Error('Nicht genügend Rohstoffe.');
   const nextCity = structuredClone(city);
   for (const [resource, unitCost] of Object.entries(definition.cost)) nextCity.resources[resource] -= unitCost * command.amount;
-  const startsAt = military.trainingQueue.at(-1)?.finishesAt ?? now;
-  const durationMs = Math.ceil(definition.baseDurationMs * command.amount / barracksLevel);
-  military.trainingQueue.push({ id: command.id, unit: command.unit, amount: command.amount, barracksLevel, startsAt, finishesAt: startsAt + durationMs });
+  const startsAt = barracksQueue.at(-1)?.finishesAt ?? now;
+  const durationMs = Math.ceil(definition.baseDurationMs * command.amount / barracks.level);
+  military.trainingQueue.push({ id: command.id, barracksSlotId: barracks.id, unit: command.unit, amount: command.amount, barracksLevel: barracks.level, startsAt, finishesAt: startsAt + durationMs });
   return { city: nextCity, military };
 }
 

@@ -24,7 +24,7 @@ const staticFiles = new Map([
 ]);
 
 function commandFingerprint(type, payload) {
-  const allowed = type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['unit', 'amount'] : ['targetId', 'generalId', 'scouts'];
+  const allowed = type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'unit', 'amount'] : ['targetId', 'generalId', 'scouts'];
   return JSON.stringify(Object.fromEntries(allowed.map(key => [key, payload?.[key]])));
 }
 
@@ -156,7 +156,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           player.military = advanceMilitary(player.military, now, new Map(storage.world.map.entities.filter(entity => entity.kind === 'npc').map(entity => [entity.id, entity])));
           if (message.type === 'construction.enqueue') {
             const slot = player.city.militarySlots?.find(candidate => candidate.id === message.payload.slotId);
-            if (slot?.building === 'barracks' && barracksIsBusy(player.military)) throw new Error('Die Kaserne ist durch Ausbildung belegt.');
+            if (slot?.building === 'barracks' && barracksIsBusy(player.military, slot.id)) throw new Error('Diese Kaserne ist durch Ausbildung belegt.');
             player.city = enqueueConstruction(player.city, { id: message.requestId, ...message.payload }, now);
           }
           if (message.type === 'training.enqueue') {

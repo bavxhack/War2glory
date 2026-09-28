@@ -108,7 +108,7 @@ test('Militärplätze sind getrennt und fertige Gebäude ergeben abgeleitete Pun
 test('Ausbildung, General und Aufklärung werden zeitlich und einmalig fortgeschrieben', () => {
   const city = newCity(0); city.militarySlots[0] = { ...city.militarySlots[0], building: 'barracks', level: 1 };
   let military = newMilitary('p1');
-  const training = enqueueTraining(military, city, { id: 'train-1', unit: 'scout', amount: 2 }, 0);
+  const training = enqueueTraining(military, city, { id: 'train-1', barracksSlotId: 'military-plot-1', unit: 'scout', amount: 2 }, 0);
   assert.equal(training.military.units.scout, 0); assert.equal(training.city.resources.wood, 180);
   military = advanceMilitary(training.military, 4000);
   assert.equal(military.units.scout, 2);
@@ -127,14 +127,31 @@ test('Eine große Ausbildungsgruppe blockiert die Kaserne bis zum gemeinsamen Ab
   const city = newCity(0);
   city.militarySlots[0] = { ...city.militarySlots[0], building: 'barracks', level: 1 };
   city.resources = { wood: 2000, stone: 2000, food: 2000 };
-  const result = enqueueTraining(newMilitary('batch-player'), city, { id: 'train-100', unit: 'scout', amount: 100 }, 0);
+  const result = enqueueTraining(newMilitary('batch-player'), city, { id: 'train-100', barracksSlotId: 'military-plot-1', unit: 'scout', amount: 100 }, 0);
 
   assert.equal(result.military.trainingQueue[0].finishesAt, 200_000);
-  assert.equal(barracksIsBusy(result.military), true);
+  assert.equal(barracksIsBusy(result.military, 'military-plot-1'), true);
   assert.equal(result.city.resources.wood, 1000);
   assert.equal(advanceMilitary(result.military, 199_999).units.scout, 0);
   const completed = advanceMilitary(result.military, 200_000);
   assert.equal(completed.units.scout, 100);
   assert.equal(completed.trainingQueue.length, 0);
-  assert.equal(barracksIsBusy(completed), false);
+  assert.equal(barracksIsBusy(completed, 'military-plot-1'), false);
+});
+
+test('Jede Kaserne besitzt drei eigene Slots und bildet parallel aus', () => {
+  let city = newCity(0);
+  city.militarySlots[0] = { ...city.militarySlots[0], building: 'barracks', level: 1 };
+  city.militarySlots[1] = { ...city.militarySlots[1], building: 'barracks', level: 1 };
+  city.resources = { wood: 2000, stone: 2000, food: 2000 };
+  let military = newMilitary('parallel-player');
+
+  for (let index = 0; index < 3; index += 1) {
+    ({ city, military } = enqueueTraining(military, city, { id: `first-${index}`, barracksSlotId: 'military-plot-1', unit: 'scout', amount: 1 }, 0));
+  }
+  assert.throws(() => enqueueTraining(military, city, { id: 'first-full', barracksSlotId: 'military-plot-1', unit: 'scout', amount: 1 }, 0), /dieser Kaserne ist voll/);
+  const second = enqueueTraining(military, city, { id: 'second-1', barracksSlotId: 'military-plot-2', unit: 'infantry', amount: 1 }, 0);
+  assert.equal(second.military.trainingQueue.find(job => job.id === 'second-1').finishesAt, 3000);
+  assert.equal(second.military.trainingQueue.find(job => job.id === 'first-2').finishesAt, 6000);
+  assert.equal(advanceMilitary(second.military, 3000).units.infantry, 1);
 });

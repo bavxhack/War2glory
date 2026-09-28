@@ -131,7 +131,7 @@ function actionButton(label, detail, disabled, action) {
   button.append(element('strong', label), element('span', detail)); button.addEventListener('click', action); return button;
 }
 
-function unitTrainingForm(state, unit, definition, barracksLevel) {
+function unitTrainingForm(state, unit, definition, barracks) {
   const form = element('form', '', 'training-form');
   const label = element('label', `Anzahl ${definition.label}`);
   const input = document.createElement('input');
@@ -144,14 +144,15 @@ function unitTrainingForm(state, unit, definition, barracksLevel) {
     const amount = Number(input.value); const valid = Number.isInteger(amount) && amount >= 1 && amount <= state.militaryRules.maxTrainingAmount;
     const costs = Object.fromEntries(Object.entries(definition.cost).map(([resource, cost]) => [resource, cost * amount]));
     const affordable = valid && Object.entries(costs).every(([resource, cost]) => state.city.resources[resource] >= cost);
-    const duration = valid ? Math.ceil(definition.baseDurationMs * amount / barracksLevel) : 0;
+    const duration = valid ? Math.ceil(definition.baseDurationMs * amount / barracks.level) : 0;
     summary.textContent = valid ? `${costs.wood} Holz · ${costs.stone} Stein · ${costs.food} Nahrung · ${formatDuration(duration)}` : `Bitte 1–${state.militaryRules.maxTrainingAmount} eingeben.`;
-    submit.disabled = !valid || !affordable || state.military.trainingQueue.length >= state.militaryRules.trainingQueueLength;
+    const queueLength = state.military.trainingQueue.filter(job => job.barracksSlotId === barracks.id).length;
+    submit.disabled = !valid || !affordable || queueLength >= state.militaryRules.trainingQueueLength;
   };
   input.addEventListener('input', () => { trainingAmounts.set(unit, Number(input.value)); refresh(); });
   form.addEventListener('submit', event => {
     event.preventDefault(); const amount = Number(input.value); trainingAmounts.set(unit, amount);
-    send('training.enqueue', { unit, amount });
+    send('training.enqueue', { barracksSlotId: barracks.id, unit, amount });
   });
   refresh(); form.append(label, summary, submit); return form;
 }
@@ -196,6 +197,15 @@ function renderMilitary(state) {
     const job = state.city.constructionQueue.find(item => item.slotId === slot.id); const button = element('button', '', `plot ${slot.building ?? 'empty'}${slot.id === selectedMilitarySlotId ? ' selected' : ''}`);
     button.append(element('span', String(index + 1), 'plot-number'), element('strong', slot.building ? `${state.buildings[slot.building].label} · Stufe ${slot.level}` : 'Freier Militärbauplatz'));
     if (job) button.append(element('span', 'Eingeplant', 'queued-badge'));
+    if (slot.building === 'barracks') {
+      const queue = state.military.trainingQueue.filter(training => training.barracksSlotId === slot.id);
+      const queueSlots = element('span', '', 'plot-training-queue');
+      for (let position = 0; position < state.militaryRules.trainingQueueLength; position += 1) {
+        const training = queue[position];
+        queueSlots.append(element('i', training ? `${training.amount}` : '–', training ? (position === 0 ? 'active' : 'waiting') : 'free'));
+      }
+      button.append(queueSlots, element('small', queue.length ? `${queue.length}/3 Ausbildungsslots` : 'Ausbildung frei'));
+    }
     button.addEventListener('click', () => { selectedMilitarySlotId = slot.id; renderMilitary(state); }); return button;
   }));
   const selected = state.city.militarySlots.find(slot => slot.id === selectedMilitarySlotId);
@@ -203,10 +213,12 @@ function renderMilitary(state) {
   if (!selected) selection.replaceChildren(element('p', 'Wähle einen der getrennten Militärbauplätze.'));
   else if (!selected.building) selection.replaceChildren(element('h2', 'Freier Militärbauplatz'), actionButton('Kaserne bauen', quoteText(state.offers.build.barracks), !canAfford(state, state.offers.build.barracks), () => submitConstruction(selected.id, 'barracks')));
   else {
+    const barracksQueue = state.military.trainingQueue.filter(job => job.barracksSlotId === selected.id);
     const content = [element('h2', `Kaserne · Stufe ${selected.level}`)]; const quote = state.offers.upgrade[selected.id];
-    if (quote) content.push(actionButton('Kaserne ausbauen', state.military.trainingQueue.length ? 'Während der Ausbildung gesperrt' : quoteText(quote), state.military.trainingQueue.length > 0 || !canAfford(state, quote), () => submitConstruction(selected.id, 'barracks')));
+    content.push(element('p', `Ausbildungswarteschlange dieser Kaserne: ${barracksQueue.length} / ${state.militaryRules.trainingQueueLength}`, 'barracks-capacity'));
+    if (quote) content.push(actionButton('Kaserne ausbauen', barracksQueue.length ? 'Während der Ausbildung gesperrt' : quoteText(quote), barracksQueue.length > 0 || !canAfford(state, quote), () => submitConstruction(selected.id, 'barracks')));
     content.push(element('p', 'Gib eine Truppenmenge ein. Die gesamte Gruppe wird am Ende des Auftrags fertig und blockiert die Kaserne entsprechend lange.', 'notice'));
-    for (const [unit, definition] of Object.entries(state.units)) content.push(unitTrainingForm(state, unit, definition, selected.level));
+    for (const [unit, definition] of Object.entries(state.units)) content.push(unitTrainingForm(state, unit, definition, selected));
     selection.replaceChildren(...content);
   }
   const military = state.military; const general = military.generals[0];
@@ -218,9 +230,11 @@ function renderMilitary(state) {
   }
   const trainingList = element('ol', '', 'training-list');
   if (!military.trainingQueue.length) trainingList.append(element('li', 'Keine Streitkräfte in Ausbildung.', 'empty-queue'));
-  else military.trainingQueue.forEach((job, index) => {
-    const item = element('li'); const status = index === 0 ? `aktiv · noch ${formatDuration(job.finishesAt - state.serverTime)}` : `wartet · Start in ${formatDuration(job.startsAt - state.serverTime)}`;
-    item.append(element('span', String(index + 1), 'queue-position'), element('strong', `${job.amount} ${state.units[job.unit].label}`), element('span', status)); trainingList.append(item);
+  else military.trainingQueue.toSorted((a, b) => a.finishesAt - b.finishesAt).forEach(job => {
+    const barracksJobs = military.trainingQueue.filter(candidate => candidate.barracksSlotId === job.barracksSlotId).toSorted((a, b) => a.startsAt - b.startsAt);
+    const position = barracksJobs.findIndex(candidate => candidate.id === job.id);
+    const item = element('li'); const status = position === 0 ? `aktiv · noch ${formatDuration(job.finishesAt - state.serverTime)}` : `wartet · Start in ${formatDuration(job.startsAt - state.serverTime)}`;
+    item.append(element('span', String(position + 1), 'queue-position'), element('strong', `${job.amount} ${state.units[job.unit].label}`), element('span', `Kaserne ${job.barracksSlotId.split('-').at(-1)} · ${status}`)); trainingList.append(item);
   });
   const trainingTotal = military.trainingQueue.reduce((total, job) => total + job.amount, 0);
   document.querySelector('#forces').replaceChildren(element('h2', 'Streitkräfte'), unitCards, element('h3', `In Ausbildung: ${trainingTotal}`), trainingList, element('p', `${general.name}: Level ${general.level}, ${general.experience} EP, Führung ${general.leadership}, ${general.status === 'idle' ? 'bereit' : 'unterwegs'}`));
@@ -255,15 +269,34 @@ function renderMap(data) {
     button.type = 'button'; button.dataset.x = terrain.x; button.dataset.y = terrain.y; button.setAttribute('role', 'gridcell');
     button.setAttribute('aria-label', entity ? `${entity.name}, ${terrain.x}, ${terrain.y}` : `${terrain.type}, ${terrain.x}, ${terrain.y}`);
     button.append(element('span', `${terrain.x},${terrain.y}`, 'coordinates'));
-    if (entity) { button.append(element('span', entity.type === 'npc' ? '♜' : '◆', 'city-marker'), element('strong', entity.name)); button.addEventListener('click', () => { selectedMapId = entity.id; send('map.details', { id: entity.id }); }); }
+    if (entity) {
+      button.append(element('span', entity.type === 'npc' ? '♜' : '◆', 'city-marker'), element('strong', entity.name));
+      button.addEventListener('click', () => {
+        selectedMapId = entity.id;
+        renderMapDetails({ entity, terrain });
+        send('map.details', { id: entity.id });
+      });
+    }
     else button.addEventListener('click', () => renderMapDetails({ terrain, entity: null }));
     if (entity?.id === selectedMapId) button.classList.add('selected'); return button;
   }));
 }
 function renderMapDetails({ entity, terrain }) {
+  const detailsRoot = document.querySelector('#map-details');
   const content = [element('span', `KOORDINATE ${terrain.x}, ${terrain.y}`, 'kicker'), element('h2', entity?.name ?? 'Unbebautes Feld'), element('p', `Gelände: ${{ plains: 'Ebene', forest: 'Wald', hills: 'Hügel', water: 'Wasser' }[terrain.type]}`)];
-  if (entity) { content.push(element('p', entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`), element('p', `Entfernung: ${entity.distance.toFixed(2)} Felder Luftlinie`)); if (entity.type !== 'own-city') content.push(element('p', 'Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.', 'notice')); if (entity.type === 'npc' && currentState) { const general = currentState.military.generals.find(item => item.status === 'idle'); content.push(actionButton('Mit 1 Späher aufklären', `Hinweg ca. ${Math.max(5, Math.ceil(entity.distance) * 5)} s`, !general || currentState.military.units.scout < 1, () => send('scouting.start', { targetId: entity.id, generalId: general.id, scouts: 1 }))); } }
-  document.querySelector('#map-details').replaceChildren(...content);
+  if (entity) {
+    const distance = Number.isFinite(entity.distance) ? entity.distance : 0;
+    content.push(element('p', entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`), element('p', `Entfernung: ${distance.toFixed(2)} Felder Luftlinie`));
+    if (entity.type !== 'own-city') content.push(element('p', 'Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.', 'notice'));
+    if (entity.type === 'npc' && currentState) {
+      const general = currentState.military.generals.find(item => item.status === 'idle'); const scouts = currentState.military.units.scout;
+      const reason = !general ? 'Kein freier General' : scouts < 1 ? 'Zuerst Aufklärungsflugzeuge ausbilden' : `Hinweg ca. ${Math.max(5, Math.ceil(distance) * 5)} s`;
+      content.push(actionButton('Stadt ausspähen', reason, !general || scouts < 1, () => send('scouting.start', { targetId: entity.id, generalId: general.id, scouts: 1 })));
+    }
+    if (entity.type === 'player-city') content.push(element('p', 'Spielerstädte können in diesem Prototyp noch nicht ausgespäht werden.', 'notice'));
+  }
+  detailsRoot.replaceChildren(...content); detailsRoot.classList.add('has-selection'); detailsRoot.focus({ preventScroll: true });
+  if (matchMedia('(max-width: 900px)').matches) detailsRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 document.querySelector('#coordinate-search').addEventListener('submit', event => { event.preventDefault(); const match = document.querySelector('#coordinate').value.match(/^\s*(\d+)\s*[,; ]\s*(\d+)\s*$/); if (!match) return messageRoot.textContent = 'Koordinate als x, y eingeben.'; requestMap({ x: Number(match[1]), y: Number(match[2]) }); });
 document.querySelector('#own-city').addEventListener('click', () => { if (mapState?.ownCity) requestMap(mapState.ownCity); });

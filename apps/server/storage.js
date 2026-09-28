@@ -7,7 +7,7 @@ import { newMilitary } from '../../packages/game-core/military.js';
 import { randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 2;
+export const PLAYER_SCHEMA_VERSION = 3;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -137,14 +137,23 @@ export class WorldStorage {
   playerFile(playerId) { return join(this.playersDirectory, `${playerId}.json`); }
   async loadPlayer(playerId) {
     const player = await readJson(this.playerFile(playerId));
+    let migrated = false;
     if (player.schemaVersion === 1) {
-      player.schemaVersion = PLAYER_SCHEMA_VERSION;
+      migrated = true;
+      player.schemaVersion = 2;
       player.city.buildingSlots = player.city.buildingSlots.map(slot => ({ area: 'civil', ...slot }));
       player.city.militarySlots ??= newCity(player.city.updatedAt).militarySlots;
       player.military = newMilitary(player.playerId);
-      await this.savePlayer(player);
+    }
+    if (player.schemaVersion === 2) {
+      migrated = true;
+      const fallbackBarracks = player.city.militarySlots.find(slot => slot.building === 'barracks')?.id;
+      if (player.military.trainingQueue.length && !fallbackBarracks) throw new Error('Ausbildungsaufträge ohne vorhandene Kaserne können nicht migriert werden.');
+      player.military.trainingQueue = player.military.trainingQueue.map(job => ({ ...job, barracksSlotId: job.barracksSlotId ?? fallbackBarracks }));
+      player.schemaVersion = PLAYER_SCHEMA_VERSION;
     }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
+    if (migrated) await this.savePlayer(player);
     return player;
   }
   savePlayer(player) { return atomicWrite(this.playerFile(player.playerId), player); }
