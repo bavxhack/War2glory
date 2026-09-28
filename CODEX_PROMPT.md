@@ -7,7 +7,7 @@ Arbeite im Repository bavxhack/War2glory vom aktuellen main aus. Lies AGENTS.md,
 Der Planungschat erstellt nur Anweisungen. Du, Codex, implementierst diesen Auftrag, prüfst ihn und öffnest einen Pull Request. Dieser Auftrag ersetzt Auftrag 3. Die Weltkarte wird nicht erneut gebaut.
 
 Ziel ist ein erster vollständiger Ablauf:
-eigene Punkte sehen → Kaserne bauen → Späher ausbilden → General zuweisen → NPC-Stadt aufklären → Hin- und Rückmarsch verfolgen → privaten Bericht erhalten → denselben Fortschritt nach erneutem Login vorfinden.
+eigene Punkte sehen → Militärbereich öffnen → Kaserne bauen → Späher ausbilden → General zuweisen → NPC-Stadt aufklären → Hin- und Rückmarsch verfolgen → privaten Bericht erhalten → denselben Fortschritt nach erneutem Login vorfinden.
 
 Implementiere die Abschnitte A bis D in überprüfbaren Schritten innerhalb dieses Auftrags. Die danach beschriebenen weiteren Etappen sind Ausblick, nicht automatisch mit umzusetzen.
 
@@ -24,7 +24,7 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 - Führe eine serverseitige Punktewertung je Kommandant und Serverwelt ein, getrennt von General-Erfahrung.
 - Zeige dem Eigentümer Gesamtpunkte und Teilbereiche: Gebäude, Forschung, Kampf einschließlich Niederlageneinfluss.
 - Vorläufige Gebäudewertung für diesen Prototyp: 10 Punkte je fertiggestellter Gebäudestufe. Die Summe aller vorhandenen Gebäudelevel wird mit 10 multipliziert. Beispiel: drei Gebäude auf Stufe 1 ergeben 30 Punkte; ein Upgrade eines davon auf Stufe 2 ergibt insgesamt 40 Punkte.
-- Geplante oder laufende Bauaufträge zählen erst ab Fertigstellung. Die neue Kaserne zählt nach derselben Regel.
+- Geplante oder laufende Bauaufträge zählen erst ab Fertigstellung. Gebäude im Stadt- und Militärbereich zählen nach derselben Regel, jedes Gebäude genau einmal.
 - Gebäudepunkte werden aus dem aktuellen Gebäudebestand abgeleitet. Ein späterer Abriss entfernt den zugehörigen Beitrag; Wiederaufbauen darf keinen dauerhaften Zusatzgewinn erzeugen.
 - Forschungs- und Kampfbeiträge sind bislang nicht aktiv. Zeige sie als noch nicht verfügbare Bereiche ohne erfundene historische Leistungen. Bereite getrennte, versionierte Berechnungsbausteine vor.
 - Behalte Niederlagen als erforderlichen späteren Einfluss fest; implementiere in dieser Etappe noch keine erfundenen Siege, Abzüge oder Kampfhistorien. Ihre Regeln werden mit dem Kampfsystem festgelegt.
@@ -34,9 +34,23 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 
 ## B. Kaserne, Einheiten und Generäle
 
+### Getrennter Militärbereich und Bauplätze
+
+- Neue Nutzeranforderung: Militärgebäude erhalten eigene Bauplätze auf einer zweiten Seite „Militär“. Die Navigation verbindet „Stadt“, „Militär“ und „Weltkarte“ auch auf Mobilgeräten.
+- Der Militärbereich gehört zur bestehenden Stadt. Er erzeugt weder eine weitere Stadt noch ein zusätzliches Konto, Ressourcenlager oder Startguthaben.
+- Erhalte die neun bestehenden zivilen Bauplätze. Ergänze einen eigenen, dauerhaft gespeicherten Bestand militärischer Bauplätze; bloß dieselben Plätze unterschiedlich zu filtern genügt nicht.
+- Die Anzahl militärischer Bauplätze ist noch nicht festgelegt. Wähle eine zentral konfigurierbare Prototypzahl und dokumentiere sie ausdrücklich als vorläufig.
+- Die Kaserne wird ausschließlich auf Militärbauplätzen gebaut. Sägewerk, Steinbruch und Bauernhof dürfen dort nicht gebaut werden. Militärgebäude dürfen umgekehrt keine zivilen Bauplätze belegen.
+- Hinterlege erlaubte Baubereiche zentral je Gebäudetyp. Zeige im Baumenü nur zulässige Angebote. Der Server prüft bei Angebot, Auftrag und Ausführung den gespeicherten Baubereich des tatsächlichen Platzes sowie dessen Eigentümer; eine vom Client behauptete Kategorie ist nicht verbindlich.
+- Verwende innerhalb einer Stadt eindeutig identifizierbare Bauplätze mit stabiler Bereichszuordnung. Migriere bestehende Spielstände versioniert und idempotent: Gebäudelevel, Ressourcen, bezahlte Aufträge und deren Zeitpunkte bleiben erhalten.
+- Falls zwischenzeitlich bereits Kasernen auf bisherigen Plätzen implementiert wurden, migriere sie samt laufenden Aufträgen verlustfrei in den Militärbereich und gib die bisherigen Plätze frei. Keine Vernichtung, Verdopplung oder erneute Zahlung; dokumentiere diese Migration.
+- Beide Bereiche teilen die Ressourcen und Kommandantenpunkte der Stadt. Für diesen Auftrag bleibt die vorhandene gemeinsame Bauwarteschlange mit ihrer bisherigen Obergrenze bestehen; getrennte Bauplätze eröffnen keine zusätzliche parallele Bauwarteschlange. Das ist eine vorläufige technische Fortführung, keine neue bestätigte Balanceregel.
+- Die eigene Ausbildungswarteschlange der Kaserne bleibt von der Bauwarteschlange getrennt. Bereichswechsel, Reconnects und Neustarts dürfen keine Aufträge neu starten.
+- Lagerhaus und Universität bleiben spätere Aufgaben. Lege deren Baubereich erst in der jeweiligen Spezifikation fest.
+
 ### Kaserne und Ausbildung
 
-- Ergänze eine ausbaubare Kaserne auf einem regulären freien Bauplatz. Sie verwendet die vorhandene Bauwarteschlange und serverseitige Angebote.
+- Ergänze eine ausbaubare Kaserne auf einem freien Militärbauplatz. Sie verwendet die vorhandene gemeinsame Bauwarteschlange und serverseitige Angebote.
 - Produktionsgebäude und nicht produzierende Gebäude müssen in der Spiellogik sauber unterschieden sein. Eine Kaserne erzeugt keine Rohstoffe und darf deren Produktion nicht beschädigen.
 - Ermögliche zunächst zwei Einheitenarten: Späher für Aufklärung und Infanterie als vorbereitete erste Kampfeinheit. Infanterie kann ausgebildet werden; Angriffe sind noch nicht verfügbar.
 - Verwende eine eigene, begrenzte Ausbildungswarteschlange mit serverseitiger Ressourcenprüfung, einmaliger Zahlung und persistierten Start-/Endzeitpunkten.
@@ -79,7 +93,7 @@ Es gibt noch keinen bestätigten vollständigen Originalregelsatz. Die folgenden
 
 - Sämtliche dynamischen Befehle, Bestätigungen, Ausbildungsabschlüsse, Einsätze, Berichte, Punkte und Generaländerungen laufen über das bestehende WebSocket-System. Kein HTTP-Spielpolling.
 - Der Server bestimmt Identität, Besitz, verfügbares Material, Kosten und Zeit. Manipulierte Spieler-, General-, Einsatz- oder Berichts-IDs dürfen keinen Zugriff auf fremde Daten bewirken.
-- Erhalte JSON-Persistenz und einen Schreibprozess pro Welt. Versioniere Migrationen und sichere bestehende Daten.
+- Erhalte JSON-Persistenz und einen Schreibprozess pro Welt. Speichere auch militärische Bauplätze, Bereichszuordnungen und Gebäude im privaten Stadtzustand. Versioniere Migrationen und sichere bestehende Daten.
 - Speichere Ressourcenabbuchung, Ausbildungsauftrag bzw. Einsatzreservierung konsistent, bevor eine Erfolgsbestätigung gesendet wird.
 - Verarbeite fällige Abschlüsse chronologisch, auch nach langem Offlinebetrieb. Ausbildung, Bauabschlüsse, Hin-/Rückkehr und Belohnungen müssen in der korrekten Reihenfolge rekonstruiert werden.
 - Für Offline-Aufklärung verwende den vorgesehenen Ankunftszeitpunkt als fachlichen Zeitpunkt. Ein erst nach Neustart laufender Handler darf keine erst später entstandenen Ressourcen als damaligen Bericht ausgeben. Solange NPC-Bestände noch statisch sind, dokumentiere diese vereinfachte Grundlage; die spätere Regeneration muss zeitabhängig rekonstruierbar bleiben.
@@ -104,8 +118,12 @@ Führe die vorhandenen Tests aus und ergänze gezielte Prüfungen für:
 10. Private Berichte sind erst nach Rückkehr und nur für ihren Eigentümer abrufbar; öffentliche NPC-Details verraten weiterhin keine Vorräte.
 11. Speicherfehler und erneute Zustellung verursachen keine doppelte Zahlung, Einheit oder Belohnung.
 12. Unveränderte bestehende Stadt-, Karten-, Konto- und WebSocket-Funktionen.
+13. Getrennte zivile und militärische Bauplätze, erhaltene Bestandsgebäude und idempotente Migration einschließlich bereits bezahlter Aufträge.
+14. Direkte manipulierte WebSocket-Befehle für Ressourcenbauten im Militärbereich oder Kasernen im zivilen Bereich werden ohne Abbuchung oder Bauauftrag abgewiesen; fremde Platz-IDs bleiben unzugänglich.
+15. Gemeinsame Ressourcen und Bauwarteschlangengrenze über beide Bereiche; Gebäudepunkte zählen beide Bestände genau einmal.
+16. Militärplätze, Gebäude und Aufträge bleiben nach Reconnect und Neustart erhalten; Seitenwechsel erzeugt keine zusätzlichen Plätze oder Aufträge.
 
-Prüfe außerdem im Browser mit zwei unabhängigen Benutzerkontexten den vollständigen Spielablauf sowie Desktop- und Mobilbedienung. Erstelle Screenshots von Punkteanzeige, Ausbildung, Einsatzübersicht und Bericht. Wenn eine Prüfung nicht möglich ist, benenne sie genau.
+Prüfe außerdem im Browser mit zwei unabhängigen Benutzerkontexten den vollständigen Spielablauf sowie Desktop- und Mobilbedienung. Prüfe die Navigation zwischen Stadt, Militärbereich und Weltkarte sowie bereichsspezifische Baumenüs. Erstelle Screenshots von Stadt- und Militärseite, Punkteanzeige, Ausbildung, Einsatzübersicht und Bericht. Wenn eine Prüfung nicht möglich ist, benenne sie genau.
 
 ## Ergebnis und Lieferung
 
