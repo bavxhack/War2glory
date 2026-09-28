@@ -58,5 +58,12 @@
       <div class="dialog-actions"><button type="button" id="cancel-scouting" class="secondary">Abbrechen</button><button type="submit" id="confirm-scouting">Einsatz starten</button></div>
     </form>
   </dialog>
+  <dialog id="demolition-dialog" class="mission-dialog danger-dialog" aria-labelledby="demolition-title">
+    <form id="demolition-form" method="dialog">
+      <div class="dialog-heading"><div><span class="kicker">ABRISS PRÜFEN</span><h2 id="demolition-title">Gebäude abreißen?</h2></div><button type="button" id="close-demolition" class="dialog-close" aria-label="Dialog schließen">×</button></div>
+      <div id="demolition-preview" class="demolition-preview"></div>
+      <div class="dialog-actions"><button type="button" id="cancel-demolition" class="secondary">Abbrechen</button><button type="submit" class="danger">Endgültig abreißen</button></div>
+    </form>
+  </dialog>
 </body>
 </html>

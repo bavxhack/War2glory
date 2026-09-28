@@ -10,7 +10,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | --- | --- | --- |
 | 0 | Startbarer Server, lokale Demo-Stadt, Rohstoffe, Ausbau, Speichern, Tests | Implementiert |
 | 1 | Stadtkarte, feste Bauplätze, Errichten/Ausbauen und Warteschlange | Implementiert |
-| 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Aktueller Auftrag 5; noch nicht implementiert bestätigt |
+| 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Implementiert als Prototyp; Balance und Altbestandsregel bleiben zu prüfen |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte laut README umgesetzt; Forschung/Kämpfe später |
@@ -82,9 +82,9 @@ Die folgenden Werte wurden vom Planungschat zur Konkretisierung des Codex-Auftra
 
 Die endgültige Punktgewichtung, Niederlageneinflüsse, militärische Balance und weitere zuvor offene Produktentscheidungen bleiben abzustimmen. Diese Vorschläge machen den Prototyp prüfbar und ändern nicht den Status offener Langfristentscheidungen.
 
-## Aktueller Auftrag 5: Lagerwirtschaft und Abriss
+## Umgesetzter Auftrag 5: Lagerwirtschaft und Abriss
 
-Dies entspricht Schritt 2 der zuletzt vorgeschlagenen Reihenfolge. CODEX_PROMPT.md enthält jetzt den ausführbaren Auftrag für ressourcenspezifische Lagerkapazitäten, ausbaubare zivile Lagerhäuser, Investitionsnachweise und Gebäudeabriss. Noch nicht als implementiert bestätigt.
+Dies entspricht Schritt 2 der zuletzt vorgeschlagenen Reihenfolge. Ressourcenspezifische Lagerkapazitäten, ausbaubare zivile Lagerhäuser, Investitionsnachweise und Gebäudeabriss sind als spielbarer Prototyp implementiert. Die folgenden Werte bleiben ausdrücklich vorläufig; unbekannte Altinvestitionen werden nicht rekonstruiert und können deshalb zu einer Rückerstattung von null führen.
 
 ### Vorläufige Arbeitsvorschläge, keine endgültigen Nutzerentscheidungen
 

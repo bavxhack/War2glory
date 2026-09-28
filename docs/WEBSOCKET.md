@@ -4,7 +4,7 @@
 
 Die Anwendung lädt nur statische Dateien, `GET /health` und die öffentliche Föderationsbeschreibung über HTTP. Private Spielstände und Spielbefehle sind ausschließlich über `GET /game` als WebSocket-Upgrade erreichbar. Jedes Clientereignis enthält `version`, `type`, eine eindeutige `requestId` und `payload`. Antworten tragen dieselbe `requestId`; Push-Ereignisse benötigen keine.
 
-Der Server akzeptiert `auth.register`, `auth.login`, `auth.resume`, `auth.logout`, `city.sync`, `construction.enqueue`, `map.viewport` und `map.details`. Er sendet zusätzlich `map.snapshot`, `map.details` und bei neu registrierten Städten `map.changed`. Kartenausschnitte sind höchstens 15×15 Felder groß; Koordinaten, IDs und eine kurze Anfragerate werden serverseitig geprüft. Antworten auf öffentliche Kartendetails enthalten keine Ressourcen, Garnisonen, Bauaufträge oder Regenerationszeitstempel. Nachrichten sind auf 16 KiB begrenzt. Der Server prüft Format, Ereignistyp und Origin. Hinter einem Reverse Proxy werden erlaubte öffentliche Origins explizit angegeben:
+Der Server akzeptiert `auth.register`, `auth.login`, `auth.resume`, `auth.logout`, `city.sync`, `construction.enqueue`, `building.preview`, `building.demolish`, `training.enqueue`, `scouting.start`, `map.viewport` und `map.details`. Er sendet zusätzlich `map.snapshot`, `map.details` und bei neu registrierten Städten `map.changed`. Kartenausschnitte sind höchstens 15×15 Felder groß; Koordinaten, IDs und eine kurze Anfragerate werden serverseitig geprüft. Antworten auf öffentliche Kartendetails enthalten keine Ressourcen, Garnisonen, Bauaufträge oder Regenerationszeitstempel. Nachrichten sind auf 16 KiB begrenzt. Der Server prüft Format, Ereignistyp und Origin. Hinter einem Reverse Proxy werden erlaubte öffentliche Origins explizit angegeben:
 
 ```sh
 npm start -- --host 0.0.0.0 --origins https://spiel.example.org
@@ -16,7 +16,7 @@ Der Proxy muss WebSocket-Upgrades weiterreichen. Externer Zugriff muss TLS verwe
 
 Passwörter werden mit Node.js `scrypt`, zufälligem 128-Bit-Salt und konstantem Vergleich geprüft. Sitzungsschlüssel besitzen 256 Bit Zufall, laufen nach 30 Tagen ab, sind widerrufbar und werden serverseitig nur SHA-256-gehasht gespeichert. Der Browser speichert den Schlüssel in `localStorage`, damit ein Neustart wieder zur Stadt führt. Das schützt nicht gegen JavaScript aus einer XSS-Lücke derselben Origin. Passwortwiederherstellung und Mehrfaktor-Anmeldung sind noch nicht vorhanden.
 
-Eine bestätigte Bau-ID bleibt 30 Tage lang erhalten, höchstens die letzten 500 IDs pro Spieler. Dieselbe ID und derselbe Inhalt liefern eine idempotente Bestätigung. Ein abweichender Inhalt wird abgewiesen. Zustandsänderungen werden je Welt serialisiert und erst nach erfolgreichem atomarem Speichern bestätigt.
+Eine bestätigte Befehls-ID bleibt 30 Tage lang erhalten, höchstens die letzten 500 IDs pro Spieler. Dieselbe ID und derselbe Inhalt liefern eine idempotente Bestätigung einschließlich des gespeicherten Abrissergebnisses. Ein abweichender Inhalt wird abgewiesen. Zustandsänderungen werden je Welt serialisiert und erst nach erfolgreichem atomarem Speichern bestätigt.
 
 ## JSON-Ablage, Sicherung und Altstadt
 
@@ -32,7 +32,11 @@ npm run claim-legacy -- --world alpha --username Kommandant --confirm
 
 Das Werkzeug migriert Schema 1 oder übernimmt Schema 2, schreibt die Stadt in die ausgewählte Spielerdatei und benennt die Quelle als datiertes Backup um.
 
-## Militär- und Aufklärungsprototyp (Spielerschema 3)
+## Lager-, Militär- und Aufklärungsprototyp (Spielerschema 4)
+
+Schema 4 ergänzt stabile Gebäudeidentitäten, tatsächlich am Auftrag festgehaltene Kosten und eine Investitionsgrundlage je Gebäude. Alte fertige Gebäude werden konservativ als unvollständig dokumentiert markiert; ihre Kosten werden nicht aus der aktuellen Preistabelle erfunden. Nachweisbare alte Warteschlangenaufträge übernehmen die unter dem damaligen Prototyp verbindlich abgezogenen Auftragskosten.
+
+Snapshots enthalten Kapazität, Produktion und Kapazitätsaufschlüsselung je aktiver Ressource. `building.preview` liefert für ein eigenes fertiges Gebäude eine an Identität und Zustand gebundene Abrissvorschau. `building.demolish` verlangt deren `slotId`, `buildingId` und `version`; der Server prüft Bau- und Ausbildungsabhängigkeiten erneut, schreibt Abriss, Rückerstattung und Deduplizierungsbeleg atomar und lehnt veraltete Vorschauen ab. Die vorläufigen zentralen Werte sind 2000 Grundkapazität, 250 Kapazität je Produktionsgebäudestufe oberhalb Stufe 1, 500 je Lagerhausstufe für alle Ressourcen und 10 Prozent abgerundete Rückerstattung nachgewiesener Kosten. Abriss ist sofortig; Überbestand bleibt erhalten und stoppt nur positive Produktion der betroffenen Ressource.
 
 `city.snapshot` und `city.updated` enthalten nun zusätzlich die abgeleitete Punkteübersicht, vier getrennte Militärbauplätze, stationierte Einheiten, Ausbildungsaufträge, den Startgeneral, eigene Einsätze und ausschließlich zurückgekehrte Berichte. Neue authentifizierte Befehle sind `training.enqueue` (`barracksSlotId`, `unit`, `amount`) und `scouting.start` (`targetId`, `generalId`, `scouts`). Beide verwenden dieselbe Befehls-ID-Deduplizierung und werden vor der Bestätigung atomar im Spielerstand gespeichert. Der Server leitet die Kaserne aus dem eigenen gespeicherten Militärbauplatz ab; fremde Spieler-, Bauplatz- oder Berichts-IDs werden nicht als Autorität akzeptiert.
 

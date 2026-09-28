@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  advanceCity, BUILDINGS, CAPACITY, cityOffers, commanderScore, enqueueConstruction, MAX_LEVEL, MAX_QUEUE_LENGTH, RULESET,
+  advanceCity, BUILDINGS, capacityBreakdown, cityOffers, commanderScore, demolishBuilding, demolitionPreview,
+  enqueueConstruction, MAX_LEVEL, MAX_QUEUE_LENGTH, productionRates, resourceCapacities, RULESET, STORAGE_RULES,
 } from '../../packages/game-core/index.js';
 import { advanceMilitary, barracksIsBusy, enqueueTraining, MILITARY_RULES, startScoutMission, UNITS } from '../../packages/game-core/military.js';
 import { WorldStorage } from './storage.js';
@@ -24,7 +25,8 @@ const staticFiles = new Map([
 ]);
 
 function commandFingerprint(type, payload) {
-  const allowed = type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'unit', 'amount'] : ['targetId', 'generalId', 'scouts'];
+  const allowed = type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'unit', 'amount'] :
+    type === 'scouting.start' ? ['targetId', 'generalId', 'scouts'] : ['slotId', 'buildingId', 'version'];
   return JSON.stringify(Object.fromEntries(allowed.map(key => [key, payload?.[key]])));
 }
 
@@ -52,7 +54,9 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     return {
       world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ruleset: RULESET,
       player: { id: player.playerId, commanderName: account.displayName }, city, serverTime: now,
-      military, score: commanderScore(city), buildings: BUILDINGS, offers: cityOffers(city), capacity: CAPACITY, maxLevel: MAX_LEVEL, maxQueueLength: MAX_QUEUE_LENGTH,
+      military, score: commanderScore(city), buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
+      capacityBreakdown: capacityBreakdown(city), productionRates: productionRates(city), storageRules: STORAGE_RULES,
+      maxLevel: MAX_LEVEL, maxQueueLength: MAX_QUEUE_LENGTH,
       units: UNITS, militaryRules: MILITARY_RULES,
     };
   };
@@ -143,7 +147,17 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         const view = publicMap(storage.world, peer.playerId, { x: entity.x, y: entity.y, width: 1, height: 1 });
         return response(peer, 'map.details', message.requestId, { entity: view.entities[0], terrain: view.terrain[0], restricted: entity.playerId !== peer.playerId });
       }
-      if (!['construction.enqueue', 'training.enqueue', 'scouting.start'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
+      if (message.type === 'building.preview') {
+        return storage.exclusive(async () => {
+          const player = await storage.loadPlayer(peer.playerId); const now = clock();
+          player.military = advanceMilitary(player.military, now, new Map(storage.world.map.entities.filter(entity => entity.kind === 'npc').map(entity => [entity.id, entity])));
+          const slot = [...player.city.buildingSlots, ...(player.city.militarySlots ?? [])].find(item => item.id === message.payload.slotId);
+          if (slot?.building === 'barracks' && barracksIsBusy(player.military, slot.id)) throw new Error('Diese Kaserne ist durch Ausbildung belegt.');
+          const { preview } = demolitionPreview(player.city, message.payload.slotId, now);
+          return response(peer, 'building.preview', message.requestId, preview);
+        });
+      }
+      if (!['construction.enqueue', 'training.enqueue', 'scouting.start', 'building.demolish'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
       await storage.exclusive(async () => {
         const player = await storage.loadPlayer(peer.playerId);
         const now = clock();
@@ -168,10 +182,17 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
             const target = storage.world.map.entities.find(entity => entity.id === message.payload.targetId);
             player.military = startScoutMission(player.military, { id: message.requestId, ...message.payload }, now, origin, target);
           }
-          player.processedCommands.push({ id: message.requestId, fingerprint, acceptedAt: now });
+          let result = {};
+          if (message.type === 'building.demolish') {
+            const slot = [...player.city.buildingSlots, ...(player.city.militarySlots ?? [])].find(item => item.id === message.payload.slotId);
+            if (slot?.building === 'barracks' && barracksIsBusy(player.military, slot.id)) throw new Error('Diese Kaserne ist durch Ausbildung belegt.');
+            const demolition = demolishBuilding(player.city, message.payload, now);
+            player.city = demolition.city; result = { demolition: demolition.result };
+          }
+          player.processedCommands.push({ id: message.requestId, fingerprint, acceptedAt: now, result });
           await storage.savePlayer(player);
         }
-        response(peer, 'command.ok', message.requestId, { duplicate: Boolean(existing) });
+        response(peer, 'command.ok', message.requestId, { duplicate: Boolean(existing), ...(existing?.result ?? player.processedCommands.at(-1)?.result ?? {}) });
         broadcast(peer.playerId, 'city.updated', connection => snapshot(player, connection.account));
       });
     } catch (error) { errorResponse(peer, message.requestId, error); }

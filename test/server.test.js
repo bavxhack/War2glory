@@ -138,6 +138,32 @@ test('WebSocket weist fremde Origins und übergroße Nachrichten ab', async () =
   } finally { if (running) await close(running.server); rmSync(directory, { recursive: true, force: true }); }
 });
 
+test('WebSocket: Abrissvorschau, Bestätigung und Deduplizierung sind serververbindlich', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'strategy-demolition-')); let running; const clients = []; let now = 0;
+  try {
+    running = await start(directory, () => now);
+    const client = await websocket(running.port); clients.push(client);
+    await authenticate(client, 'register', 'AbrissTest');
+    const buildId = 'warehouse-build-1'; const buildOk = client.next('command.ok', buildId);
+    client.send('construction.enqueue', { slotId: 'plot-4', building: 'warehouse' }, buildId); await buildOk;
+    now = 5000;
+    const syncId = client.send('city.sync'); await client.next('city.snapshot', syncId);
+    const previewId = client.send('building.preview', { slotId: 'plot-4' });
+    const preview = (await client.next('building.preview', previewId)).payload;
+    assert.deepEqual(preview.refund, { wood: 4, stone: 3, food: 0 });
+    const demolitionId = 'demolition-command-1'; const demolitionOk = client.next('command.ok', demolitionId);
+    client.send('building.demolish', { slotId: preview.slotId, buildingId: preview.buildingId, version: preview.version }, demolitionId);
+    assert.equal((await demolitionOk).payload.demolition.building, 'warehouse');
+    const duplicate = client.next('command.ok', demolitionId);
+    client.send('building.demolish', { slotId: preview.slotId, buildingId: preview.buildingId, version: preview.version }, demolitionId);
+    assert.equal((await duplicate).payload.duplicate, true);
+    const playerFile = join(directory, 'players', `${running.server.storage.accounts.accounts[0].playerId}.json`);
+    const saved = JSON.parse(readFileSync(playerFile, 'utf8'));
+    assert.equal(saved.city.buildingSlots[3].building, null);
+    assert.equal(saved.city.resources.wood, 169);
+  } finally { clients.forEach(client => client.close()); if (running) await close(running.server); rmSync(directory, { recursive: true, force: true }); }
+});
+
 test('Gemeinsame Karte vergibt eindeutige Positionen, sendet Push und bleibt nach Neustart stabil', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'strategy-map-')); let running; const clients = [];
   try {

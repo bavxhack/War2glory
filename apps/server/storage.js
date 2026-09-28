@@ -2,12 +2,12 @@ import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallbac
 import { copyFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
-import { newCity, RULESET } from '../../packages/game-core/index.js';
+import { allSlots, constructionQuote, newCity, RULESET } from '../../packages/game-core/index.js';
 import { newMilitary } from '../../packages/game-core/military.js';
 import { randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 3;
+export const PLAYER_SCHEMA_VERSION = 4;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -150,7 +150,23 @@ export class WorldStorage {
       const fallbackBarracks = player.city.militarySlots.find(slot => slot.building === 'barracks')?.id;
       if (player.military.trainingQueue.length && !fallbackBarracks) throw new Error('Ausbildungsaufträge ohne vorhandene Kaserne können nicht migriert werden.');
       player.military.trainingQueue = player.military.trainingQueue.map(job => ({ ...job, barracksSlotId: job.barracksSlotId ?? fallbackBarracks }));
+      player.schemaVersion = 3;
+    }
+    if (player.schemaVersion === 3) {
+      migrated = true;
+      for (const slot of allSlots(player.city)) {
+        slot.area ??= slot.id.startsWith('military-') ? 'military' : 'civil';
+        slot.buildingId = slot.building ? `legacy-${player.playerId}-${slot.id}` : null;
+        slot.investment = slot.building ? { complete: false, paid: { wood: 0, stone: 0, food: 0 } } : null;
+      }
+      player.city.constructionQueue = player.city.constructionQueue.map(job => ({
+        ...job,
+        buildingId: job.buildingId ?? (allSlots(player.city).find(slot => slot.id === job.slotId)?.buildingId || `legacy-job-${job.id}`),
+        // A persisted queue entry can only have been created after the old server charged this exact ruleset quote.
+        paidCost: job.paidCost ?? constructionQuote(job.level).cost,
+      }));
       player.schemaVersion = PLAYER_SCHEMA_VERSION;
+      player.ruleset = RULESET;
     }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
     if (migrated) await this.savePlayer(player);
