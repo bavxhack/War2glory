@@ -23,4 +23,20 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .city-grid.compact { min-height: 420px; grid-template-columns: repeat(2, minmax(130px, 1fr)); align-content: center; }
 .plot.barracks { background: linear-gradient(145deg, #67645a, #343631); }
 #forces p, #missions p, #reports p { margin: .55rem 0; }
+.unit-visuals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin-bottom: 1rem; }
+.unit-card { overflow: hidden; border: 1px solid #52624c; border-radius: .8rem; background: #111a10; }
+.unit-card img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.unit-card strong, .unit-card span { display: block; padding-inline: .7rem; }
+.unit-card strong { padding-top: .55rem; }
+.unit-card span { padding-bottom: .65rem; color: #bac5b6; font-size: .8rem; }
+.training-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem .65rem; margin-top: .75rem; padding: .75rem; border: 1px solid #52624c; border-radius: .7rem; background: #111a10; }
+.training-form label { color: #d9dfd3; font-size: .8rem; }
+.training-form input { display: block; width: 100%; margin-top: .3rem; padding: .65rem; border: 1px solid #65755d; border-radius: .45rem; background: #0b110b; color: #fff; }
+.training-form button { grid-row: 1 / 3; grid-column: 2; align-self: stretch; padding: .65rem .8rem; border: 0; border-radius: .5rem; background: #d5e59b; color: #172017; font-weight: 750; cursor: pointer; }
+.training-form button:disabled { background: #465345; color: #adb7aa; cursor: not-allowed; }
+.training-summary { color: #bac5b6; }
+.training-list { list-style: none; margin: 0 0 1rem; padding: 0; }
+.training-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: .55rem; align-items: center; padding: .65rem 0; border-top: 1px solid #465445; }
+.training-list li > span:last-child { color: #bdc8b9; font-size: .7rem; text-align: right; }
 @media (max-width: 700px) { .city-grid.compact { min-height: 300px; } .view-tabs { overflow-x: auto; } }
+@media (max-width: 460px) { .unit-visuals { grid-template-columns: 1fr; } .training-form { grid-template-columns: 1fr; } .training-form button { grid-row: auto; grid-column: auto; } }

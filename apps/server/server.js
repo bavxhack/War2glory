@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   advanceCity, BUILDINGS, CAPACITY, cityOffers, commanderScore, enqueueConstruction, MAX_LEVEL, MAX_QUEUE_LENGTH, RULESET,
 } from '../../packages/game-core/index.js';
-import { advanceMilitary, enqueueTraining, MILITARY_RULES, startScoutMission, UNITS } from '../../packages/game-core/military.js';
+import { advanceMilitary, barracksIsBusy, enqueueTraining, MILITARY_RULES, startScoutMission, UNITS } from '../../packages/game-core/military.js';
 import { WorldStorage } from './storage.js';
 import { acceptWebSocket } from './websocket.js';
 import { publicMap } from '../../packages/game-core/world.js';
@@ -19,6 +19,8 @@ const staticFiles = new Map([
   ['/request-id.js', ['request-id.js', 'text/javascript; charset=utf-8']],
   ['/map-navigation.js', ['map-navigation.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
+  ['/assets/scout-aircraft.svg', ['assets/scout-aircraft.svg', 'image/svg+xml']],
+  ['/assets/infantry.svg', ['assets/infantry.svg', 'image/svg+xml']],
 ]);
 
 function commandFingerprint(type, payload) {
@@ -152,7 +154,11 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         if (!existing) {
           player.city = advanceCity(player.city, now);
           player.military = advanceMilitary(player.military, now, new Map(storage.world.map.entities.filter(entity => entity.kind === 'npc').map(entity => [entity.id, entity])));
-          if (message.type === 'construction.enqueue') player.city = enqueueConstruction(player.city, { id: message.requestId, ...message.payload }, now);
+          if (message.type === 'construction.enqueue') {
+            const slot = player.city.militarySlots?.find(candidate => candidate.id === message.payload.slotId);
+            if (slot?.building === 'barracks' && barracksIsBusy(player.military)) throw new Error('Die Kaserne ist durch Ausbildung belegt.');
+            player.city = enqueueConstruction(player.city, { id: message.requestId, ...message.payload }, now);
+          }
           if (message.type === 'training.enqueue') {
             const result = enqueueTraining(player.military, player.city, { id: message.requestId, ...message.payload }, now);
             player.city = result.city; player.military = result.military;

@@ -1,6 +1,6 @@
 export const MILITARY_RULES = Object.freeze({
   trainingQueueLength: 3,
-  maxTrainingAmount: 20,
+  maxTrainingAmount: 1000,
   scoutTravelMsPerField: 5000,
   minimumTravelMs: 5000,
   firstScoutExperience: 10,
@@ -16,6 +16,10 @@ export function generalLevel(experience) {
   let level = 1;
   while (level < MILITARY_RULES.maxGeneralLevel && experience >= 50 * (level + 1) * level) level += 1;
   return level;
+}
+
+export function barracksIsBusy(military) {
+  return military.trainingQueue.length > 0;
 }
 
 export function newMilitary(playerId) {
@@ -55,6 +59,7 @@ export function enqueueTraining(previous, city, command, now) {
   if (military.trainingQueue.length >= MILITARY_RULES.trainingQueueLength) throw new Error('Die Ausbildungswarteschlange ist voll.');
   const barracksLevel = city.militarySlots?.find(slot => slot.building === 'barracks')?.level ?? 0;
   if (!barracksLevel) throw new Error('Eine fertige Kaserne wird benötigt.');
+  if (city.constructionQueue.some(job => job.building === 'barracks')) throw new Error('Die Kaserne wird gerade ausgebaut.');
   for (const [resource, unitCost] of Object.entries(definition.cost)) if (city.resources[resource] < unitCost * command.amount) throw new Error('Nicht genügend Rohstoffe.');
   const nextCity = structuredClone(city);
   for (const [resource, unitCost] of Object.entries(definition.cost)) nextCity.resources[resource] -= unitCost * command.amount;

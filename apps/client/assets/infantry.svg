@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title description">
+  <title id="title">Infanterie</title>
+  <desc id="description">Stilisierte Soldaten vor einer befestigten Stellung.</desc>
+  <defs><linearGradient id="bg" y2="1"><stop stop-color="#8b967c"/><stop offset="1" stop-color="#353e32"/></linearGradient></defs>
+  <rect width="640" height="360" rx="28" fill="url(#bg)"/>
+  <path d="M0 272q155-63 310 0 170-88 330-9v97H0z" fill="#242e27"/>
+  <path d="M0 238h640" stroke="#c0a467" stroke-width="13" stroke-dasharray="45 18" opacity=".45"/>
+  <g fill="#202923" stroke="#121713" stroke-width="8" stroke-linejoin="round">
+    <g transform="translate(130 50)"><circle cx="85" cy="52" r="35"/><path d="M48 47q37-54 78 0z" fill="#566650"/><path d="m53 91 63-4 29 114-117 1z"/><path d="m55 120-48 91 24 12 69-85zM107 119l108 35 8-27-102-60z"/><path d="m58 199-25 101h31l31-95 20 95h31l-5-102z"/></g>
+    <g transform="translate(345 83) scale(.82)"><circle cx="85" cy="52" r="35"/><path d="M48 47q37-54 78 0z" fill="#68775c"/><path d="m53 91 63-4 29 114-117 1z"/><path d="m55 120-48 91 24 12 69-85zM107 119l108 35 8-27-102-60z"/><path d="m58 199-25 101h31l31-95 20 95h31l-5-102z"/></g>
+  </g>
+</svg>

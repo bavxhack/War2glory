@@ -24,6 +24,7 @@ let latestMapRequest;
 let mapDrag;
 let suppressMapClick = false;
 const pending = new Map();
+const trainingAmounts = new Map([['scout', 1], ['infantry', 1]]);
 
 function element(tag, text = '', className = '') { const node = document.createElement(tag); node.textContent = text; node.className = className; return node; }
 const formatDuration = milliseconds => `${Math.max(0, Math.ceil(milliseconds / 1000))} s`;
@@ -129,6 +130,31 @@ function actionButton(label, detail, disabled, action) {
   const button = element('button', '', 'action'); button.type = 'button'; button.disabled = disabled;
   button.append(element('strong', label), element('span', detail)); button.addEventListener('click', action); return button;
 }
+
+function unitTrainingForm(state, unit, definition, barracksLevel) {
+  const form = element('form', '', 'training-form');
+  const label = element('label', `Anzahl ${definition.label}`);
+  const input = document.createElement('input');
+  input.type = 'number'; input.name = 'amount'; input.min = '1'; input.max = String(state.militaryRules.maxTrainingAmount);
+  input.step = '1'; input.required = true; input.inputMode = 'numeric'; input.value = String(trainingAmounts.get(unit) ?? 1);
+  label.append(input);
+  const summary = element('small', '', 'training-summary');
+  const submit = element('button', `${definition.label} in Auftrag geben`); submit.type = 'submit';
+  const refresh = () => {
+    const amount = Number(input.value); const valid = Number.isInteger(amount) && amount >= 1 && amount <= state.militaryRules.maxTrainingAmount;
+    const costs = Object.fromEntries(Object.entries(definition.cost).map(([resource, cost]) => [resource, cost * amount]));
+    const affordable = valid && Object.entries(costs).every(([resource, cost]) => state.city.resources[resource] >= cost);
+    const duration = valid ? Math.ceil(definition.baseDurationMs * amount / barracksLevel) : 0;
+    summary.textContent = valid ? `${costs.wood} Holz · ${costs.stone} Stein · ${costs.food} Nahrung · ${formatDuration(duration)}` : `Bitte 1–${state.militaryRules.maxTrainingAmount} eingeben.`;
+    submit.disabled = !valid || !affordable || state.military.trainingQueue.length >= state.militaryRules.trainingQueueLength;
+  };
+  input.addEventListener('input', () => { trainingAmounts.set(unit, Number(input.value)); refresh(); });
+  form.addEventListener('submit', event => {
+    event.preventDefault(); const amount = Number(input.value); trainingAmounts.set(unit, amount);
+    send('training.enqueue', { unit, amount });
+  });
+  refresh(); form.append(label, summary, submit); return form;
+}
 function submitConstruction(slotId, building) {
   const id = createRequestId(); pending.set(id, { slotId, building });
   try { send('construction.enqueue', { slotId, building }, id); render(currentState); }
@@ -178,12 +204,26 @@ function renderMilitary(state) {
   else if (!selected.building) selection.replaceChildren(element('h2', 'Freier Militärbauplatz'), actionButton('Kaserne bauen', quoteText(state.offers.build.barracks), !canAfford(state, state.offers.build.barracks), () => submitConstruction(selected.id, 'barracks')));
   else {
     const content = [element('h2', `Kaserne · Stufe ${selected.level}`)]; const quote = state.offers.upgrade[selected.id];
-    if (quote) content.push(actionButton('Kaserne ausbauen', quoteText(quote), !canAfford(state, quote), () => submitConstruction(selected.id, 'barracks')));
-    for (const [unit, definition] of Object.entries(state.units)) content.push(actionButton(`${definition.label} ausbilden`, `1 Einheit · ${definition.cost.wood} Holz · ${definition.cost.stone} Stein · ${definition.cost.food} Nahrung`, false, () => send('training.enqueue', { unit, amount: 1 })));
+    if (quote) content.push(actionButton('Kaserne ausbauen', state.military.trainingQueue.length ? 'Während der Ausbildung gesperrt' : quoteText(quote), state.military.trainingQueue.length > 0 || !canAfford(state, quote), () => submitConstruction(selected.id, 'barracks')));
+    content.push(element('p', 'Gib eine Truppenmenge ein. Die gesamte Gruppe wird am Ende des Auftrags fertig und blockiert die Kaserne entsprechend lange.', 'notice'));
+    for (const [unit, definition] of Object.entries(state.units)) content.push(unitTrainingForm(state, unit, definition, selected.level));
     selection.replaceChildren(...content);
   }
   const military = state.military; const general = military.generals[0];
-  document.querySelector('#forces').replaceChildren(element('h2', 'Streitkräfte'), element('p', `Stationiert: ${military.units.scout} Späher · ${military.units.infantry} Infanterie`), element('p', `In Ausbildung: ${military.trainingQueue.map(job => `${job.amount} ${state.units[job.unit].label}`).join(', ') || 'keine'}`), element('p', `${general.name}: Level ${general.level}, ${general.experience} EP, Führung ${general.leadership}, ${general.status === 'idle' ? 'bereit' : 'unterwegs'}`));
+  const unitCards = element('div', '', 'unit-visuals');
+  for (const [unit, definition] of Object.entries(state.units)) {
+    const card = element('article', '', 'unit-card'); const picture = document.createElement('img');
+    picture.src = unit === 'scout' ? '/assets/scout-aircraft.svg' : '/assets/infantry.svg'; picture.alt = unit === 'scout' ? 'Aufklärungsflugzeug im Einsatz' : 'Infanterie in Stellung';
+    card.append(picture, element('strong', definition.label), element('span', `${military.units[unit]} stationiert`)); unitCards.append(card);
+  }
+  const trainingList = element('ol', '', 'training-list');
+  if (!military.trainingQueue.length) trainingList.append(element('li', 'Keine Streitkräfte in Ausbildung.', 'empty-queue'));
+  else military.trainingQueue.forEach((job, index) => {
+    const item = element('li'); const status = index === 0 ? `aktiv · noch ${formatDuration(job.finishesAt - state.serverTime)}` : `wartet · Start in ${formatDuration(job.startsAt - state.serverTime)}`;
+    item.append(element('span', String(index + 1), 'queue-position'), element('strong', `${job.amount} ${state.units[job.unit].label}`), element('span', status)); trainingList.append(item);
+  });
+  const trainingTotal = military.trainingQueue.reduce((total, job) => total + job.amount, 0);
+  document.querySelector('#forces').replaceChildren(element('h2', 'Streitkräfte'), unitCards, element('h3', `In Ausbildung: ${trainingTotal}`), trainingList, element('p', `${general.name}: Level ${general.level}, ${general.experience} EP, Führung ${general.leadership}, ${general.status === 'idle' ? 'bereit' : 'unterwegs'}`));
   document.querySelector('#missions').replaceChildren(element('h2', 'Einsätze'), ...military.missions.filter(item => item.status !== 'completed').map(item => element('p', `${item.targetName} (${item.coordinates.x},${item.coordinates.y}) · ${item.status === 'outbound' ? 'Hinmarsch' : 'Rückmarsch'} · ${formatDuration((item.status === 'outbound' ? item.arrivesAt : item.returnsAt) - state.serverTime)}`)), ...(military.missions.every(item => item.status === 'completed') ? [element('p', 'Keine aktiven Einsätze.')] : []));
   document.querySelector('#reports').replaceChildren(element('h2', 'Aufklärungsberichte'), ...military.reports.map(report => element('p', `${report.targetName}: Nahrung ${report.intelligence.food?.amount ?? '?'} / ${report.intelligence.food?.capacity ?? '?'}; Garnison noch nicht modelliert.`)), ...(military.reports.length ? [] : [element('p', 'Berichte werden erst nach der Rückkehr sichtbar.') ]));
 }

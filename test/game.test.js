@@ -9,7 +9,7 @@ import {
   newCity,
   commanderScore,
 } from '../packages/game-core/index.js';
-import { advanceMilitary, enqueueTraining, generalLevel, newMilitary, startScoutMission } from '../packages/game-core/military.js';
+import { advanceMilitary, barracksIsBusy, enqueueTraining, generalLevel, newMilitary, startScoutMission } from '../packages/game-core/military.js';
 import { mapDistance, publicMap, randomFreeLocation, terrainAt } from '../packages/game-core/world.js';
 
 const command = (id, slotId, building) => ({ id, slotId, building });
@@ -121,4 +121,20 @@ test('Ausbildung, General und Aufklärung werden zeitlich und einmalig fortgesch
   assert.equal(military.units.scout, 2); assert.equal(military.reports[0].intelligence.food.amount, 321); assert.equal(military.generals[0].experience, 10);
   assert.equal(advanceMilitary(military, 20000, npc).generals[0].experience, 10);
   assert.equal(generalLevel(100), 2); assert.equal(generalLevel(300), 3);
+});
+
+test('Eine große Ausbildungsgruppe blockiert die Kaserne bis zum gemeinsamen Abschluss', () => {
+  const city = newCity(0);
+  city.militarySlots[0] = { ...city.militarySlots[0], building: 'barracks', level: 1 };
+  city.resources = { wood: 2000, stone: 2000, food: 2000 };
+  const result = enqueueTraining(newMilitary('batch-player'), city, { id: 'train-100', unit: 'scout', amount: 100 }, 0);
+
+  assert.equal(result.military.trainingQueue[0].finishesAt, 200_000);
+  assert.equal(barracksIsBusy(result.military), true);
+  assert.equal(result.city.resources.wood, 1000);
+  assert.equal(advanceMilitary(result.military, 199_999).units.scout, 0);
+  const completed = advanceMilitary(result.military, 200_000);
+  assert.equal(completed.units.scout, 100);
+  assert.equal(completed.trainingQueue.length, 0);
+  assert.equal(barracksIsBusy(completed), false);
 });

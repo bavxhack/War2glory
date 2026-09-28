@@ -67,7 +67,7 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Maschinenlesbare Serverbeschreibung als Vorbereitung auf Föderation.
 - Dauerhafte gemeinsame 24×24-Weltkarte mit Gelände, zufällig vergebenen eindeutigen Spielerpositionen und 18 gemeinsam sichtbaren NPC-Städten.
 - Kartenwechsel, Verschieben per Maus, Touch, Richtungstasten oder Pfeiltasten, Koordinatensuche, Zoom und öffentliche Stadtinformationen über WebSocket.
-- Abgeleitete Kommandantenpunkte, ein getrennter Militärbereich mit vier Bauplätzen, Kaserne und persistente Ausbildung von Spähern/Infanterie.
+- Abgeleitete Kommandantenpunkte, ein getrennter Militärbereich mit vier Bauplätzen, Kaserne und persistente Gruppenausbildung von Spähern/Infanterie. Einheitenkarten visualisieren Späher als Aufklärungsflugzeuge.
 - Ein kostenloser Startgeneral und verlustfreie NPC-Aufklärung mit Hin-/Rückmarsch, privaten historischen Berichten und einmaliger Erstziel-Erfahrung.
 - Spielregeln und Serverintegration mit `npm test` prüfen.
 
