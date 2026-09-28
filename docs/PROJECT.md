@@ -10,10 +10,12 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | --- | --- | --- |
 | 0 | Startbarer Server, lokale Demo-Stadt, Rohstoffe, Ausbau, Speichern, Tests | Implementiert |
 | 1 | Stadtkarte, feste Bauplätze, Errichten/Ausbauen und Warteschlange | Implementiert |
+| 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Geplant; eigene spätere Ausbauetappe |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
-| 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert (JSON-Prototyp) |
+| 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Als Nächstes; abgestimmt |
+| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Hohe Priorität; nächste eigenständige Etappe nach der Weltkarte; Bewertungsregeln abzustimmen |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | Geplant; nach Einführung der Truppen |
-| 4a | Forschung, Truppen und Generäle mit Erfahrung, Leveln, Aufwertungen und Truppenzuweisung | Geplant |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Geplant; Forschungsumfang vorgemerkt |
 | 4b | Kämpfe, NPC-Farmzüge, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -80,6 +82,106 @@ Kartengröße, NPC-Anzahl, Schwierigkeitsstufen und interne Vorratswerte sind re
 - Nächster Auftrag: Weltkarte, dauerhafte Stadtpositionen, öffentliche Detailansichten und gemeinsame NPC-Identitäten. Aufklärung, Märsche, Kämpfe, Beuteentnahme und aktive Regeneration folgen nach Einführung der benötigten Truppen-/Generalsysteme.
 - Eine gemeinsame Karte pro Serverwelt dient als Ausgangspunkt. Die spätere Verbindung von Welten über Matrix ist damit noch nicht festgelegt.
 - In diesem Planungschat entstehen nur Codex-Anweisungen; die Umsetzung und ihre Prüfungen übernimmt Codex.
+
+## Bestätigte Gebäude- und Lageranforderungen vom 27.09.2026
+
+Diese Anforderungen sind für eine spätere Ausbauetappe aufgenommen. Sie sind noch nicht umgesetzt und erweitern nicht den laufenden Weltkartenauftrag.
+
+### Lagerkapazität durch Gebäudeausbau
+
+- Mit höherer Ausbaustufe eines Produktionsgebäudes wächst auch die Lagerkapazität der zugehörigen Ressource: Sägewerk → Holz, Steinbruch → Stein, Bauernhof → Nahrung.
+- Lagerkapazität und Produktionsrate sind getrennte Gebäudewirkungen; die bisherige Produktionssteigerung bleibt bestehen.
+- Die Kapazität muss künftig pro Ressource betrachtet werden. Konkrete Grundkapazitäten, Beiträge pro Stufe und die Verrechnung mehrerer Gebäude werden vor dieser Etappe abgestimmt.
+- Die bisherige feste Lagergrenze ist ein Prototypwert und noch keine Umsetzung dieser Anforderung.
+
+### Neuer Gebäudetyp Lagerhaus
+
+- Ein Lagerhaus erhöht die Lagerkapazität aller Ressourcen.
+- Es kann auf einem freien Bauplatz errichtet und über mehrere Stufen ausgebaut werden.
+- Höhere Lagerhausstufen erhöhen dessen Kapazitätswirkung.
+- Das Lagerhaus erhöht die speicherbare Menge, nicht automatisch die vorhandenen Rohstoffbestände oder deren Produktion.
+- Baukosten, Bauzeiten, maximale Stufe, Kapazitätswerte und zulässige Anzahl sind noch festzulegen.
+
+### Gebäudeabriss und Rückerstattung
+
+- Spieler sollen eigene Gebäude später vollständig entfernen und den Bauplatz wieder nutzen können.
+- Beim Abriss erhalten sie einen kleinen Anteil der Ressourcen zurück, die bis zur erreichten Gebäudestufe in dieses Gebäude investiert wurden.
+- Die Rückerstattung bezieht sich auf die kumulierten Investitionen aus Neubau und abgeschlossenen Ausbaustufen; sie darf nicht allein aus den Kosten der letzten Stufe abgeleitet werden.
+- Der genaue Rückerstattungsanteil ist noch nicht festgelegt. Es wird hier kein Prozentsatz vorgegeben.
+- Bei der späteren Umsetzung müssen Investitionen je Gebäude und Ressourcenart nachvollziehbar bleiben. Änderungen an Baukosten dürfen keine rückwirkend erfundenen Zahlungen erzeugen. Für Altbestände ohne Investitionshistorie ist eine ausdrücklich dokumentierte Migrationsregel abzustimmen.
+- Mit Entfernung eines Gebäudes entfallen auch dessen Produktions- und Kapazitätswirkungen. Ob der Abriss sofort oder nach einer Zeitspanne erfolgt, ist noch offen.
+- Vor Umsetzung sind Regeln für volle Lager bzw. Überbestände nach Kapazitätsverlust, die Aufnahme der Rückerstattung und Gebäude mit aktiven oder wartenden Bauaufträgen festzulegen. Bestehende Vorräte dürfen nicht ohne eine abgestimmte Regel stillschweigend verschwinden.
+- Abriss und Rückerstattung müssen später serverseitig geprüft, gemeinsam dauerhaft gespeichert und bei wiederholten Befehlen nur einmal ausgeführt werden. Die Oberfläche soll vor Bestätigung den Rückerstattungsbetrag und die Kapazitätsfolgen anzeigen.
+
+Die genaue Einordnung dieser Ausbauetappe erfolgt gemeinsam mit dem Nutzer. Der aktuelle Auftrag bleibt die Weltkarte mit gemeinsamen NPC-Städten.
+
+## Bestätigte Forschungsanforderungen vom 27.09.2026
+
+Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und erweitert nicht den laufenden Weltkartenauftrag.
+
+### Universität und Forschungsbereiche
+
+- Spieler können in Universitäten Forschungen durchführen.
+- Wirtschaftsforschung kann die Förderung bzw. Produktion von Ressourcen erhöhen.
+- Lagerforschung kann die Lagerkapazität erhöhen und ergänzt die bereits geplanten Kapazitätswirkungen von Produktionsgebäuden und Lagerhäusern.
+- Militärforschung soll später Einfluss auf Waffensysteme und Truppengattungen haben. Welche Technologien neue Systeme freischalten und welche vorhandene Werte verbessern, wird bei deren Spezifikation festgelegt.
+- Forschung soll später weitere Gebäudetypen zugänglich machen, die zusätzliche Verbesserungen ermöglichen. Die konkreten Gebäude und Wirkungen sind noch offen.
+- Forschung erhöht nicht automatisch bereits vorhandene Ressourcenbestände: Produktionsverbesserungen betreffen den Ertrag, Lagerverbesserungen die speicherbare Menge.
+
+### Vor der Umsetzung abzustimmen
+
+- Konkrete Forschungen, Voraussetzungen und Abhängigkeiten; ein Forschungsbaum ist ein möglicher Darstellungs- und Strukturierungsvorschlag, noch keine fertig definierte Technologieauswahl.
+- Forschungsstufen, Kosten, Dauer und maximale Verbesserungen.
+- Universitätsausbau und dessen Einfluss, etwa auf verfügbare Forschungen, Forschungsgeschwindigkeit oder parallele Forschungsplätze.
+- Eine oder mehrere gleichzeitig laufende Forschungen, Warteschlange sowie Abbruch- und Rückerstattungsregeln.
+- Gültigkeit abgeschlossener Forschung pro Stadt oder für das gesamte Spielerkonto innerhalb einer Welt.
+- Auswirkungen eines Universitätsabrisses auf laufende Forschung, abgeschlossene Erkenntnisse und bereits freigeschaltete Gebäude/Einheiten.
+- Verrechnung von Forschungsboni mit Gebäudestufen und anderen Verbesserungen, einschließlich Rundung und etwaigen Grenzen. Keine Prozentwerte oder additive/multiplikative Formel sind bislang beschlossen.
+- Ob militärische Verbesserungen bereits vorhandene Truppen betreffen und wie Freischaltungen mit Rekrutierung und Gebäudevoraussetzungen zusammenwirken.
+
+### Leitplanken für die spätere Codex-Umsetzung
+
+- Forschungsvoraussetzungen, Kosten, Abschluss und Freischaltungen werden serverseitig geprüft. Eine nur visuell gesperrte Bau- oder Rekrutierungsoption reicht nicht.
+- Laufende und abgeschlossene Forschungen werden dauerhaft gespeichert und nach Abwesenheit bzw. Neustart korrekt fortgesetzt oder abgeschlossen. Bereits bezahlte Forschung darf nicht doppelt abgerechnet werden.
+- Produktions- und Kapazitätsänderungen gelten ab dem tatsächlichen Forschungsabschluss; Offline-Erträge müssen davor und danach getrennt korrekt berechnet werden.
+- Gebäudewirkungen und Forschungswirkungen bleiben nachvollziehbar getrennt. Die Oberfläche soll Voraussetzungen sowie aktuelle und kommende Effekte verständlich anzeigen.
+- Forschungsabhängigkeiten dürfen keinen unerreichbaren Einstieg erzeugen; insbesondere muss eine erste Universität ohne die Forschung errichtbar sein, die sie selbst erst ermöglichen würde.
+- Forschungsdaten gehören zum privaten Spieler-/Stadtzustand und dürfen nicht ohne eine später festgelegte Berechtigung öffentlich übertragen werden.
+- Universität, Forschung, Lagerausbau, weitere Gebäude und das spätere Truppensystem werden vor ihrem jeweiligen Implementierungsauftrag gemeinsam aufeinander abgestimmt.
+
+## Kommandanten-Punktesystem: hohe Priorität
+
+Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden und wird als nächste eigenständige Ausbauetappe nach dem bereits beauftragten Weltkartenschritt priorisiert. Es ist noch nicht implementiert.
+
+### Umfang und schrittweise Einführung
+
+- Die Punkte gehören zum Kommandanten. Sie sind von Erfahrungspunkten und Leveln einzelner Generäle zu unterscheiden.
+- Die Berechnung berücksichtigt getrennt Gebäudeentwicklung, Forschungsfortschritt und bestätigte Kampfergebnisse einschließlich Niederlagen.
+- Das Grundsystem kann zuerst mit den bereits vorhandenen Gebäuden eingeführt werden. Forschungs- und Kampfbeiträge werden mit Einführung dieser Spielsysteme angeschlossen. Es dürfen keine nicht gespielten Gefechte oder nicht abgeschlossenen Forschungen erfunden werden.
+- Der Spieler soll seine Gesamtpunkte und deren nachvollziehbare Zusammensetzung sehen. Ob Gesamtpunkte öffentlich auf der Weltkarte oder in einer Rangliste erscheinen, ist noch abzustimmen. Private Gebäude-, Forschungs- und Kampfdaten bleiben dabei geschützt.
+- Zunächst gilt die Bewertung innerhalb einer Serverwelt. Eine spätere serverübergreifende Wertung benötigt eigene Vertrauensregeln und gehört nicht zu dieser ersten Umsetzung.
+
+### Berechnungsmodell vor der Umsetzung abstimmen
+
+Als Diskussionsgrundlage, noch nicht beschlossen: Gesamtpunkte setzen sich aus Gebäudepunkten, Forschungspunkten und Kampfpunkten zusammen; Niederlagen können innerhalb der Kampfwertung einen Abzug erzeugen. Konkrete Zahlen, Gewichtungen und Abzugsregeln sind noch offen.
+
+- Gebäude: Bewertung nach Typ und erreichter Stufe oder nach nachvollziehbaren Investitionen? Zählen vorhandene Gebäude oder dauerhaft erworbene Bauleistungen? Welche Wirkung haben Abriss, Wiederaufbau und abgebrochene Aufträge?
+- Forschung: Bewertung abgeschlossener Technologien und Stufen; laufende Aufträge nicht mit abgeschlossenen Forschungen verwechseln. Gültigkeit pro Stadt oder Konto berücksichtigen, damit dieselbe Forschung nicht mehrfach zählt.
+- Kämpfe: Bewertung nach Sieg, Gegnerstärke, erbrachter Leistung oder Verlusten? NPC- und Spielerkämpfe gegebenenfalls unterschiedlich behandeln.
+- Niederlagen: Fester oder variabler Einfluss, etwa abhängig von eigenen Verlusten? Verhindern, dass derselbe Verlust ungewollt sowohl über eine Ergebnisstrafe als auch über verlorene Einheiten doppelt abgezogen wird.
+- Untergrenze: Darf die Gesamtwertung negativ werden oder gibt es eine Mindestpunktzahl?
+- Zeitpunkt, Rundung, Gleichstände sowie eine mögliche spätere Rangliste sind vor dem ausführbaren Codex-Auftrag festzulegen.
+
+### Anforderungen an die spätere Codex-Umsetzung
+
+- Der Server berechnet alle Punkte aus verbindlichen Zuständen und bestätigten Ereignissen. Clients dürfen weder Punkte setzen noch Kampfergebnisse selbst bestätigen.
+- Punktregeln werden zentral und versioniert definiert. Die angezeigte Summe muss aus denselben Regeln stammen wie die gespeicherte bzw. abgeleitete Wertung.
+- Ergebnisabhängige Beiträge werden anhand stabiler Ereignis-IDs nur einmal verbucht; Wiederverbindung, Wiederholung und Neustart dürfen keine Punkte vervielfachen.
+- Punkte, Begründungen und notwendige Ereignisnachweise bleiben im JSON-Speichermodell nachvollziehbar. Speicherung und Wiederherstellung müssen zum zugrunde liegenden Bau-, Forschungs- oder Kampfabschluss konsistent sein.
+- Vorhandene Gebäude können gemäß der später vereinbarten Regel als Ausgangsbewertung übernommen werden. Fehlende historische Kampf- oder Forschungsdaten werden nicht geschätzt oder erfunden.
+- Änderungen werden über WebSocket an die berechtigten Spieler übertragen. Für private Aufschlüsselungen gelten dieselben Zugriffsgrenzen wie für sonstige private Spielzustände.
+- Prüfe später insbesondere Neuberechnung, Migration, Reihenfolge und Wiederholung von Ereignissen, Kontentrennung, Neustart und die vereinbarten Regeln für Abriss sowie Niederlagen.
+- Mehrfaches Bauen/Abreißen oder wiederholte Abrechnung desselben Gefechts darf keinen unbeabsichtigten Punktegewinn erzeugen. Regeln gegen gezieltes gegenseitiges Punktefarmen sind mit dem Kampfsystem zu definieren.
 
 ## Weitere vorgeschlagene Spielregeln, noch abzustimmen
 
