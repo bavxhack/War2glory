@@ -122,10 +122,21 @@ Neue Nutzeranforderung vom 28.09.2026. Laut Nutzer sind Generäle inzwischen ang
 - Technischer Vorschlag für eine nicht rücksetzbare Kostenbasis: bereits insgesamt erworbene Skillpunkte je General zählen, einschließlich ausgegebener Punkte. Die Verteilung freier Punkte darf den nächsten Skillpunkt nicht wieder billiger machen. Diese Auslegung ausdrücklich als Vorschlag dokumentieren.
 - Trenne insgesamt verdiente Erfahrung, bereits zur Umrechnung verwendete Erfahrung, noch verfügbare Erfahrung, insgesamt erworbene Skillpunkte, unverteilte Skillpunkte und verteilte Eigenschaftspunkte. Abgeleitete Werte müssen konsistent aus dem verbindlichen Zustand entstehen. Erfahrung und Skillpunkte sind keine Kommandantenpunkte.
 - Noch zu entscheiden ist, ob die Umrechnung automatisch oder auf Spielerbefehl erfolgt. Baue den Berechnungsbaustein unabhängig davon auf. Bei mehreren Umrechnungen nacheinander muss jeder weitere Punkt mit seinem neuen Preis berechnet werden; Rest-Erfahrung bleibt erhalten.
-- Benannte Eigenschaften, ihre Bonusformeln, Grenzen und ihr Zusammenspiel mit Generallevel und bisheriger Führungskapazität sind noch abzustimmen. Führung, Angriff und Verteidigung sind lediglich Vorschläge, keine bestätigte Auswahl.
+- Bestätigte Eigenschaften seit der Nutzerergänzung vom 28.09.2026: Führung, Angriff und Verteidigung. Verwende diese Bezeichnungen im Datenmodell und General-Modal. Ihre Bonusformeln, Grenzen und ihr Zusammenspiel mit Generallevel und bisheriger Führungskapazität sind weiterhin abzustimmen.
 - Behalte bestehende Level und bestätigte Fortschritte bei der Migration bei. Ein eventuell bestehendes Level darf durch die Verwendung von Erfahrung nicht unbeabsichtigt sinken. Keine automatische Doppelvergabe von Level- und Skillboni.
 - Bereits vorhandene Aufklärungs-Erfahrung bleibt erhalten. Ob Aufklärung künftig weiter Erfahrung bringt, ist gesondert zu entscheiden; die bisherige Testregel ist keine Bestätigung einer endgültigen Belohnungsquelle.
 - Neue Bonuswerte dürfen einen laufenden Einsatz nicht nachträglich verändern. Lege für die spätere Aktivierung einen dokumentierten Gültigkeitszeitpunkt fest; speichere einsatzrelevante Werte beim Start als verbindliche Grundlage.
+
+### Spätere Einsatzrollen: Truppengeneral, Bürgermeister und Forschungsgeneral
+
+- Der Nutzer bestätigt drei spätere Einsatzszenarien für Generäle: Truppengeneral zum Befehligen von Truppen, Bürgermeister in einer Stadt und Forschungsgeneral im Forschungsbereich.
+- Eigenschaften und Einsatzrolle sind verschiedene Konzepte. Führung, Angriff und Verteidigung gehören zum General; die Rolle beschreibt seine Aufgabe. Leite aus den Rollennamen keine zusätzlichen bestätigten Eigenschaften oder konkreten Boni ab.
+- Bereite die Generalverwaltung auf diese Rollen vor. Technischer Vorschlag: eine getrennte, erweiterbare Rollenzuweisung mit Referenz auf die zuständige Stadt, Armee oder spätere Forschung. Keine irreversible Festlegung auf drei getrennte Generaltypen.
+- Gegenwärtige Truppen- und Einsatzzuordnungen müssen weiterhin funktionieren. Bürgermeister und Forschungsgeneral werden erst in späteren Aufträgen spielbar; jetzt keine scheinbar aktiven Ernennungsaktionen oder erfundenen Wirtschafts-/Forschungsboni.
+- Vor der jeweiligen Aktivierung gemeinsam festlegen: Wirkung der drei Eigenschaften je Rolle, Voraussetzungen, Zahl der Rollenplätze, Rollenwechsel und mögliche gleichzeitige Aufgaben. Der bestehende Ausschluss mehrerer gleichzeitiger Märsche pro General bleibt bestehen.
+- Ebenfalls offen: Erfahrungserwerb in zivilen Rollen, Gültigkeitszeitpunkt von Boni und Wechselwirkungen mit laufendem Bau, Produktion, Forschung und Truppeneinsätzen.
+- Im Modal die aktuelle Aufgabe nachvollziehbar anzeigen. Spätere Rollen klar als geplant kennzeichnen, sofern sie bereits dargestellt werden. Namen, Erfahrung und Skillverteilung bleiben an die stabile General-ID gebunden.
+- Dokumentiere die Rollen als bestätigtes Zukunftsziel. Ihre konkreten Mechaniken und Balancewerte sind noch nicht bestätigt.
 
 ### General-Modal
 
@@ -139,7 +150,7 @@ Neue Nutzeranforderung vom 28.09.2026. Laut Nutzer sind Generäle inzwischen ang
 ### Jetzt umsetzen und später aktivieren
 
 - Jetzt ausführbar: Sammlung mehrerer Generäle, verlustfreie Migration, Liste und Einsatzwahl, Namensbearbeitung, Modal sowie konfigurierbare Daten- und Berechnungsgrundlage für Skillpunkte.
-- Prüfe steigende Kosten und Punkteverteilung mit ausdrücklich als Testdaten gekennzeichneten Regeln. Aktiviere die Umrechnung und echte Bonusvergabe im regulären Spiel erst nach Festlegung der Kostenkurve, Umrechnungsart und Eigenschaften mit ihren Wirkungen. Dokumentiere dies als offene Produktentscheidung, nicht als fertig spielbares Skillsystem.
+- Prüfe steigende Kosten und Punkteverteilung mit ausdrücklich als Testdaten gekennzeichneten Regeln. Aktiviere die Umrechnung und echte Bonusvergabe im regulären Spiel erst nach Festlegung der Kostenkurve, Umrechnungsart und Wirkungen der bestätigten Eigenschaften. Dokumentiere dies als offene Produktentscheidung, nicht als fertig spielbares Skillsystem.
 - Die Bedingungen für weitere Generäle und Kampf-Erfahrungsbelohnungen bleiben spätere Entscheidungen. Diese offenen Punkte blockieren nicht die oben ausführbaren Arbeiten.
 - Alle Änderungen erfolgen über das bestehende WebSocket-Protokoll, mit serverseitiger Besitzprüfung und persistiertem privaten JSON-Zustand.
 - Namensänderung und Skillverteilung müssen wiederholbare Anfragen sowie gleichzeitige Verbindungen korrekt behandeln. Der Server berechnet Kosten und Boni; Speichern erfolgt vor Erfolgsbestätigung. Veraltete oder unzureichend gedeckte Verteilungen werden ohne Teilabbuchung abgewiesen.
