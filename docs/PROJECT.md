@@ -16,7 +16,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte laut README umgesetzt; Forschung/Kämpfe später |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle laut Nutzer angelegt; Mehrfachverwaltung/Skillgrundlage als folgende Etappe geplant; Forschung weiterhin später |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral umgesetzt; Mehrfachverwaltung/Skillgrundlage in Auftrag 7; Forschung weiterhin später |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Nahrungsunterhalt, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant; Unterhalt mit oder unmittelbar nach dem Farmkreislauf empfohlen |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
@@ -104,17 +104,29 @@ Dies entspricht Schritt 2 der zuletzt vorgeschlagenen Reihenfolge. Ressourcenspe
 
 Nutzerentscheidung vom 28.09.2026: Nach Umsetzung des Lagerhauses soll die empfohlene schrittweise Umstellung auf React beginnen. README und der obige Projektstand beschreiben auch Lagerwirtschaft und Abriss als umgesetzt; dies wurde vom Planungschat nicht durch Laufzeittests überprüft.
 
-- CODEX_PROMPT.md enthält jetzt Auftrag 6 für die vollständige Migration der vorhandenen Spieloberfläche auf React mit JavaScript/JSX und Vite.
+- Auftrag 6 (im Git-Verlauf von CODEX_PROMPT.md) beschreibt die Migration der vorhandenen Spieloberfläche auf React mit JavaScript/JSX und Vite.
 - Die Migration erfolgt in überprüfbaren Abschnitten: App-Grundlage und gemeinsame Anzeigen/Dialoge, Stadt/Lager/Abriss, Militär/Ausbildung, Weltkarte/Einsätze/Berichte.
 - Bestehende Funktionen, Gestaltung und mobile Bedienung bleiben erhalten. Keine zusätzlichen Spielmechaniken oder Balanceänderungen.
 - Spielregeln und JSON-Persistenz bleiben serverseitig; packages/game-core bleibt unabhängig von React.
 - Eine zentrale WebSocket-Schicht je Browsertab versorgt den Clientzustand. Sitzungen, Eigentumsgrenzen, Wiederverbindung und Deduplizierung bleiben erhalten.
 - Vite dient Entwicklung und Build; der vorhandene Node-Server liefert im normalen Betrieb die gebauten Assets aus. Docker, CI und Dokumentation werden passend aktualisiert.
-- Die Migration ist umgesetzt; Transport-Risiken, bestehende Spielregeln sowie Serverintegration sind durch automatisierte Tests abgedeckt.
+- Die Migration ist laut bisherigem Projektstand umgesetzt und automatisiert geprüft. Am 29.09.2026 bestätigt der Nutzer, dass sie funktioniert. Der Planungschat hat diese Laufzeittests nicht selbst ausgeführt.
+
+## Aktueller Auftrag 7 vom 29.09.2026: Generalverwaltung und Skillgrundlage
+
+Nach dem abgeschlossenen React-Refactoring erweitert CODEX_PROMPT.md jetzt die Verwaltung der Generäle. Auftrag erteilt, Umsetzung noch nicht bestätigt.
+
+- Aktiver Umfang: mehrere Generäle im Datenmodell, verlustfreie Migration, Generalübersicht im Militärbereich, Namensbearbeitung im React-Modal und eindeutige Generalwahl für vorhandene Aufklärung.
+- Keine zusätzlichen Gratisgeneräle und keine frei nutzbare Erzeugungsaktion. Mehrfachbesitz wird mit isolierten Testspielständen geprüft; Rekrutierungsbedingungen bleiben offen.
+- Führung, Angriff und Verteidigung sind bestätigt. Ihre Daten-/Modalgrundlage sowie konfigurierbare XP-Umrechnung und Skillverteilung werden implementiert und mit isolierten Testregeln geprüft.
+- Echte Umrechnung und neue Bonuswirkungen bleiben im regulären Spiel serverseitig deaktiviert, bis Kostenkurve, Umrechnungsart und Wirkungen festgelegt sind. Das blockiert nicht die aktive Generalverwaltung.
+- Vorhandene XP, Level, Führungskapazitäten, aktive Einsätze und die bisherige Erstzielbelohnung je Kommandant/NPC bleiben erhalten.
+- Daten bleiben privat, serverseitig geprüft, über WebSocket übertragen und in JSON gespeichert. Keine erneute Frontendmigration.
+- Codex liefert neben Implementierung und Prüfungen einen getrennten Vorschlag für die noch offenen Skillregeln. Bürgermeister, Forschungsgeneral und Kampferfahrung bleiben spätere Aufgaben.
 
 ### Weitere Reihenfolge
 
-1. Generalverwaltung mit mehreren Generälen und Skillgrundlage vervollständigen; Kostenkurve und Bonuswirkungen gemeinsam festlegen. Bereits vorhandene Ausbildung und Aufklärung erhalten, verbleibende Lücken gezielt schließen.
+1. Auftrag 7: Generalverwaltung mit mehreren Generälen und Skillgrundlage vervollständigen; Kostenkurve und Bonuswirkungen gemeinsam festlegen. Bereits vorhandene Ausbildung und Aufklärung erhalten, verbleibende Lücken gezielt schließen.
 2. NPC-Farmzüge mit Garnison, Kampf, Verlusten, typabhängiger Traglast, gemeinsamer Beute und Regeneration; General-Erfahrung sowie Kampf-/Niederlagenpunkte ergänzen.
 3. Laufenden typabhängigen Nahrungsunterhalt mit oder unmittelbar nach dem Farmkreislauf aktivieren, nachdem Verbrauchs- und Mangelregeln festgelegt sind.
 4. Universität/Forschung und anschließend die Rollen Bürgermeister/Forschungsgeneral.
@@ -123,7 +135,7 @@ Nutzerentscheidung vom 28.09.2026: Nach Umsetzung des Lagerhauses soll die empfo
 
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 
-Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung bleibt eine folgende Etappe nach dem aktuellen React-Refactoring. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
+Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung ist nach dem abgeschlossenen React-Refactoring Gegenstand des aktuellen Auftrags 7. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
 
 ### Bestätigte Anforderungen
 
@@ -158,7 +170,7 @@ Technischer Vorschlag für die Kostenbasis: insgesamt erworbene Skillpunkte eins
 
 ## Geplante Logistik: Traglast, LKWs und Öl
 
-Nutzerergänzung vom 28.09.2026. Diese Anforderungen sind geplant, nicht als implementiert bestätigt. Sie erweitern die späteren Farm- und Einheitenaufträge; LKWs und Öl gehören nicht automatisch zum aktuellen React-Auftrag 6.
+Nutzerergänzung vom 28.09.2026. Diese Anforderungen sind geplant, nicht als implementiert bestätigt. Sie erweitern die späteren Farm- und Einheitenaufträge; LKWs und Öl gehören nicht automatisch zum aktuellen Generalauftrag 7.
 
 ### Bestätigte Anforderungen
 
@@ -234,7 +246,7 @@ Nutzeranforderung vom 28.09.2026. Geplant für die Wirtschafts- und Farmmechanik
 
 ## Entscheidungen für diesen Prototyp
 
-- Kleine Module; Einstieg ursprünglich ohne Framework- oder Datenbankabhängigkeiten. Seit der Nutzerentscheidung vom 28.09.2026 wird die Oberfläche auf React mit JavaScript/JSX und Vite umgestellt. Server und Spielkern bleiben davon unabhängig; keine Datenbankumstellung in diesem Schritt.
+- Kleine Module; Einstieg ursprünglich ohne Framework- oder Datenbankabhängigkeiten. Die am 28.09.2026 beauftragte Umstellung auf React mit JavaScript/JSX und Vite ist laut Nutzer am 29.09.2026 abgeschlossen. Server und Spielkern bleiben davon unabhängig; keine Datenbankumstellung in diesem Schritt.
 - Der Server entscheidet über Regeln, Zeit, Kosten und Zustandsänderungen.
 - Reine Spiellogik mit explizitem Zeitparameter als Grundlage für spätere wiederholbare Simulationen.
 - Föderation nach dem Matrix-Modell ist gewünscht. Bevorzugter technischer Ansatz: ein versioniertes Spielprotokoll auf Matrix; Machbarkeit in einer eigenen Etappe prüfen. Details in FEDERATION.md.
@@ -307,7 +319,7 @@ Auftrag 5 konkretisiert die Ausbauetappe mit ausdrücklich vorläufigen Arbeitsv
 
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
-Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen React-Auftrag 6.
+Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Generalauftrag 7.
 
 ### Universität und Forschungsbereiche
 
