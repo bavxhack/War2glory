@@ -1,4 +1,12 @@
-FROM node:24-alpine
+FROM node:24-alpine AS frontend-builder
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY apps ./apps
+RUN npm run build
+
+FROM node:24-alpine AS runtime
 
 ENV NODE_ENV=production
 WORKDIR /app
@@ -6,6 +14,7 @@ WORKDIR /app
 COPY --chown=node:node package.json ./
 COPY --chown=node:node apps ./apps
 COPY --chown=node:node packages ./packages
+COPY --from=frontend-builder --chown=node:node /app/apps/client/dist ./apps/client/dist
 RUN mkdir -p /app/data && chown node:node /app/data
 
 USER node

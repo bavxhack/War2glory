@@ -8,13 +8,20 @@ Repository: https://github.com/bavxhack/War2glory
 
 ## Starten
 
-Voraussetzung: Node.js 24 oder neuer. In den entpackten Projektordner wechseln:
+Voraussetzung: Node.js 24 oder neuer. Abhängigkeiten installieren und den React-Client bauen:
+
+```sh
+npm ci
+npm run build
+```
+
+Danach den Spielserver starten:
 
 ```sh
 npm start
 ```
 
-Anschließend http://localhost:3000 öffnen. Keine zusätzlichen npm-Pakete und kein Installationsschritt erforderlich. Beenden mit Strg+C.
+Anschließend http://localhost:3000 öffnen. Beenden mit Strg+C.
 
 Zwei unabhängige Welten: in zwei Terminals jeweils im Projektordner starten:
 
@@ -54,9 +61,10 @@ Die Portfreigabe bindet standardmäßig nur an `127.0.0.1`. Das ist weiterhin ei
 
 Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft den Container-Build, veröffentlicht aus Sicherheitsgründen aber kein Image aus fremdem Pull-Request-Code. Bei jedem Branch-Push baut der Workflow anschließend ein AMD64-/ARM64-Image und lädt es selbstständig in die GitHub Container Registry hoch. Der Branch `main` erhält dabei `ghcr.io/bavxhack/war2glory:latest`, andere Branches erhalten ein bereinigtes Branch-Tag und jeder veröffentlichte Build zusätzlich ein `sha-…`-Tag. Tags wie `v0.2.0` erzeugen ein gleichnamiges Image-Tag. Der Upload verwendet ausschließlich das von GitHub bereitgestellte `GITHUB_TOKEN`; ein eigenes Registry-Passwort ist nicht nötig. Für öffentliche Images ist kein Registry-Login zum Herunterladen erforderlich. Die erstmalige Sichtbarkeit des Pakets wird in den GitHub-Paketeinstellungen des Repository-Eigentümers festgelegt.
 
-## Implementierter Stand 0.6
+## Implementierter Stand 0.7
 
 - Responsive Stadtlandschaft mit eigenen CSS-Grafiken für Gebäude, Wege, Grün und sichtbare Baustellen.
+- React-19-Oberfläche mit Vite-Build, zentralem WebSocket-Transport und unverändertem serverseitigem Spielmodell.
 - Registrierung, Anmeldung, Abmeldung und Sitzungswiederaufnahme; jeder Kommandant besitzt eine getrennte Stadt.
 - Ereignisbasierte Spielkommunikation über WebSocket statt privater HTTP-Spielendpunkte.
 - Holz, Stein und Nahrung; Sägewerk, Steinbruch und Bauernhof.
@@ -71,6 +79,8 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Abgeleitete Kommandantenpunkte, ein getrennter Militärbereich mit vier Bauplätzen sowie persistente Gruppenausbildung von Spähern/Infanterie mit drei eigenen Warteschlangenslots je Kaserne. Einheitenkarten visualisieren Späher als Aufklärungsflugzeuge.
 - Ein kostenloser Startgeneral und verlustfreie NPC-Aufklärung mit Hin-/Rückmarsch, privaten historischen Berichten und einmaliger Erstziel-Erfahrung.
 - Spielregeln und Serverintegration mit `npm test` prüfen.
+
+Für die Frontend-Entwicklung laufen Spielserver und Vite getrennt: `npm start` stellt den WebSocket auf Port 3000 bereit, `npm run dev` die Oberfläche auf http://localhost:5173. Der Vite-Server leitet `/game` gezielt an den lokalen Spielserver weiter. Der normale Server und das Container-Image verwenden ausschließlich den mit `npm run build` erzeugten Client in `apps/client/dist`; fehlt er, erklärt die Startseite den erforderlichen Build-Schritt.
 
 Provisorische Regeln: Jedes Produktionsgebäude produziert seine Stufe in Rohstoffen pro Sekunde. Neubau beziehungsweise Ausbau auf Stufe n kostet 40 × n Holz und 30 × n Stein und dauert 5 × n Sekunden. Kosten werden beim Einreihen genau einmal abgezogen; ein Auftragsabbruch ist noch nicht verfügbar. Die Grundkapazität beträgt je Ressource 2000. Produktionsgebäude bringen ab Stufe 2 weitere 250 Einheiten je zusätzlicher Stufe für ihre Ressource, Lagerhäuser 500 je Stufe für alle Ressourcen. Ein sofortiger Abriss erstattet abgerundet 10 Prozent der nachgewiesenen Investitionen. Überbestände bleiben erhalten und pausieren die jeweilige Produktion. Das sind eigene Demo-Werte, keine bestätigten War2Glory-Werte.
 

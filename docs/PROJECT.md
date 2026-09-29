@@ -12,7 +12,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 1 | Stadtkarte, feste Bauplätze, Errichten/Ausbauen und Warteschlange | Implementiert |
 | 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Implementiert als Prototyp; Balance und Altbestandsregel bleiben zu prüfen |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
-| UI | React-/Vite-Migration der vorhandenen Oberfläche bei unveränderter Spiellogik | Aktueller Auftrag 6; noch nicht als implementiert bestätigt |
+| UI | React-/Vite-Migration der vorhandenen Oberfläche bei unveränderter Spiellogik | Implementiert mit Auftrag 6 |
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte laut README umgesetzt; Forschung/Kämpfe später |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
@@ -100,7 +100,7 @@ Dies entspricht Schritt 2 der zuletzt vorgeschlagenen Reihenfolge. Ressourcenspe
 - Neue Bauinvestitionen mit tatsächlichen Zahlungen dokumentieren; Migration, Offline-Abrechnung und wiederholte Befehle müssen konsistent bleiben.
 - Die Details in Auftrag 5 konkretisieren den Prototyp. Sie stellen die zuvor offenen Regeln nicht als endgültig vom Nutzer beschlossen dar.
 
-## Aktueller Auftrag 6: React-Refactoring
+## Umgesetzter Auftrag 6: React-Refactoring
 
 Nutzerentscheidung vom 28.09.2026: Nach Umsetzung des Lagerhauses soll die empfohlene schrittweise Umstellung auf React beginnen. README und der obige Projektstand beschreiben auch Lagerwirtschaft und Abriss als umgesetzt; dies wurde vom Planungschat nicht durch Laufzeittests überprüft.
 
@@ -110,17 +110,16 @@ Nutzerentscheidung vom 28.09.2026: Nach Umsetzung des Lagerhauses soll die empfo
 - Spielregeln und JSON-Persistenz bleiben serverseitig; packages/game-core bleibt unabhängig von React.
 - Eine zentrale WebSocket-Schicht je Browsertab versorgt den Clientzustand. Sitzungen, Eigentumsgrenzen, Wiederverbindung und Deduplizierung bleiben erhalten.
 - Vite dient Entwicklung und Build; der vorhandene Node-Server liefert im normalen Betrieb die gebauten Assets aus. Docker, CI und Dokumentation werden passend aktualisiert.
-- Auftrag ist erteilt, Refactoring noch nicht als implementiert bestätigt. Der Planungschat ändert ausschließlich Arbeitsanweisungen und Projektplan.
+- Die Migration ist umgesetzt; Transport-Risiken, bestehende Spielregeln sowie Serverintegration sind durch automatisierte Tests abgedeckt.
 
 ### Weitere Reihenfolge
 
-1. Auftrag 6: React-Refactoring bei unveränderter Spielmechanik.
-2. Generalverwaltung mit mehreren Generälen und Skillgrundlage vervollständigen; Kostenkurve und Bonuswirkungen gemeinsam festlegen. Bereits vorhandene Ausbildung und Aufklärung erhalten, verbleibende Lücken gezielt schließen.
-3. NPC-Farmzüge mit Garnison, Kampf, Verlusten, typabhängiger Traglast, gemeinsamer Beute und Regeneration; General-Erfahrung sowie Kampf-/Niederlagenpunkte ergänzen.
-4. Laufenden typabhängigen Nahrungsunterhalt mit oder unmittelbar nach dem Farmkreislauf aktivieren, nachdem Verbrauchs- und Mangelregeln festgelegt sind.
-5. Universität/Forschung und anschließend die Rollen Bürgermeister/Forschungsgeneral.
-6. LKWs und Ölwirtschaft einschließlich ziviler Raffinerien und typabhängiger Mobilmachungskosten; die konkrete Einordnung gegenüber Forschung bei der Etappenplanung prüfen.
-7. Weitere Einheiten, Bündnisse, Handel, Unterstützung und PvP; anschließend aktive Matrix-Föderation. Identitäten und Protokolle schon vorher erweiterbar halten.
+1. Generalverwaltung mit mehreren Generälen und Skillgrundlage vervollständigen; Kostenkurve und Bonuswirkungen gemeinsam festlegen. Bereits vorhandene Ausbildung und Aufklärung erhalten, verbleibende Lücken gezielt schließen.
+2. NPC-Farmzüge mit Garnison, Kampf, Verlusten, typabhängiger Traglast, gemeinsamer Beute und Regeneration; General-Erfahrung sowie Kampf-/Niederlagenpunkte ergänzen.
+3. Laufenden typabhängigen Nahrungsunterhalt mit oder unmittelbar nach dem Farmkreislauf aktivieren, nachdem Verbrauchs- und Mangelregeln festgelegt sind.
+4. Universität/Forschung und anschließend die Rollen Bürgermeister/Forschungsgeneral.
+5. LKWs und Ölwirtschaft einschließlich ziviler Raffinerien und typabhängiger Mobilmachungskosten; die konkrete Einordnung gegenüber Forschung bei der Etappenplanung prüfen.
+6. Weitere Einheiten, Bündnisse, Handel, Unterstützung und PvP; anschließend aktive Matrix-Föderation. Identitäten und Protokolle schon vorher erweiterbar halten.
 
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 

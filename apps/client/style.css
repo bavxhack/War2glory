@@ -74,3 +74,13 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .demolition-preview p { margin: 0; color: #c6d0c0; }
 .dialog-actions button.danger { background: #d97862; color: #24110d; }
 .danger-dialog { border-color: #b96d5c; }
+.connection>span:first-child { width:9px;height:9px;border-radius:50%;background:#bd6a58; }
+.connection>span:first-child.online { background:#a9d76e;box-shadow:0 0 8px #a9d76e; }
+.message { min-height:24px;color:#e6e7a7;margin:12px 4px 0; }
+.auth-message { color:#efaa98;min-height:22px;margin-top:14px; }
+.mission-dialog .dialog-content { display:grid;gap:1rem;padding:1.25rem; }
+.connection>span:first-child { width:9px;height:9px;border-radius:50%;background:#bd6a58; }
+.connection>span:first-child.online { background:#a9d76e;box-shadow:0 0 8px #a9d76e; }
+.message { min-height:24px;color:#e6e7a7;margin:12px 4px 0; }
+.auth-message { color:#efaa98;min-height:22px;margin-top:14px; }
+.mission-dialog .dialog-content { display:grid;gap:1rem;padding:1.25rem; }
