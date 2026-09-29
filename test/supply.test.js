@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { newCity } from '../packages/game-core/index.js';
 import { newMilitary, startRaidMission } from '../packages/game-core/military.js';
-import { advanceSupply, assignMayor, supplySummary, SUPPLY_RULES } from '../packages/game-core/supply.js';
+import { advanceSupply, assignMayor, settleSupplyAt, supplySummary, SUPPLY_RULES } from '../packages/game-core/supply.js';
 
 function playerAt(now = 0) {
   return { playerId: 'p1', city: newCity(now), military: newMilitary('p1') };
@@ -62,4 +62,42 @@ test('Kurze Versorgung pausiert den Zähler, stabile Versorgung setzt ihn zurüc
   player.military.units.infantry = 0;
   player = advanceSupply(player, 11 * 60_000 + 1_000, 0);
   assert.equal(player.supply.shortageMs, 0);
+});
+
+test('Nahrung wird als Nettobilanz bei vollem Lager und Überbestand korrekt verrechnet', () => {
+  const covered = playerAt();
+  covered.military.units.infantry = 5;
+  covered.city.resources.food = 2000;
+  const coveredLater = advanceSupply(covered, 10_000, 0);
+  assert.equal(coveredLater.city.resources.food, 2000, 'Produktion deckt Unterhalt auch am Lagerlimit direkt');
+
+  const deficit = playerAt();
+  deficit.military.units.infantry = 20;
+  deficit.city.resources.food = 2_100;
+  const deficitLater = advanceSupply(deficit, 100_000, 0);
+  assert.equal(deficitLater.city.resources.food, 2_000, 'negative Nettobilanz baut Überbestand ab, ohne ihn abzuschneiden');
+  assert.equal(deficitLater.supply.inShortage, false);
+});
+
+test('Viele kleine Versorgungsschritte ergeben denselben Bestand wie ein Offline-Schritt', () => {
+  const initial = playerAt();
+  initial.military.units = { infantry: 13, scout: 7 };
+  const oneStep = advanceSupply(initial, 123_456, 0);
+  let manySteps = initial;
+  for (const at of [1_000, 9_999, 60_000, 100_000, 123_456]) manySteps = advanceSupply(manySteps, at, 0);
+  assert.ok(Math.abs(oneStep.city.resources.food - manySteps.city.resources.food) < 1e-9);
+  assert.equal(oneStep.supply.shortageMs, manySteps.supply.shortageMs);
+});
+
+test('Eine am Zeitrand zurückkehrende Versorgung verhindert die fällige Hungerwelle', () => {
+  const player = playerAt();
+  player.city.buildingSlots[2].level = 0;
+  player.city.resources.food = 0;
+  player.military.units.infantry = 20;
+  const beforeReturn = advanceSupply(player, SUPPLY_RULES.graceMs, 0, { deferLossAtEnd: true });
+  assert.equal(beforeReturn.supply.pendingLossAt, SUPPLY_RULES.graceMs);
+  beforeReturn.city.resources.food = 100;
+  const settled = settleSupplyAt(beforeReturn, SUPPLY_RULES.graceMs);
+  assert.equal(settled.military.units.infantry, 20);
+  assert.equal(settled.supply.events.length, 0);
 });

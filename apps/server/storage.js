@@ -4,7 +4,7 @@ import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
 import { allSlots, constructionQuote, newCity, resourceCapacities, RULESET } from '../../packages/game-core/index.js';
 import { generalLevel, newMilitary, normalizeGeneral, resolveNpcCombat } from '../../packages/game-core/military.js';
-import { advanceSupply } from '../../packages/game-core/supply.js';
+import { advanceSupply, settleSupplyAt } from '../../packages/game-core/supply.js';
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
@@ -230,9 +230,9 @@ export class WorldStorage {
     events.sort((a, b) => a.at - b.at || a.sequence - b.sequence || a.player.playerId.localeCompare(b.player.playerId) || a.phase.localeCompare(b.phase));
     let worldChanged = false;
     const changed = new Set();
-    for (const event of events) {
+    for (const [eventIndex, event] of events.entries()) {
       const { player, mission: scheduledMission, at } = event;
-      Object.assign(player, advanceSupply(player, at, this.world.supplyActivatedAt));
+      Object.assign(player, advanceSupply(player, at, this.world.supplyActivatedAt, { deferLossAtEnd: true }));
       const mission = player.military.missions.find(candidate => candidate.id === scheduledMission.id);
       const completedTraining = player.military.trainingQueue.filter(job => job.finishesAt <= at);
       for (const job of completedTraining) player.military.units[job.unit] += job.amount;
@@ -276,7 +276,7 @@ export class WorldStorage {
           player.military.combatScore += result.combatScore;
           if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'raid', missionId: mission.id,
             targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, startedAt: mission.startedAt,
-            arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, infantry: mission.infantry + (mission.hungerLosses ?? 0), ...result,
+            arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, infantry: mission.initialInfantry ?? mission.infantry + (mission.hungerLosses ?? 0), ...result,
             hungerLosses: mission.hungerLosses ?? 0, originalLoadedFood: result.loadedFood + (mission.foodLostInTransit ?? 0), foodLostInTransit: mission.foodLostInTransit ?? 0,
             storedFood, overflowFood: result.loadedFood - storedFood, ruleset: mission.ruleset });
         } else {
@@ -286,6 +286,8 @@ export class WorldStorage {
         }
       } else continue;
       changed.add(player.playerId);
+      const hasAnotherPlayerEventAtSameTime = events.slice(eventIndex + 1).some(candidate => candidate.at === at && candidate.player.playerId === player.playerId);
+      if (!hasAnotherPlayerEventAtSameTime) Object.assign(player, settleSupplyAt(player, at));
     }
     for (const player of players.values()) {
       const before = JSON.stringify([player.city, player.military, player.supply]);
