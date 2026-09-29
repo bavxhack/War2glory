@@ -79,6 +79,16 @@ test('Nahrung wird als Nettobilanz bei vollem Lager und Überbestand korrekt ver
   assert.equal(deficitLater.supply.inShortage, false);
 });
 
+test('Unterhaltsaufschlüsselung enthält stationierte und marschierende Truppen nach Typ', () => {
+  const player = playerAt();
+  player.military.units = { infantry: 12, scout: 4 };
+  player.military.missions.push({ id: 'raid-upkeep', type: 'raid', status: 'returning', infantry: 8, result: { survivors: 6 } });
+  player.military.missions.push({ id: 'scout-upkeep', type: 'scout', status: 'outbound', scouts: 3 });
+  const summary = supplySummary(player);
+  assert.deepEqual(summary.unitCounts, { infantry: 18, scout: 7 });
+  assert.equal(summary.upkeep, 2.15);
+});
+
 test('Viele kleine Versorgungsschritte ergeben denselben Bestand wie ein Offline-Schritt', () => {
   const initial = playerAt();
   initial.military.units = { infantry: 13, scout: 7 };

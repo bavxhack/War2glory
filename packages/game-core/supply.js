@@ -29,12 +29,15 @@ export function livingUnitGroups(military) {
 
 export function supplySummary(player) {
   const groups = livingUnitGroups(player.military);
+  const unitCounts = Object.fromEntries(Object.keys(SUPPLY_RULES.upkeepPerSecond).map(unit => [unit,
+    groups.filter(group => group.unit === unit).reduce((sum, group) => sum + group.amount, 0),
+  ]));
   const upkeep = groups.reduce((sum, group) => sum + group.amount * SUPPLY_RULES.upkeepPerSecond[group.unit], 0);
   const baseProduction = productionRates(player.city).food;
   const bonus = mayorBonus(player.military);
   const production = baseProduction * (1 + bonus);
   return { baseProduction, mayorBonus: bonus, mayorProduction: production - baseProduction, production, upkeep, net: production - upkeep,
-    units: groups.reduce((sum, group) => sum + group.amount, 0) };
+    units: groups.reduce((sum, group) => sum + group.amount, 0), unitCounts };
 }
 
 function normalizeSupply(player, activatedAt) {
