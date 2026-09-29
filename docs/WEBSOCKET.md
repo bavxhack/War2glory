@@ -4,7 +4,7 @@
 
 Die Anwendung lädt nur statische Dateien, `GET /health` und die öffentliche Föderationsbeschreibung über HTTP. Private Spielstände und Spielbefehle sind ausschließlich über `GET /game` als WebSocket-Upgrade erreichbar. Jedes Clientereignis enthält `version`, `type`, eine eindeutige `requestId` und `payload`. Antworten tragen dieselbe `requestId`; Push-Ereignisse benötigen keine.
 
-Der Server akzeptiert `auth.register`, `auth.login`, `auth.resume`, `auth.logout`, `city.sync`, `construction.enqueue`, `building.preview`, `building.demolish`, `training.enqueue`, `scouting.start`, `raid.start`, `general.rename`, `map.viewport` und `map.details`. Er sendet zusätzlich `map.snapshot`, `map.details` und bei neu registrierten Städten `map.changed`. Kartenausschnitte sind höchstens 15×15 Felder groß; Koordinaten, IDs und eine kurze Anfragerate werden serverseitig geprüft. Antworten auf öffentliche Kartendetails enthalten keine Ressourcen, Garnisonen, Bauaufträge oder Regenerationszeitstempel. Nachrichten sind auf 16 KiB begrenzt. Der Server prüft Format, Ereignistyp und Origin. Hinter einem Reverse Proxy werden erlaubte öffentliche Origins explizit angegeben:
+Der Server akzeptiert `auth.register`, `auth.login`, `auth.resume`, `auth.logout`, `city.sync`, `construction.enqueue`, `building.preview`, `building.demolish`, `training.enqueue`, `scouting.start`, `raid.start`, `general.rename`, `general.mayor`, `map.viewport` und `map.details`. Er sendet zusätzlich `map.snapshot`, `map.details` und bei neu registrierten Städten `map.changed`. Kartenausschnitte sind höchstens 15×15 Felder groß; Koordinaten, IDs und eine kurze Anfragerate werden serverseitig geprüft. Antworten auf öffentliche Kartendetails enthalten keine Ressourcen, Garnisonen, Bauaufträge oder Regenerationszeitstempel. Nachrichten sind auf 16 KiB begrenzt. Der Server prüft Format, Ereignistyp und Origin. Hinter einem Reverse Proxy werden erlaubte öffentliche Origins explizit angegeben:
 
 ```sh
 npm start -- --host 0.0.0.0 --origins https://spiel.example.org
@@ -32,7 +32,7 @@ npm run claim-legacy -- --world alpha --username Kommandant --confirm
 
 Das Werkzeug migriert Schema 1 oder übernimmt Schema 2, schreibt die Stadt in die ausgewählte Spielerdatei und benennt die Quelle als datiertes Backup um.
 
-## Lager-, Militär-, Aufklärungs- und Farmprototyp (Spielerschema 6)
+## Lager-, Militär-, Aufklärungs-, Farm- und Versorgungsprototyp (Spielerschema 7)
 
 Schema 4 ergänzt stabile Gebäudeidentitäten, tatsächlich am Auftrag festgehaltene Kosten und eine Investitionsgrundlage je Gebäude. Alte fertige Gebäude werden konservativ als unvollständig dokumentiert markiert; ihre Kosten werden nicht aus der aktuellen Preistabelle erfunden. Nachweisbare alte Warteschlangenaufträge übernehmen die unter dem damaligen Prototyp verbindlich abgezogenen Auftragskosten.
 
@@ -47,3 +47,7 @@ Jeder Spieler erhält idempotent einen Startgeneral. Level L benötigt insgesamt
 ## React-/Vite-Client
 
 Der Browser verwendet weiterhin ausschließlich den Endpunkt `/game` und Protokollversion 1. Eine zentrale Transportschicht in `apps/client/src/transport.js` verwaltet genau eine Verbindung je gemounteter Anwendung, Sitzungswiederaufnahme, Request-IDs, Reconnect und den bestätigten Zustand. Vite leitet im Entwicklungsmodus nur diesen Pfad weiter; im normalen Betrieb liefert der Node-Server den gebauten Client selbst aus. Entwicklungsursprünge müssen mit `--origins` ausdrücklich freigegeben werden.
+
+## Versorgung und Bürgermeister (vorläufiger Prototyp)
+
+Spielerschema 7 speichert den Aktivierungszeitpunkt, Mangeldauer, Erholungsbeginn, nächste Verlustwelle und begrenzte private Versorgungsereignisse. Der weltweite `supplyActivatedAt` verhindert rückwirkenden Unterhalt bei der Migration. `general.mayor` setzt eine eigene freie General-ID oder `null`; Rollenwechsel werden nach vorheriger Zeitabrechnung dedupliziert und atomar gespeichert. Snapshots trennen Nahrungsgrundproduktion, Bürgermeisteranteil, Unterhalt und Nettobilanz. Stationierte sowie missionsgebundene lebende Einheiten werden genau einmal gezählt. Hunger verändert Einsatzstärken und kann auf dem Rückweg nicht mehr tragbare Beute dauerhaft entfernen. Die konkreten Verbrauchs-, Frist-, Verlust- und Bonuswerte sind vorläufige Vorschläge, keine Originalwerte.
