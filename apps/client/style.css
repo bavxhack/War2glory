@@ -64,6 +64,19 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .dialog-actions button:disabled { background: #465345; color: #adb7aa; cursor: not-allowed; }
 @media (max-width: 700px) { .city-grid.compact { min-height: 300px; } .view-tabs { overflow-x: auto; } }
 @media (max-width: 460px) { .unit-visuals { grid-template-columns: 1fr; } }
+.general-section { margin-top: 1.25rem; }
+.general-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: .75rem; }
+.general-card { display: grid; gap: .35rem; padding: 1rem; border: 1px solid #65755d; border-radius: .75rem; background: #1b261a; color: #eef1e9; text-align: left; cursor: pointer; }
+.general-card:hover,.general-card:focus-visible { border-color: #d5e59b; outline: 2px solid #d5e59b33; }
+.general-card span { color: #bac5b6; font-size: .8rem; }
+.general-facts { display: grid; grid-template-columns: repeat(2,1fr); gap: .6rem; }
+.general-facts span { padding: .65rem; border-radius: .5rem; background: #111a10; }
+.general-facts strong { display: block; color: #e6f7ad; font-size: 1.15rem; }
+.attribute-list { display: grid; gap: .55rem; }
+.attribute-list > div { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .65rem; border: 1px solid #52624c; border-radius: .55rem; }
+.stepper { display: flex; gap: .35rem; }
+.stepper button { width: 2.25rem; height: 2.25rem; border: 1px solid #65755d; border-radius: .4rem; background: #253522; color: #fff; }
+.stepper button:disabled { color: #71806d; }
 .resource.overstock { border-color: #d99a55; }
 .capacity-details summary { cursor: pointer; color: #d5e59b; font-size: 11px; }
 .capacity-details small { display: block; max-width: 280px; line-height: 1.35; }

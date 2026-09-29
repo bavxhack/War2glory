@@ -138,6 +138,30 @@ test('WebSocket weist fremde Origins und übergroße Nachrichten ab', async () =
   } finally { if (running) await close(running.server); rmSync(directory, { recursive: true, force: true }); }
 });
 
+test('WebSocket: Generalnamen werden versioniert, dedupliziert und nach Besitz geprüft', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'strategy-generals-')); let running; const clients = [];
+  try {
+    running = await start(directory);
+    const a = await websocket(running.port); const b = await websocket(running.port); clients.push(a, b);
+    const first = await authenticate(a, 'register', 'GeneralAlpha');
+    const second = await authenticate(b, 'register', 'GeneralBravo');
+    const general = first.snapshot.military.generals[0];
+    const renameId = 'general-rename-1'; const ok = a.next('command.ok', renameId); const update = a.next('city.updated');
+    a.send('general.rename', { generalId: general.id, name: '  Zoë 🚀  ', expectedVersion: general.version }, renameId);
+    await ok; const renamed = (await update).payload.military.generals[0];
+    assert.equal(renamed.name, 'Zoë 🚀'); assert.equal(renamed.version, 2);
+    const duplicate = a.next('command.ok', renameId);
+    a.send('general.rename', { generalId: general.id, name: '  Zoë 🚀  ', expectedVersion: general.version }, renameId);
+    assert.equal((await duplicate).payload.duplicate, true);
+    const staleId = 'general-rename-2'; a.send('general.rename', { generalId: general.id, name: 'Alt', expectedVersion: 1 }, staleId);
+    assert.match((await a.next('command.error', staleId)).payload.message, /inzwischen geändert/);
+    const foreignId = 'general-rename-3'; a.send('general.rename', { generalId: second.snapshot.military.generals[0].id, name: 'Fremd', expectedVersion: 1 }, foreignId);
+    assert.match((await a.next('command.error', foreignId)).payload.message, /nicht gefunden/);
+    const skillId = 'general-skills-1'; a.send('general.skills', { generalId: general.id }, skillId);
+    assert.match((await a.next('command.error', skillId)).payload.message, /nicht erlaubt/);
+  } finally { clients.forEach(client => client.close()); if (running) await close(running.server); rmSync(directory, { recursive: true, force: true }); }
+});
+
 test('WebSocket: Abrissvorschau, Bestätigung und Deduplizierung sind serververbindlich', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'strategy-demolition-')); let running; const clients = []; let now = 0;
   try {

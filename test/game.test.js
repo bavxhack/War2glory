@@ -12,7 +12,7 @@ import {
   demolitionPreview,
   resourceCapacities,
 } from '../packages/game-core/index.js';
-import { advanceMilitary, barracksIsBusy, enqueueTraining, generalLevel, newMilitary, startScoutMission } from '../packages/game-core/military.js';
+import { advanceMilitary, applySkillConversion, applySkillDistribution, barracksIsBusy, enqueueTraining, generalLevel, newMilitary, normalizeGeneral, previewSkillConversion, renameGeneral, skillSummary, startScoutMission, validateGeneralName } from '../packages/game-core/military.js';
 import { mapDistance, publicMap, randomFreeLocation, terrainAt } from '../packages/game-core/world.js';
 
 const command = (id, slotId, building) => ({ id, slotId, building });
@@ -159,6 +159,32 @@ test('Ausbildung, General und Aufklärung werden zeitlich und einmalig fortgesch
   assert.equal(military.units.scout, 2); assert.equal(military.reports[0].intelligence.food.amount, 321); assert.equal(military.generals[0].experience, 10);
   assert.equal(advanceMilitary(military, 20000, npc).generals[0].experience, 10);
   assert.equal(generalLevel(100), 2); assert.equal(generalLevel(300), 3);
+});
+
+test('Generäle behalten stabile Identitäten, getrennten Fortschritt und Unicode-Namen', () => {
+  const military = newMilitary('owner');
+  military.generals.push(normalizeGeneral({ id: 'general-two', ownerId: 'owner', name: 'General', experience: 100, level: 2, leadership: 40, status: 'idle' }));
+  const renamed = renameGeneral(military, { generalId: 'general-two', name: '  李 Ægir 🚀  ', expectedVersion: 1 });
+  assert.equal(renamed.generals[1].name, '李 Ægir 🚀');
+  assert.equal(renamed.generals[0].name, 'General');
+  assert.equal(renamed.generals[1].version, 2);
+  assert.throws(() => renameGeneral(renamed, { generalId: 'general-two', name: 'Veraltet', expectedVersion: 1 }), /inzwischen geändert/);
+  assert.throws(() => validateGeneralName('x\nname'), /Steuerzeichen/);
+  assert.throws(() => validateGeneralName('😀'.repeat(41)), /1–40/);
+});
+
+test('Skillgrundlage berechnet steigende Kosten und verteilt nur freie Punkte', () => {
+  const rules = { costForPoint: earned => 10 * (earned + 1) };
+  const general = normalizeGeneral({ id: 'skill-general', name: 'Ada', experience: 65, level: 1, leadership: 20, status: 'idle' });
+  assert.deepEqual(previewSkillConversion(general, 3, rules), { points: 3, cost: 60, remainingExperience: 5, totalPoints: 3 });
+  const converted = applySkillConversion(general, 2, rules);
+  assert.equal(converted.experience, 65, 'Gesamterfahrung und damit Levelgrundlage bleibt erhalten');
+  assert.deepEqual(skillSummary(converted), { experienceSpent: 30, totalPoints: 2, allocations: { leadership: 0, attack: 0, defense: 0 }, availableExperience: 35, freePoints: 2 });
+  const distributed = applySkillDistribution(converted, { attack: 1, defense: 1 });
+  assert.equal(skillSummary(distributed).freePoints, 0);
+  assert.throws(() => applySkillDistribution(distributed, { attack: 1 }), /Nicht genügend/);
+  assert.throws(() => previewSkillConversion(general, 4, rules), /Nicht genügend/);
+  assert.throws(() => previewSkillConversion(general, 1, { costForPoint: () => 0 }), /positive/);
 });
 
 test('Eine große Ausbildungsgruppe blockiert die Kaserne bis zum gemeinsamen Abschluss', () => {

@@ -16,7 +16,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte laut README umgesetzt; Forschung/Kämpfe später |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral umgesetzt; Mehrfachverwaltung/Skillgrundlage in Auftrag 7; Forschung weiterhin später |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral und Mehrfachverwaltung umgesetzt; Skillgrundlage getestet, aber nicht aktiviert; Forschung weiterhin später |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Nahrungsunterhalt, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant; Unterhalt mit oder unmittelbar nach dem Farmkreislauf empfohlen |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
@@ -320,6 +320,12 @@ Auftrag 5 konkretisiert die Ausbauetappe mit ausdrücklich vorläufigen Arbeitsv
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
 Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Generalauftrag 7.
+
+## Vorschlag für die spätere Skillentscheidung
+
+Die in Auftrag 7 vorbereiteten Funktionen aktivieren noch keine Spielregel. Als leicht prüfbarer **Vorschlag**, nicht als War2Glory-Originalwert, könnte der n-te Skillpunkt `10 × n` XP kosten: Punkt 1 kostet 10 XP, Punkt 2 weitere 20 XP und die ersten drei zusammen 60 XP. Rest-XP bleiben erhalten. Eine manuelle Umrechnung macht die Entscheidung sichtbar und vermeidet überraschenden XP-Verbrauch; eine automatische Umrechnung wäre einfacher, müsste aber eindeutig mit der Erfahrungsvergabe ausgelöst werden. Empfohlen wird daher zunächst die manuelle Variante.
+
+Ein späterer Regelsatz sollte Grundwerte und Skillbeiträge getrennt halten. Führung könnte die maximal befehligte Truppenzahl erhöhen, Angriff den ausgeteilten und Verteidigung den vermiedenen Schaden beeinflussen. Konkrete Faktoren, Grenzen und Rundung müssen zusammen mit dem Kampfsystem beschlossen werden; aktuell verändert keine Verteilung Führungskapazität oder Kampfkraft.
 
 ### Universität und Forschungsbereiche
 

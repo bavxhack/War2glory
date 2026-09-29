@@ -6,7 +6,7 @@ import {
   advanceCity, BUILDINGS, capacityBreakdown, cityOffers, commanderScore, demolishBuilding, demolitionPreview,
   enqueueConstruction, MAX_LEVEL, MAX_QUEUE_LENGTH, productionRates, resourceCapacities, RULESET, STORAGE_RULES,
 } from '../../packages/game-core/index.js';
-import { advanceMilitary, barracksIsBusy, enqueueTraining, MILITARY_RULES, startScoutMission, UNITS } from '../../packages/game-core/military.js';
+import { advanceMilitary, barracksIsBusy, enqueueTraining, GENERAL_SKILL_RULES, MILITARY_RULES, renameGeneral, startScoutMission, UNITS } from '../../packages/game-core/military.js';
 import { WorldStorage } from './storage.js';
 import { acceptWebSocket } from './websocket.js';
 import { publicMap } from '../../packages/game-core/world.js';
@@ -26,7 +26,7 @@ const mimeTypes = new Map([['.html', 'text/html; charset=utf-8'], ['.js', 'text/
 
 function commandFingerprint(type, payload) {
   const allowed = type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'unit', 'amount'] :
-    type === 'scouting.start' ? ['targetId', 'generalId', 'scouts'] : ['slotId', 'buildingId', 'version'];
+    type === 'scouting.start' ? ['targetId', 'generalId', 'scouts'] : type === 'general.rename' ? ['generalId', 'name', 'expectedVersion'] : ['slotId', 'buildingId', 'version'];
   return JSON.stringify(Object.fromEntries(allowed.map(key => [key, payload?.[key]])));
 }
 
@@ -57,7 +57,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       military, score: commanderScore(city), buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
       capacityBreakdown: capacityBreakdown(city), productionRates: productionRates(city), storageRules: STORAGE_RULES,
       maxLevel: MAX_LEVEL, maxQueueLength: MAX_QUEUE_LENGTH,
-      units: UNITS, militaryRules: MILITARY_RULES,
+      units: UNITS, militaryRules: MILITARY_RULES, generalSkillRules: GENERAL_SKILL_RULES,
     };
   };
   const broadcast = (playerId, type, payloadFactory) => {
@@ -157,7 +157,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           return response(peer, 'building.preview', message.requestId, preview);
         });
       }
-      if (!['construction.enqueue', 'training.enqueue', 'scouting.start', 'building.demolish'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
+      if (!['construction.enqueue', 'training.enqueue', 'scouting.start', 'building.demolish', 'general.rename'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
       await storage.exclusive(async () => {
         const player = await storage.loadPlayer(peer.playerId);
         const now = clock();
@@ -182,6 +182,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
             const target = storage.world.map.entities.find(entity => entity.id === message.payload.targetId);
             player.military = startScoutMission(player.military, { id: message.requestId, ...message.payload }, now, origin, target);
           }
+          if (message.type === 'general.rename') player.military = renameGeneral(player.military, message.payload);
           let result = {};
           if (message.type === 'building.demolish') {
             const slot = [...player.city.buildingSlots, ...(player.city.militarySlots ?? [])].find(item => item.id === message.payload.slotId);
