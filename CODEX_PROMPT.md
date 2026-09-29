@@ -1,146 +1,156 @@
-# Codex-Auftrag 8: Erster vollständiger NPC-Farmzug
+# Codex-Auftrag 9: Nahrungsunterhalt, Hungerverluste und Bürgermeister
 
-## Ziel, Ausgangspunkt und Arbeitsweise
+## Ausgangspunkt und Auftrag
 
-Der Nutzer bestätigt am 29.09.2026 die Umsetzung der Generalverwaltung. README und Protokolldokumentation beschreiben mehrere verwaltbare Generäle, Namensbearbeitung und persistente Skillgrundlagen; Skillumrechnung und Boni bleiben deaktiviert. Aufklärung, React/Vite, Lagerhaus und Abriss sind bereits vorhanden. Prüfe den tatsächlichen Code; der Planungschat hat keine eigenen Laufzeittests durchgeführt.
+Der Nutzer meldet einen erfolgreichen ersten Farmzug und bestätigt am 29.09.2026 zwei neue Regeln: Nach einer Schonfrist gehen unversorgte Truppen verloren; Generäle können als Bürgermeister eingesetzt werden und erhöhen anhand ihrer Eigenschaft Führung die Nahrungsproduktion.
 
-Arbeite vom aktuellen main in bavxhack/War2glory. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md. Prüfe offene PRs und bestehende Änderungen und bewahre fremde Arbeit. Auftrag 8 ersetzt Auftrag 7 als aktuellen Arbeitsauftrag.
+README und Protokolldokumentation beschreiben Farmzüge, NPC-Regeneration und das wiederaufnehmbare JSON-Transaktionsjournal als implementiert. Dies ist keine zusätzliche Laufzeitprüfung durch den Planungschat. Prüfe den Code und bewahre vorhandene Funktionen und fremde Änderungen.
 
-Der Planungschat erstellt ausschließlich Anweisungen. Du implementierst und prüfst diesen Auftrag und lieferst einen Pull Request. Nicht selbst mergen oder deployen.
+Arbeite im Repository bavxhack/War2glory vom aktuellen main aus. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md. Prüfe offene PRs. Dieser Auftrag ersetzt Auftrag 8 als aktuellen Arbeitsauftrag. Der Planungschat erstellt nur Anweisungen; du implementierst, testest und lieferst einen Pull Request ohne eigenständiges Mergen oder Deployment.
 
-Spielbarer Ablauf: NPC auswählen → bei Bedarf aufklären → freien General und Infanterie entsenden → Hinmarsch → serverseitiger Kampf → begrenzte Nahrung laden → Rückmarsch → Überlebende, Beute, Erfahrung und privaten Bericht erhalten.
+Ziel: Nahrungsertrag und Unterhalt sehen → General als Bürgermeister ernennen → Führungsbonus wirkt → bei Defizit Vorräte aufbrauchen → Schonfrist und Ausbildungsunterbrechung anzeigen → nach anhaltendem Hunger Einheiten verlieren → durch Produktion oder zurückgekehrte Beute Versorgung wiederherstellen.
 
-## 1. Umfang und Status der vorgeschlagenen Regeln
+## 1. Bestätigte Anforderungen und Grenzen
 
-- Implementiere zunächst ausschließlich Angriffe auf gemeinsame NPC-Städte derselben Serverwelt. Kein Angriff auf Spieler, kein PvP, keine Eroberung und kein Verlust einer Spielerstadt.
-- Für diese erste Kampfversion ist nur bestehende Infanterie als Angriffstruppe zugelassen. Aufklärungsflugzeuge/Späher behalten ihre vorhandene Aufklärungsfunktion. Kein künstliches Umdeuten dieser Einheiten zu Transportern.
-- NPC-Garnison und Nahrung sind gemeinsame Bestände; jede Aktion verändert den tatsächlich aktuellen Zustand für alle folgenden Angriffe.
-- Die konkreten Kampf-, Garnisons-, Transport- und Belohnungsregeln unten sind neue, ausdrücklich vorläufige Vorschläge des Planungschats für einen überprüfbaren Prototyp. Sie sind keine einzeln bestätigten Nutzerentscheidungen und keine Originalwerte von War2Glory. Zentral konfigurieren, versionieren und im PR mit Beispielen zur Prüfung aufführen.
-- Der PR ist die reviewbare Umsetzung dieser Vorschläge. Regelparameter nicht als endgültig beschlossene Balance darstellen.
-- Bereits bestätigte Anforderungen bleiben: serverseitige Regeln, WebSocket-Ereignisse, JSON-Spielstände, getrennte Stadt-/Militärplätze und private Informationen.
-- Nahrungsunterhalt, Öl, Raffinerien, LKWs, Forschung, zivile Generalrollen, neue Rekrutierung und Skillbonusaktivierung sind nicht Teil dieses Auftrags. Bestehende deaktivierte Skills nicht nebenbei aktivieren.
+Bestätigt sind unterschiedlicher laufender Nahrungsbedarf je Truppentyp, Defizitversorgung durch Plünderungen, tatsächliche Truppenverluste nach Schonfrist und ein führungsabhängiger Nahrungsbonus des Bürgermeisters.
 
-## 2. Gemeinsame NPC-Garnison und Ressourcenregeneration
+Die folgenden konkreten Zahlen und Detailregeln sind vorläufige Vorschläge des Planungschats für einen reviewbaren Prototyp. Zentral konfigurieren, versionieren und im PR sichtbar ausweisen. Nicht als endgültige Nutzerentscheidungen oder War2Glory-Originalregeln darstellen.
 
-- Ergänze je NPC eine dauerhaft gespeicherte Garnison aus einfacher NPC-Infanterie. Prototyp: maximale Stärke = 5 × vorhandene Schwierigkeitsstufe. Bei Stufen 1, 2 und 3 sind das 5, 10 und 15 Verteidiger.
-- Initialisiere die Garnison bei Migration genau einmal. Später geschlagene NPCs dürfen durch Laden, Login oder Neustart nicht automatisch wieder voll besetzt werden.
-- Prototyp für Wiederaufbau: ein Verteidiger je 300 Sekunden bis zur Obergrenze, unabhängig von der Nahrungsregeneration. Rechne Bruchteile nachvollziehbar, ohne durch häufige Zugriffe Fortschritt zu verlieren. Bei voller Garnison keine Wiederaufbauzeit für spätere Verluste ansparen.
-- Aktiviere die bisher vorbereitete allmähliche Nahrungsregeneration. Verwende vorhandene Kapazität und Rate je NPC, keine pauschale Überschreibung. Laut README sind 500 Nahrung Kapazität und 25 Nahrung pro Stunde vorbereitet; im Code verifizieren.
-- Nahrung(t) = min(Kapazität, alter Bestand + Rate pro Stunde × verstrichene Sekunden / 3600). Bruchteile erhalten; für ganzzahlige Beute höchstens den abgerundeten verfügbaren Bestand verwenden.
-- Regeneration und Garnisonsaufbau laufen ab dokumentiertem Aktivierungs-/Migrationszeitpunkt. Keine rückwirkende Erfindung dieser Mechanik für frühere Aufklärungen.
-- NPC-Zustände bleiben intern. Öffentliche Karte/Detailantworten dürfen weder Vorrat noch Garnison, Regenerationszeitstempel oder genaue Kampfvorschau preisgeben.
-- Neue Aufklärungen erfassen Nahrung und echte Garnison am vorgesehenen Ankunftszeitpunkt. Bericht bleibt historisch und wird weiterhin erst bei Rückkehr sichtbar.
-- Bereits gespeicherte Berichte bleiben unverändert. Bei einem alten Aufklärungs-Ankunftszeitpunkt vor Aktivierung darf keine nachträglich erzeugte Garnison als damals beobachtet ausgegeben werden; frühere Nichtmodellierung kennzeichnen.
+- React/Vite, zentrale WebSocket-Kommunikation, serverseitige Regeln und JSON-Journal erhalten.
+- Laut aktuellem Repository besteht KEIN Führungslimit für Aufklärung/Farmzüge; es gilt eine Obergrenze von insgesamt 10.000 Einheiten je Einsatz. Nicht versehentlich das frühere Limit 20 × Level wieder einführen.
+- Bürgermeisterbonus ist eine gezielt neue Wirkung von Führung. XP-Umrechnung, Skillverteilung, militärische Skillboni und Forschungsgeneral bleiben deaktiviert bzw. später.
+- Keine neue Rekrutierung, Gratisgeneräle, Universität, Ölpflicht, LKWs, PvP oder zusätzliche Marsch-Reichweitenregel. Nahrungsunterhalt ist keine automatische Bestätigung der separat erwähnten Reichweitenbegrenzung.
+- Bestehende Kampf- und Aufklärungsregeln nur dort erweitern, wo Hungerverluste sie ausdrücklich betreffen.
 
-## 3. Vorläufiger deterministischer Kampf
+## 2. Laufender Nahrungsbedarf und Wirtschaftsrechnung
 
-Für den ersten Farmkreislauf verwenden beide Seiten nur gleichwertige Infanterie. Bewusst ein einfaches, reproduzierbares Mengenmodell ohne Zufall, Trefferpunkte oder erfundene aktive Generalboni:
+Vorläufige Verbrauchswerte:
+- Infanterie: 0,10 Nahrung je Einheit und Sekunde.
+- Späher/Aufklärungsflugzeuge: 0,05 Nahrung je Einheit und Sekunde.
+- Generäle selbst haben in diesem Prototyp keinen zusätzlichen Nahrungsunterhalt.
+- Noch nicht fertig ausgebildete Einheiten zählen nicht; sie werden ab dem tatsächlichen Abschluss versorgt.
+- Alle lebenden eigenen Einheiten werden genau einmal von ihrer Heimatstadt versorgt, sowohl stationierte als auch solche auf Hin-/Rückmarsch. Reservierung und Marsch erzeugen weder Doppelverbrauch noch eine Ausnahme.
+- Tatsächliche Kampf-/Hungerverluste reduzieren den Verbrauch ab ihrem Ereigniszeitpunkt. Auf Rückkehr keine zweite Kopie bereits gebundener Einheiten hinzuzählen.
 
-- A = Zahl entsandter Infanteristen; D = unmittelbar vor Kampf vorhandene NPC-Verteidiger.
-- A muss positiv und ganzzahlig sein. A wird gegen stationierte Verfügbarkeit und bestehende Führungskapazität des gewählten Generals geprüft.
-- Bei D = 0: Angreifer besetzt das Ziel für diesen Farmzug erfolgreich, keine Verluste, keine Kampferfahrung oder Kampfpunkte aus diesem leeren Gefecht.
-- Bei A > D: Angreifer gewinnt. Alle D Verteidiger gehen verloren; Angreifer verliert min(A, ceil(D / 2)) Infanteristen.
-- Bei A <= D und D > 0: Angreifer verliert. Alle A Infanteristen gehen verloren; NPC verliert min(D, floor(A / 2)) Verteidiger. Gleichstand zählt damit als Verteidigersieg.
-- Persistiere NPC-Verluste unmittelbar beim Kampfergebnis. Teilverluste bleiben für nachfolgende Angriffe bestehen und werden nur über den definierten Wiederaufbau ersetzt.
-- Ein Gefecht wird am fachlichen Ankunftszeitpunkt genau einmal ausgewertet. Es gibt keine separate Kampfdauer in diesem Prototyp.
-- Auf Niederlage folgt keine Plünderung. Der General überlebt vorläufig immer und kehrt nach der normalen Rückreisedauer allein zurück. Er bleibt bis dahin gebunden. Kein kostenloser Ersatz verlorener Truppen.
-- Das Mengenmodell ist eine temporäre PvE-Regel, kein endgültiges System für Waffen oder Truppentypen. Berechnung als austauschbaren, reinen Spielkernbaustein mit Regelversion kapseln.
-- Gegenwärtige Führungskapazität und Aufklärungsregeln erhalten. Angriff-/Verteidigungs-Skills bleiben inaktiv; keine Bonusversprechen in der Oberfläche.
+Rechnung:
+- U = Summe aus lebender Einheitenanzahl je Typ × dessen Verbrauchsrate.
+- P = Nahrungsproduktion der fertigen Gebäude einschließlich des aktiven Bürgermeisterbonus.
+- Netto = P − U. Verbrauch nicht zusätzlich noch einmal abbuchen.
+- Beispiel: 2 Nahrung/Sekunde Gebäudeertrag, 10 Prozent Bürgermeisterbonus und 30 Infanteristen ergeben P = 2,2; U = 3; Netto = −0,8 Nahrung/Sekunde. 480 Vorrat reichen bei unveränderten Raten 480 / 0,8 = 600 Sekunden, also 10 Minuten.
+- Nutze präzise zeitbasierte Verrechnung mit erhaltenen Resten; Frontend-Rundung verändert keine Bestände.
+- Obergrenze/Überbestand korrekt behandeln: Bei S = Kapazität gilt für eine positive Nettobilanz keine weitere Einlagerung; eine negative Nettobilanz senkt den Bestand. Verfügbare Produktion darf am vollen Lager gleichzeitig laufenden Verbrauch decken.
+- Bei bestehendem Überbestand aus Abriss gilt dieselbe Nettorechnung: vorhandene Vorräte nicht pauschal kürzen; positiven Nettozuwachs blockieren, negative Bilanz abbuchen. Dies präzisiert die frühere Produktionspause um den jetzt aktiven direkten Verbrauch.
+- Kein negativer Nahrungsbestand und keine Nahrungsschuld. Sobald Nahrung auf null sinkt, nur den tatsächlich ungedeckten Zustand als Mangel behandeln.
+- Mangelbedingung: Vorrat S = 0 UND U > P. Ein leeres Lager bei U <= P löst keine Hungerstrafe aus.
+- Bauernhofausbau/Abriss, Bürgermeisterwechsel, Ausbildung, Verluste, Ausgaben und zurückkehrende Nahrung sind zeitliche Grenzen der Rechnung. Keine rückwirkende Anwendung neuer Raten.
+- Missionen verbrauchen unterwegs keine geladenen Beutevorräte direkt. Beute wird weiterhin erst bei Rückkehr in der Heimat verfügbar; ein anderes Feldversorgungssystem bleibt später.
 
-Beispiele als Abnahmereferenz:
-- A = 10, D = 5: Sieg, 3 eigene Verluste, 7 Überlebende, 5 NPC-Verluste.
-- A = 4, D = 5: Niederlage, 4 eigene Verluste, 2 NPC-Verluste, 3 Verteidiger bleiben.
-- A = 5, D = 0: Sieg ohne Verluste und ohne Kampfbelohnung.
+## 3. Schonfrist, Erholung und Truppenverluste
 
-## 4. Typabhängige Traglast, Beute und Heimatlager
+Vorläufige Regeln:
+- 30 Minuten tatsächlich unversorgte Zeit als Schonfrist je Stadt.
+- Erster Verlust am Ende dieser 30 Minuten, sofern dann Mangel besteht. Danach alle weiteren 5 Minuten unversorgter Zeit eine Verlustwelle.
+- Bei zwischenzeitlicher Versorgung pausiert die Mangeldauer. Nach 60 Sekunden ununterbrochener Versorgung wird der Mangelzyklus beendet; ein späterer neuer Mangel beginnt mit voller Schonfrist.
+- Eine kleine Nahrungsgutschrift setzt nicht sofort die gesamte Schonfrist zurück. Bis zur vollständigen Erholung bleiben akkumulierte Mangelzeit und nächster Verlusttermin erhalten.
+- Versorgung liegt vor, solange S > 0 oder U <= P. Die 60-Sekunden-Erholungsphase beginnt beim tatsächlichen Ende des Mangels, nicht beim nächsten Login.
+- Ohne eigene versorgungspflichtige Einheiten Mangelzustand beenden. Keine leeren Verlustereignisse erzeugen.
 
-- Definiere Transportkapazität je Einheitenart getrennt von Kampfstärke und späterem Unterhalt/Ölbedarf.
-- Vorläufige Werte für diesen Auftrag: Infanterie trägt 20 Nahrung je überlebender Einheit; Aufklärungsflugzeuge/Späher tragen 0 und sind keine erlaubten Farmtruppen. LKWs bleiben später.
-- Verfügbare Traglast = Summe der überlebenden transportfähigen Einheiten je Typ × deren Einzelkapazität. In diesem Auftrag reduziert sich dies auf überlebende Infanterie × 20.
-- Bei Sieg: geladene Nahrung = min(Traglast, floor(verfügbarer NPC-Nahrung)). Bei Niederlage 0. Erst nach der Kampfverlustberechnung beladen.
-- Im Beispiel A = 10, D = 5 bleiben 7 Träger mit insgesamt 140 Kapazität. Bei 500 vorhandener Nahrung werden 140 entnommen und 360 bleiben beim NPC; bei nur 80 Nahrung werden 80 geladen.
-- Beuteentnahme und Zuordnung zur Mission müssen konsistent und genau einmal erfolgen. Zwei Spieler können nicht denselben NPC-Vorrat erhalten.
-- Während der Rückreise gehört Beute zur Mission, nicht zum Stadtlager. Es gibt in dieser Etappe keine Abfangangriffe oder weiteren Rückreiseverluste.
-- Vorläufige neue Regel für Beute bei Ankunft: nach zeitlich korrekter heimischer Wirtschaftsabrechnung wird nur bis zur aktuellen freien Nahrungslagerkapazität entladen. Überschüssige Beute wird als nicht eingelagerte/verfallene Beute im Bericht ausgewiesen.
-- Bestehende heimische Überbestände aus Abriss werden dabei weder gekürzt noch erweitert. Bei vollem Lager oder Überbestand ist die eingelagerte Beute null.
-- Beispiel: Mission trägt 140 Nahrung, bei Rückkehr sind 50 Lagerplätze frei: 50 einlagern, 90 als nicht eingelagert ausweisen. Diese 90 werden nicht zum NPC zurückgebucht und nicht als später abrufbarer Vorrat gespeichert.
-- Vor Entsendung diesen möglichen Beuteverlust bei vollem Heimatlager erklären. Verfügbare Lagerplätze sind nur eine Momentaufnahme, keine garantierte Vorhersage der Rückkehr.
-- Im Bericht geladene, eingelagerte und nicht eingelagerte Menge getrennt zeigen. Keine stillschweigende Vernichtung bestehender Stadtvorräte.
-- Nur Nahrung als Beute; keine zusätzlichen plünderbaren Ressourcen oder Transportaufträge.
+Verlustwelle:
+- N = alle zum Verlustzeitpunkt lebenden eigenen versorgungspflichtigen Einheiten, einschließlich marschierender Einheiten.
+- Verlustzahl L = min(N, max(1, ceil(0,05 × N))) bei N > 0 und bestehendem Mangel.
+- Beispiel: 100 Einheiten verlieren 5; bei unverändert fortdauerndem Hunger verliert die nächste Welle bei 95 Einheiten wieder ceil(4,75) = 5.
+- Verteile L proportional auf Bestände je Einheitentyp und Aufenthaltsgruppe (stationiert oder konkrete Mission): zunächst Abrunden der proportionalen Anteile, verbleibende Verluste nach größten Resten; Gleichstände stabil nach Typ-/Gruppen-ID auflösen.
+- Dadurch bleibt die Gesamtverlustzahl bei Aufteilen einer Armee gleich. Nicht je kleine Gruppe separat aufrunden.
+- Keine Zufallsverluste und keine bevorzugte Bestrafung nur stationierter Truppen. Entsenden darf keine Hungerimmunität geben.
+- Nach Verlusten U sofort neu berechnen. Wenn die reduzierte Armee wieder versorgt werden kann, dürfen keine weiteren vorgeplanten Wellen blind ausgeführt werden.
+- Generäle sterben in diesem Auftrag nicht an Hunger. Hungerverluste vergeben niemandem Kampf-XP oder Kampf-/Niederlagenpunkte; die bisherigen Kampfregeln bleiben davon getrennt.
+- Speichere private, nachvollziehbare Versorgungsereignisse mit Zeitpunkt und Verlusten, begrenze und paginiere die Anzeige sinnvoll. Keine stillen Truppenänderungen.
 
-## 5. General-Erfahrung und Kommandantenpunkte
+Ausbildung:
+- Während Mangel alle laufenden Ausbildungsgruppen pausieren und neue Ausbildungsbefehle ablehnen. Restdauer, Reihenfolge und bezahlte Kosten erhalten; keine zweite Zahlung beim Fortsetzen.
+- Bereits fällige Abschlüsse vor Mangelausbruch zuerst verarbeiten. Bei gleichem Zeitpunkt verbindlich festlegen und testen: wenn Nahrung bis dahin vorhanden war, Abschluss verarbeiten und den neuen Verbrauch anschließend berücksichtigen.
+- Sobald Versorgung wieder besteht, pausierte Ausbildung ohne erneute Bezahlung fortsetzen. Dafür nicht erst das Ende der 60-Sekunden-Erholungsphase abwarten.
+- Bau, Nahrungsproduktion und Farmzüge bleiben möglich; bestehende Ressourcen- und Besitzprüfungen gelten weiterhin.
 
-- Ein serverseitiges Kampfergebnis enthält stabile Kampf-/Missions-ID, Regelversion, Teilnehmer, Verluste und daraus abgeleitete Belohnungen.
-- Prototyp für General-XP: 2 × tatsächlich in diesem Gefecht vernichtete NPC-Verteidiger, auch bei Niederlage. Keine XP für unverteidigte Ziele oder bloße Beutemenge.
-- Im Beispiel 10 gegen 5 entstehen 10 XP; bei 4 gegen 5 entstehen 4 XP. Gutschrift für den eingesetzten General erst bei Rückkehr, genau einmal.
-- Gesamt-XP erhöhen; bestehende Generallevel nach bisheriger Regel berechnen. Umgerechnete Erfahrung und Skillverteilungen unverändert lassen. XP-zu-Skill-Funktionen bleiben deaktiviert.
-- Die vorhandene Erstaufklärungsbelohnung bleibt getrennt und weiterhin je Kommandant/NPC einmalig.
-- Prototyp für Kommandanten-Kampfbeitrag je Gefecht: tatsächlich vernichtete NPC-Verteidiger minus eigene verlorene Infanteristen.
-- Beispiel 10 gegen 5: 5 − 3 = +2; Beispiel 4 gegen 5: 2 − 4 = −2. Unverteidigter NPC ergibt 0. Keine weiteren pauschalen Sieges- oder Niederlagenboni.
-- Persistiere den kumulierten Kampfbeitrag vorzeichenbehaftet. Gesamtanzeige = max(0, vorhandene Gebäudepunkte + sonstige bereits aktive Beiträge + kumulierter Kampfbeitrag). Forschung bleibt inaktiv.
-- Negative Kampfbeiträge nicht beim Speichern auf null setzen, sonst würden spätere Bauten/Siege anders bewertet. Gebäudepunkte selbst bleiben aus vorhandenem Gebäudebestand abgeleitet.
-- Keine zusätzliche doppelte Niederlagenstrafe oder Truppenwert-Abbuchung aus den Gebäudepunkten.
-- XP, Punkte und privater Bericht werden bei Rückkehr zusammen mit den Rückkehrfolgen freigegeben. Kein mehrfaches Belohnen durch Reconnect, erneute Auswertung oder Absturz.
-- Vernichtete und später tatsächlich regenerierte Verteidiger können in späteren Gefechten erneut zählen. Keine Belohnung pro identischem Ereignis und keine unbegrenzte Belohnung an dauerhaft leerer Garnison. Weitere Anti-Farming-/PvP-Regeln bleiben später.
+## 4. Auswirkungen auf laufende Missionen
 
-## 6. Missionen, Ereignisse und Oberfläche
+- Vor einem Kampf zählen nur die nach eventuellen Hungerwellen noch lebenden entsandten Einheiten. Ausgangstruppen, Hungerverluste und eigentliche Kampfverluste getrennt protokollieren.
+- Ist bei einer Farmankunft keine Infanterie mehr vorhanden, findet kein Kampf und keine Plünderung statt. General tritt den regulären Rückweg an; keine XP/Kampfpunkte erfinden.
+- Ist bei einer Aufklärungsankunft kein Späher mehr vorhanden, entsteht kein neuer Aufklärungssnapshot und keine Erstzielbelohnung. General kehrt zurück. Eine bereits erfolgreich erfolgte Aufklärung kann der General trotz späterer Späherverluste als historischen Bericht zurückbringen.
+- Bei Hunger auf dem Rückweg die verbleibende Traglast neu berechnen. Übersteigt Ladung diese Kapazität, überschüssige Nahrung als unterwegs verloren kennzeichnen und genau einmal aus der Mission entfernen. Nicht zum NPC zurückbuchen.
+- Sind alle Rückkehrtruppen verloren, bleibt General bis zur vorgesehenen Rückkehr gebunden; keine Teleportation und keine Wiederherstellung aus der ursprünglichen Reservierung.
+- Endberichte getrennt zeigen: Kampfverluste, Hungerverluste, ursprünglich geladene Beute, unterwegs verlorene Ladung, eingelagerte Menge und Heimatlager-Überlauf.
+- Bereits erzielte Kampfergebnisse und deren Belohnungen nicht rückwirkend verändern. Hunger erzeugt keine zusätzlichen Kampfverluste in der Punkteformel.
+- Eigene Versorgungswarnungen und Hungerereignisse dürfen sofort sichtbar sein. Öffentliche NPC-Daten und noch nicht freigegebene Feindberichte bleiben geschützt. Tatsächliche eigene Verbrauchsänderungen können Rückschlüsse auf Verluste erlauben; keine vollständige Geheimhaltung behaupten, wenn diese Bilanz solche Rückschlüsse zulässt.
 
-- Ergänze bei NPCs eine Aktion „Angreifen“ zusätzlich zu „Aufklären“. Bei Spielerstädten bleibt Angriff gesperrt.
-- Eine vorherige Aufklärung ist in dieser ersten Fassung optional. Ohne Bericht gibt es keine genaue Gegneranzeige; ein vorhandener Bericht wird mit Erfassungszeit und Hinweis auf mögliche Änderungen angezeigt.
-- Dialog: eigener freier General, verfügbare Infanterie, Entfernung, Hin-/Rückreisezeit, maximale Traglast vor möglichen Verlusten, aktueller Lagerplatz und Hinweise auf Verlustrisiko/Überlauf.
-- Keine garantierte Beutemenge oder Siegchance aus geheimem Live-NPC-Zustand berechnen. Auch Fehlerantworten dürfen solche Daten nicht verraten.
-- Bestehende Luftlinienreise verwenden: pro Richtung max(5 Sekunden, ceil(Entfernung) × 5 Sekunden), soweit der Code diese Regel bestätigt. Keine neue Wegfindung.
-- Entsendung reserviert General und Truppen gemeinsam. Ein General führt nur einen Einsatz; Truppen dürfen nicht gleichzeitig in Farmzug und Aufklärung oder mehreren Armeen gebunden sein.
-- Persistiere Missionsart, Eigentümer, Ziel-ID, General-ID, Ausgangstruppe, Überlebende, Ladung, Status, Zeitpunkte und verbindliche Regelversion. Daten, die erst beim Kampf entstehen, nicht vorher vortäuschen.
-- Zustände mindestens Hinmarsch, Rückmarsch und abgeschlossen. Keine Rückruf-/Abbruchaktion in dieser Etappe.
-- Verluste, Ausgang und Ladung bis Rückkehr nicht über den normalen Clientzustand vorzeitig offenlegen. Allgemeiner Rückmarschstatus darf sichtbar sein; intern gebundene/überlebende Truppen sind von öffentlichen Projektionen zu trennen.
-- Bei Rückkehr Überlebende einmal stationieren, General freigeben, Beute begrenzt einlagern, XP/Punkte verbuchen und historischen privaten Bericht veröffentlichen.
-- Bericht: NPC, Zeiten, Ausgang, eingesetzter General zum Einsatzzeitpunkt, beiderseitige Anfangstruppen und Verluste, Überlebende, Traglast, Ladung, Einlagerung/Überlauf, XP und Punkteänderung.
-- React-Komponenten, Dialoge und zentralen WebSocket-Transport wiederverwenden. Keine zweite Verbindung und kein HTTP-Spielpolling. Namen/variable Texte sicher darstellen.
-- Zeige die vereinfachten Prototypregeln verständlich, ohne technische Speicher-/Transaktionsdetails im Spielablauf auszubreiten.
+## 5. General als Bürgermeister und Führungsbonus
 
-## 7. Weltweite Zeitreihenfolge und absturzsichere JSON-Persistenz
+- Pro Stadt ein Bürgermeister, optional unbesetzt. Ernennung aus eigenen freien Generälen; keine zusätzlichen Generäle erzeugen.
+- Generalrolle und militärischer Einsatz sind gegenseitig exklusiv. Ein Bürgermeister kann keine Aufklärung/Farmmission führen. Ein unterwegs gebundener General kann nicht Bürgermeister werden.
+- Ernennen, Abberufen und Wechseln sind serverseitig geprüfte, persistente Aktionen. Wechsel zwischen zwei freien eigenen Generälen erfolgt atomar; kein Zwischenzustand mit doppeltem Bonus.
+- Abberufung ohne zusätzliche Kosten oder Wartezeit als Prototypregel. Der Nutzer kann seinen einzigen Startgeneral somit abberufen und wieder auf Farmzug schicken.
+- Vor einem Rollenwechsel den Zustand bis zum Änderungszeitpunkt mit dem bisherigen Bonus abrechnen. Der neue Bonus gilt erst ab diesem Zeitpunkt und auch während Abwesenheit.
+- Keine Bürgermeister-XP über verstrichene Zeit und keine kostenlose Skillvergabe erfinden.
 
-Dies ist der kritische Teil: Farmzüge ändern gleichzeitig Welt- und Spielerzustand. Eine Prozesssperre und atomare Einzeldateien allein genügen nicht für einen Absturz zwischen zwei Dateien.
+Vorläufige Bonusformel:
+- F = bestehender serverseitiger Eigenschaftswert „Führung“ des Generals. Prüfe im tatsächlichen Datenmodell, welches Feld diese Eigenschaft abbildet, und dokumentiere die Zuordnung.
+- Verwende nicht versehentlich den früheren, derzeit deaktivierten Grenzwert für befehligte Truppenzahl als Eigenschaft. Bestehende Grundwerte und gespeicherte Eigenschaften nicht ungefragt neu skalieren.
+- Bonusanteil b = min(0,50; max(0, F) × 0,01), also ein Prozent je Führungspunkt, vorläufig höchstens 50 Prozent.
+- P = fertiger landwirtschaftlicher Grundproduktionsertrag × (1 + b).
+- Rechenbeispiel, keine Behauptung über Startwerte: F = 10 ergibt +10 Prozent. Bei 2 Nahrung/Sekunde Grundproduktion ergibt das 2,2 Nahrung/Sekunde.
+- Ohne Bürgermeister b = 0. Führung 0 ergibt keinen Bonus; dies darf nicht als mehr Produktion dargestellt werden. Kein pauschaler Sockelbonus ohne Dokumentation.
+- Bonus erhöht nur laufende Nahrungsproduktion, nicht Lagerkapazität, aktuelle Vorräte, Beute, NPC-Regeneration oder andere Rohstoffe.
+- Wiederholte Zustandsberechnung darf den Bonus nicht immer erneut multiplizieren. Grundproduktion und Bürgermeisterbeitrag getrennt ableiten.
+- Änderung eines künftig aktivierten Führungswertes muss später eine neue Produktionsphase beginnen. Jetzt keine XP-Umrechnung oder allgemeinen Skillboni aktivieren.
+- Bürgermeister als konkrete Ausnahme zu bisherigen Aussagen „alle Generalboni inaktiv“ dokumentieren. Angriff/Verteidigung und Forschungsgeneral bleiben unverändert.
 
-- Behalte einen schreibenden Prozess pro Welt und die bestehende serialisierte Verarbeitung. Entwickle einen dokumentierten, dauerhaft protokollierten Ablauf für zusammengehörige Welt-/Spieleränderungen, etwa mittels Journal und wiederaufnehmbarer Transaktions-ID.
-- Vor Veröffentlichung einer erfolgreichen Änderung muss ein dauerhafter Nachweis existieren, aus dem alle betroffenen Dateien nach Absturz widerspruchsfrei hergestellt werden können.
-- Gemeinsame NPC-Verluste, Nahrung, Missionsresultat und spätere Rückkehr dürfen weder doppelt angewandt noch nur teilweise als abgeschlossen erscheinen. Deduplizierung von Kampfergebnissen ist unabhängig vom begrenzten Cache der Client-requestIds nötig.
-- Nach Start zuerst offene Transaktionen wiederherstellen, bevor neue Befehle oder Snapshots verarbeitet werden. Keine Datenbankumstellung nötig, aber echte Wiederherstellung statt bloßem In-Memory-Rollback.
-- Verarbeite fällige Ereignisse der gesamten Welt chronologisch, auch für offline befindliche Spieler: Aufklärungsankünfte, Farmankünfte, Rückkehr und betroffene Bau-/Ausbildungsabschlüsse.
-- Bei identischen Zeitpunkten eine persistente deterministische Reihenfolge verwenden, etwa gespeicherte Ereignisnummer; nicht Reihenfolge von Login, Dateieinlesen oder Netzwerkzugriff.
-- NPC-Regeneration und Garnisonsaufbau vor jedem relevanten Ereignis nur bis zu dessen fachlichem Zeitpunkt berechnen. Kein Vorziehen auf die aktuelle Uhrzeit mit anschließend rückwärts verarbeiteten Kämpfen.
-- Ein später verarbeiteter Spielerlogin darf frühere gemeinsame Kämpfe oder historische Aufklärungsdaten nicht verändern. Alle zum Auswertungszeitpunkt nötigen Ereignisse müssen berücksichtigt sein.
-- Migration darf für bereits vergangene Zeiträume keine neue Kampf-/Regenerationshistorie erfinden. Aktive Aufklärungen und bestehende historische Berichte erhalten.
-- Umgang mit rückwärts springender Uhr explizit begrenzen: keine negative Regeneration oder Rückabwicklung bereits abgeschlossener Ereignisse.
-- Snapshots, Berichte und Fehler pro Besitzer filtern. Ein gemeinsames internes Journal darf nicht Teil öffentlicher Karten-/Clientantworten werden.
-- Regeln/Parameter pro Mission bzw. Gefecht nachvollziehbar versionieren; Änderungen nach Update dürfen bereits festgeschriebene Ergebnisse nicht neu würfeln oder neu berechnen.
+## 6. Oberfläche und Warnungen
 
-## 8. Prüfungen und Abnahme
+- React: Nahrungsanzeige mit Grundproduktion, Bürgermeisterbonus, Bruttoertrag, Unterhalt und Nettobilanz. Einheit (z.B. pro Stunde) einheitlich anzeigen; intern vereinbarte Sekundenraten korrekt umrechnen.
+- Zeige bei negativer Bilanz die voraussichtliche Zeit bis Lagerleerstand bei unveränderten Raten. Bei U <= P keine unsinnige negative/ungeendliche Restzeit.
+- Mangelstatus sichtbar: Schonfrist, bereits verstrichene Mangelzeit, nächste Verlustwelle und gegebenenfalls Erholungsphase.
+- Ausbildung mit Begründung „wegen Nahrungsmangel pausiert“ und erhaltener Restdauer anzeigen.
+- Bürgermeister in Stadtübersicht und Generalmodal anzeigen; Führung und tatsächliche Mehrproduktion offenlegen. Ernennung/Wechsel/Abberufung mit Auswirkung auf die aktuelle Bilanz vorschauen.
+- Bei einem aktiven Bürgermeister im Missionsdialog auf erforderliche Abberufung hinweisen; nicht heimlich beim Absenden abberufen.
+- Hungerwarnungen dürfen nach erneutem Login erscheinen, aber keine doppelte Verlustbuchung auslösen. Ernste Folgen bei bestätigter riskanter Aktion verständlich anzeigen; keine erfundene garantierte Beute als sichere Versorgung vorhersagen.
+- Mobile und Tastaturbedienung, Fokusführung, Abbrechen und serverseitige Fehlermeldungen erhalten.
 
-Bestehende Tests, Frontend-Build und gezielte neue Regel-/Integrationstests ausführen:
+## 7. Zeitverarbeitung, Aktivierung und Persistenz
 
-1. Alle oben angegebenen Rechenbeispiele, Gleichstand, leere Garnison, Null/negative/gebrochene Truppenzahl sowie Führungslimit.
-2. Persistente NPC-Teilverluste und Wiederaufbau bis Maximum, ohne Ansparen bei voller Garnison.
-3. Nahrungsregeneration mit Teilmengen, Obergrenze, unterschiedlich großen Zeitschritten und Neustart.
-4. Beute anhand Überlebender, knappe Vorräte, leeres NPC-Lager und volles/übervolles Heimatlager.
-5. Zwei Spieler greifen denselben NPC an: der zweite trifft auf den korrekt fortgeschriebenen Zustand. Entnahme insgesamt nicht größer als Bestand plus zwischenzeitliche Regeneration.
-6. Offline-Aufklärung zwischen zwei Farmankünften zeigt exakt den damaligen Zustand. Umgekehrte Login-Reihenfolge ändert Ergebnisse nicht.
-7. Gleichzeitige Reservierung über mehrere Verbindungen/Missionen verhindert doppelte Truppen- oder Generalbindung.
-8. Niederlage mit vollständigem Truppenverlust und allein zurückkehrendem General; Sieger mit einmaliger Beutegutschrift.
-9. XP und positive/negative Kampfbeiträge, nicht negative Gesamtanzeige, erhaltene negative Historie und unveränderte Gebäudepunkte.
-10. Datenzugriff vor/nach Rückkehr, fremde Berichte und öffentliche NPC-Details ohne geheime Bestände oder Garnison.
-11. Absturz-/Fehlerinjektion zwischen dauerhaftem Journal, Weltdatei und Spielerdatei sowie zwischen Speicherung und Antwort: keine doppelte Beute, verlorene verbindliche Entnahme oder doppelte Belohnung.
-12. Neustart während Hinmarsch, direkt beim Kampf, Rückmarsch und Rückkehr; wiederholte Nachrichten und widersprüchliche requestIds.
-13. Regression von Generalverwaltung, deaktivierten Skills, Lagerwirtschaft/Abriss, Ausbildung und Aufklärung.
+- Erweitere den bestehenden weltweiten chronologischen Ereignisablauf und das Transaktionsjournal. Kein zweiter unabhängiger Timer, der zufällig vor oder nach Kämpfen abbucht.
+- Berechne Leerstand, Ende der Schonfrist, Verlustwellen, Versorgungsbeginn/-erholung und Änderungen von Ausbildungszeiten anhand ihrer tatsächlichen Zeitpunkte.
+- Gleiche Zeitpunkte deterministisch behandeln: Wirtschaftsabrechnung bis T, bestehende Spielereignisse bei T gemäß stabiler Ereignisreihenfolge, dann fällige Hungerwelle nach erneuter Mangelprüfung. Rechtzeitig bei T zurückgekehrte Nahrung kann eine Hungerwelle verhindern.
+- Vermeide implizite Änderungen der bestehenden Kampf-Reihenfolge zwischen verschiedenen Spielern. Dokumentiere die Ergänzung der Hungerereignisse und prüfe Aufklärung/Kampf/Rückkehr am selben Zeitpunkt.
+- Nach langem Offlinebetrieb müssen alle relevanten Phasen nachgeholt werden. Eine später eintreffende Beute darf frühere Hungerwellen nicht rückwirkend aufheben.
+- Die Versorgung einer Mission, ihr Truppenbestand und ihre Ladung müssen zusammenhängend gespeichert werden. Vor jeder Erfolgsantwort muss Wiederherstellung nach Absturz gewährleistet sein.
+- requestId-Deduplizierung, Besitzerprüfungen und General-/Stadtversionen verwenden. Gleichzeitiges Ernennen/Entsenden oder mehrfaches Wiederholen darf weder Doppelrolle noch doppelte Gutschrift/Verluste erzeugen.
+- Migration versioniert und idempotent. Bestehende Bürgermeisterzuordnung erhalten, falls bereits vorhanden, andernfalls unbesetzt. Keine automatische Ernennung ohne Nutzeraktion.
+- Weltweit einen dauerhaften Einführungszeitpunkt des Unterhaltssystems festhalten. Vor diesem Zeitpunkt bestehende Vorgänge nach alten Regeln abschließen; ab ihm tatsächlichen Unterhalt verrechnen, auch für schon unterwegs befindliche lebende Truppen.
+- Keine rückwirkende Nahrungsschuld oder Verluste für Zeit vor Aktivierung. Nach Aktivierung gelten Offline-Verbrauch und Schonfrist normal, auch ohne Login.
+- Reconnect/Neustart darf Einführung, Mangelzeit, nächste Verlustwelle oder Erholung nicht zurücksetzen.
+- Kapazitätsgrenzen/Überbestand und Präzision so behandeln, dass viele kleine Abrechnungsschritte dasselbe Ergebnis liefern wie ein großer mit denselben Ereignissen.
 
-Browser-Abnahme mit zwei getrennten Konten, auf Desktop und Mobilansicht: aufklären, angreifen, Mission verfolgen, zurückkehren, Bericht prüfen, erneut anmelden. Sieg und Niederlage in isolierten Testdaten prüfen, produktive Spielstände nicht verändern. Screenshots von Angriffsdialog, Mission, Bericht und Punkteübersicht liefern. Nicht mögliche Prüfungen benennen.
+## 8. Tests und Lieferung
 
-## 9. Lieferung und Folgeauftrag
+Führe bestehende Tests, Frontend-Build und gezielte neue Prüfungen aus:
 
-- Nachvollziehbare Teilcommits für NPC-Modell/Zeitverarbeitung, Kampf/Traglast, konsistente Missionsverarbeitung sowie React-Oberfläche.
-- Ein vollständiger, getesteter Pull Request; keine eigenständige Zusammenführung oder Veröffentlichung.
-- README, docs/PROJECT.md und Protokoll-/Speicherdokumentation auf tatsächlichen Stand bringen. Regelvorschläge, Risiken und Grenzen sichtbar getrennt dokumentieren.
-- Im PR alle vorläufigen Zahlen/Formeln sowie vollständigen Angreiferverlust bei Niederlage, unsterblichen General, Heimatlager-Überlauf und weiterhin deaktivierte Skills ausdrücklich zur Prüfung nennen.
-- Keine behauptete historische Kampfleistung bei Migration, kein rückwirkendes Auffüllen von XP oder Punkten.
-- Danach den eigenen Nahrungsunterhaltsauftrag vorbereiten: Verbrauch pro Typ, Versorgung unterwegs, leeres Lager und Auswirkungen. Kostenkurve und Bonuswirkung der General-Skills separat zur Entscheidung vorlegen; der existierende Vorschlag 10 × n XP ist weiterhin kein freigegebener Regelsatz.
+1. Verbrauch mehrerer Typen, Produktion mit Bürgermeister, positive/null/negative Bilanz und korrekt umgerechnete Zeiteinheiten.
+2. Volle Lager, Überbestand, gleichzeitiger Verbrauch/Produktion, exakter Leerstand und keine negative Nahrung.
+3. Schonfrist, Verlustwellen, proportionale Verteilung, kleinste Armeen und keine Mehrverluste durch Aufteilen.
+4. Kurze Zwischenversorgung pausiert den Hungerzähler; stabile Versorgung setzt ihn erst nach Erholungsdauer zurück.
+5. Ausbildung pausiert/fortgesetzt mit korrekter Restdauer, Kosten und Abschlussreihenfolge.
+6. Einheiten stationiert/unterwegs genau einmal zählen; Kampfverluste und Rückkehr ändern Verbrauch korrekt.
+7. Hunger vor Kampf/Aufklärung, vollständig verlorene Armee, Generalrückkehr, Ladungsverlust und richtige Berichte/Belohnungen.
+8. Bürgermeisterwechsel, unzulässige fremde/gebundene Generäle, parallele Mission/Ernennung und kein mehrfach aufaddierter Bonus.
+9. Bürgermeisterbonus wirkt auf Nahrungsertrag, nicht Beute/Lager/andere Ressourcen; Skillaktionen bleiben deaktiviert.
+10. Gleichzeitige Beuterückkehr und Hungerwelle, Offline-Verarbeitung, Bürgermeisterwechsel nach langer Abwesenheit.
+11. Fehler zwischen Journal und Dateien, Neustart, verlorene Bestätigung und Wiederholung ohne doppelte Verluste/Bonuswirkung.
+12. Migration ohne rückwirkende Kosten, dauerhaftem Einführungszeitpunkt und unveränderten bisherigen Spielständen.
+13. Regression bestehender Farm-, Aufklärungs-, Lager-/Abriss-, Punkte- und Generalfunktionen.
+
+- Simuliere lange Zeiträume in Tests mit kontrollierter Uhr statt realer Wartezeit. Auch die ungünstige Kombination einer großen Armee ohne Versorgung prüfen; Offline-Nachberechnung darf den Server nicht unbegrenzt blockieren.
+- Browserprüfung mit zwei Konten, Desktop/Mobilansicht: Bürgermeister ernennen/abberufen, Bilanz prüfen, Warnung, pausierte Ausbildung, Verluste und Versorgung durch Rückkehr. Verwende isolierte Testwelten.
+- Liefere nachvollziehbare Commits und einen vollständigen Pull Request. Kein eigenständiges Merge/Deployment.
+- Aktualisiere README, docs/PROJECT.md und Protokoll-/Speicherdokumentation; markiere implementierte Funktionen und vorläufige Regeln getrennt.
+- Im PR insbesondere 30 Minuten Schonfrist, 5-Minuten-Verlustabstand, 5-Prozent-Verluste, 60 Sekunden Erholung, Verbrauchswerte, Führungspunkt-Bonus und Obergrenze zur Prüfung nennen. Bestätigte Nutzeranforderungen nicht mit diesen Vorschlägen gleichsetzen.
+- Nicht ausgeführte Prüfungen und verbleibende Einschränkungen auf Deutsch benennen. Danach Skillregeln bzw. Forschung gemäß Projektplan ausarbeiten, nicht automatisch starten.
