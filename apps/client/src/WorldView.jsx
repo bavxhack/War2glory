@@ -134,13 +134,15 @@ function ScoutingDialog({ target, state, transport, onClose }) {
   const [scouts, setScouts] = useState(1);
   if (!target) return null;
   const general = state.military.generals.find(item => item.id === generalId);
-  const valid = general && Number.isInteger(scouts) && scouts >= 1 && scouts <= state.military.units.scout;
+  const missionLimit = state.militaryRules.maxMissionUnits;
+  const maxScouts = Math.min(state.military.units.scout, missionLimit);
+  const valid = general && Number.isInteger(scouts) && scouts >= 1 && scouts <= maxScouts;
   const seconds = Math.max(5, Math.ceil(target.distance ?? 0) * 5);
   return <Dialog open title="Stadt ausspähen" kicker="EINSATZ PLANEN" onClose={onClose} actions={<button disabled={!valid} onClick={() => { transport.mutate('scouting.start', { targetId: target.id, generalId, scouts }); transport.setMessage(`${scouts} Aufklärungsflugzeuge wurden entsandt.`); onClose(); }}>Einsatz starten</button>}>
     <p>{target.name} · Koordinate {target.x}, {target.y} · Entfernung {target.distance.toFixed(2)}</p>
     <label>General<select value={generalId} onChange={event => setGeneralId(event.target.value)}>{state.military.generals.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'idle'}>{item.name} · Level {item.level}{item.status !== 'idle' && ' · nicht verfügbar'}</option>)}</select></label>
-    <label>Anzahl Aufklärungsflugzeuge<input type="number" min="1" max={state.military.units.scout} value={scouts} onChange={event => setScouts(Number(event.target.value))}/></label>
-    <div className="mission-preview"><strong>{seconds} s Hinweg · {seconds} s Rückweg</strong><span>Bis zu {state.military.units.scout} stationierte Aufklärungsflugzeuge verfügbar · derzeit kein Führungslimit</span></div>
+    <label>Anzahl Aufklärungsflugzeuge<input type="number" min="1" max={maxScouts} value={scouts} onChange={event => setScouts(Number(event.target.value))}/></label>
+    <div className="mission-preview"><strong>{seconds} s Hinweg · {seconds} s Rückweg</strong><span>{state.military.units.scout} stationiert · Einsatzlimit insgesamt {missionLimit.toLocaleString('de-DE')} Einheiten · kein Führungslimit</span></div>
   </Dialog>;
 }
 
@@ -150,15 +152,17 @@ function RaidDialog({ target, state, transport, onClose }) {
   const [infantry, setInfantry] = useState(1);
   if (!target) return null;
   const general = state.military.generals.find(item => item.id === generalId);
-  const valid = general && Number.isInteger(infantry) && infantry >= 1 && infantry <= state.military.units.infantry;
+  const missionLimit = state.militaryRules.maxMissionUnits;
+  const maxInfantry = Math.min(state.military.units.infantry, missionLimit);
+  const valid = general && Number.isInteger(infantry) && infantry >= 1 && infantry <= maxInfantry;
   const seconds = Math.max(5, Math.ceil(target.distance ?? 0) * 5);
   const freeFood = Math.max(0, state.capacities.food - state.city.resources.food);
   return <Dialog open title="NPC-Stadt angreifen" kicker="VORLÄUFIGER FARMZUG" onClose={onClose} actions={<button disabled={!valid} onClick={() => { transport.mutate('raid.start', { targetId: target.id, generalId, infantry }); transport.setMessage(`${infantry} Infanteristen wurden entsandt.`); onClose(); }}>Angriff starten</button>}>
     <p>{target.name} · {seconds} s Hinweg · {seconds} s Rückweg</p>
     <p className="notice">Prototypregel: Infanterie kämpft deterministisch und trägt je Überlebendem 20 Nahrung. Der General überlebt; bei Niederlage fällt die gesamte Angriffstruppe. Gegner und Beute können sich bis zur Ankunft ändern.</p>
     <label>General<select value={generalId} onChange={event => setGeneralId(event.target.value)}>{state.military.generals.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'idle'}>{item.name}{item.status !== 'idle' && ' · gebunden'}</option>)}</select></label>
-    <label>Infanterie<input type="number" min="1" max={state.military.units.infantry} value={infantry} onChange={event => setInfantry(Number(event.target.value))}/></label>
-    <p className="notice">Für Aufklärung und Farmzüge gilt derzeit kein Führungslimit. Begrenzend ist nur die stationierte, nicht bereits gebundene Truppenzahl.</p>
+    <label>Infanterie<input type="number" min="1" max={maxInfantry} value={infantry} onChange={event => setInfantry(Number(event.target.value))}/></label>
+    <p className="notice">Pro Einsatz dürfen insgesamt höchstens {missionLimit.toLocaleString('de-DE')} Einheiten entsendet werden. Es gilt derzeit kein Führungslimit; eine spätere Reichweitenbegrenzung durch Nahrung ist noch nicht aktiv.</p>
     <div className="mission-preview"><strong>Maximale Traglast vor Verlusten: {Number.isInteger(infantry) ? infantry * 20 : 0} Nahrung</strong><span>Aktuell freier Lagerplatz: {Math.floor(freeFood)} (bei Rückkehr neu berechnet)</span></div>
   </Dialog>;
 }

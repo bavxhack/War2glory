@@ -7,6 +7,7 @@ export const MILITARY_RULES = Object.freeze({
   maxGeneralLevel: 10,
   raidRuleset: 'npc-pve-1-provisional',
   infantryFoodCapacity: 20,
+  maxMissionUnits: 10_000,
 });
 
 export const UNITS = Object.freeze({
@@ -104,6 +105,15 @@ export function generalLevel(experience) {
   return level;
 }
 
+export function validateMissionUnits(units) {
+  const amounts = Object.values(units ?? {});
+  if (!amounts.length || amounts.some(amount => !Number.isSafeInteger(amount) || amount < 0)) throw new Error('Einsatztruppen müssen als nicht negative Ganzzahlen angegeben werden.');
+  const total = amounts.reduce((sum, amount) => sum + amount, 0);
+  if (!Number.isSafeInteger(total) || total < 1) throw new Error('Mindestens eine Einheit muss entsendet werden.');
+  if (total > MILITARY_RULES.maxMissionUnits) throw new Error(`Pro Einsatz dürfen insgesamt höchstens ${MILITARY_RULES.maxMissionUnits} Einheiten entsendet werden.`);
+  return total;
+}
+
 export function trainingQueueForBarracks(military, barracksSlotId) {
   return military.trainingQueue.filter(job => job.barracksSlotId === barracksSlotId);
 }
@@ -165,7 +175,8 @@ export function enqueueTraining(previous, city, command, now) {
 export function startScoutMission(previous, command, now, origin, target) {
   const military = advanceMilitary(previous, now); const general = military.generals.find(item => item.id === command.generalId);
   if (!general || general.status !== 'idle') throw new Error('Kein eigener freier General ausgewählt.');
-  if (!Number.isInteger(command.scouts) || command.scouts < 1 || command.scouts > military.units.scout) throw new Error('Nicht genügend verfügbare Späher.');
+  validateMissionUnits({ scout: command.scouts });
+  if (command.scouts > military.units.scout) throw new Error('Nicht genügend verfügbare Späher.');
   if (!target || target.kind !== 'npc') throw new Error('Nur NPC-Städte können aufgeklärt werden.');
   const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
   const travelMs = Math.max(MILITARY_RULES.minimumTravelMs, Math.ceil(distance) * MILITARY_RULES.scoutTravelMsPerField);
@@ -190,9 +201,8 @@ export function startRaidMission(previous, command, now, origin, target, eventSe
   const military = structuredClone(previous);
   const general = military.generals.find(item => item.id === command.generalId);
   if (!general || general.status !== 'idle') throw new Error('Kein eigener freier General ausgewählt.');
-  if (!Number.isSafeInteger(command.infantry) || command.infantry < 1 || command.infantry > military.units.infantry) {
-    throw new Error('Nicht genügend verfügbare Infanterie.');
-  }
+  validateMissionUnits({ infantry: command.infantry });
+  if (command.infantry > military.units.infantry) throw new Error('Nicht genügend verfügbare Infanterie.');
   if (!target || target.kind !== 'npc') throw new Error('Nur NPC-Städte können angegriffen werden.');
   const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
   const travelMs = Math.max(MILITARY_RULES.minimumTravelMs, Math.ceil(distance) * MILITARY_RULES.scoutTravelMsPerField);

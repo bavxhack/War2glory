@@ -12,7 +12,7 @@ import {
   demolitionPreview,
   resourceCapacities,
 } from '../packages/game-core/index.js';
-import { advanceMilitary, applySkillConversion, applySkillDistribution, barracksIsBusy, enqueueTraining, generalLevel, newMilitary, normalizeGeneral, previewSkillConversion, renameGeneral, resolveNpcCombat, skillSummary, startRaidMission, startScoutMission, validateGeneralName } from '../packages/game-core/military.js';
+import { advanceMilitary, applySkillConversion, applySkillDistribution, barracksIsBusy, enqueueTraining, generalLevel, newMilitary, normalizeGeneral, previewSkillConversion, renameGeneral, resolveNpcCombat, skillSummary, startRaidMission, startScoutMission, validateGeneralName, validateMissionUnits } from '../packages/game-core/military.js';
 import { advanceNpc, mapDistance, publicMap, randomFreeLocation, terrainAt } from '../packages/game-core/world.js';
 
 const command = (id, slotId, building) => ({ id, slotId, building });
@@ -47,6 +47,22 @@ test('Farmzug reserviert General und Infanterie ohne vorläufiges Führungslimit
   const allInfantry = startRaidMission(military, { id: 'raid-2', generalId: 'general-p1', infantry: 21 }, 100, origin, target, 8);
   assert.equal(allInfantry.units.infantry, 0);
   assert.throws(() => startRaidMission(military, { id: 'raid-3', generalId: 'general-p1', infantry: 22 }, 100, origin, target, 9), /verfügbare Infanterie/);
+});
+
+test('Einsätze sind auf insgesamt 10.000 Einheiten begrenzt', () => {
+  assert.equal(validateMissionUnits({ infantry: 6_000, truck: 4_000 }), 10_000);
+  assert.throws(() => validateMissionUnits({ infantry: 6_001, truck: 4_000 }), /höchstens 10000/);
+  const origin = { x: 0, y: 0 };
+  const target = { id: 'npc-limit', kind: 'npc', name: 'NPC', x: 1, y: 0 };
+  const raidMilitary = newMilitary('raid-limit');
+  raidMilitary.units.infantry = 10_001;
+  assert.equal(startRaidMission(raidMilitary, { id: 'raid-10000', generalId: 'general-raid-limit', infantry: 10_000 }, 0, origin, target, 1).missions[0].infantry, 10_000);
+  assert.throws(() => startRaidMission(raidMilitary, { id: 'raid-10001', generalId: 'general-raid-limit', infantry: 10_001 }, 0, origin, target, 2), /höchstens 10000/);
+
+  const scoutMilitary = newMilitary('scout-limit');
+  scoutMilitary.units.scout = 10_001;
+  assert.equal(startScoutMission(scoutMilitary, { id: 'scout-10000', generalId: 'general-scout-limit', scouts: 10_000 }, 0, origin, target).missions[0].scouts, 10_000);
+  assert.throws(() => startScoutMission(scoutMilitary, { id: 'scout-10001', generalId: 'general-scout-limit', scouts: 10_001 }, 0, origin, target), /höchstens 10000/);
 });
 
 test('Produktion und Übergänge verändern den Ausgangszustand nicht', () => {

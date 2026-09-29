@@ -145,6 +145,7 @@ Dies sind neue Arbeitsvorschläge des Planungschats, keine einzeln bestätigten 
 - Einfaches Mengenmodell mit A angreifenden Infanteristen und D Verteidigern: bei A > D Sieg, D NPC-Verluste und ceil(D/2) eigene Verluste; bei A <= D und D > 0 Niederlage, A eigene Verluste und floor(A/2) NPC-Verluste. Bei D = 0 keine Verluste und keine Kampfbelohnung.
 - General überlebt vorläufig jede Niederlage und kehrt nach normaler Rückreise allein zurück; verlorene Einheiten werden nicht ersetzt.
 - Für Aufklärung und Farmzüge ist derzeit kein Führungslimit aktiv. Einheiten müssen stationiert und ungebunden sein; der Führungswert bleibt bis zu einem später abgestimmten Regelsatz rein informativ.
+- Pro Einsatz gilt ein serverseitiges Maximum von insgesamt 10.000 entsendeten Einheiten über alle beteiligten Typen. Die später vorgesehene Reichweitenbegrenzung durch Nahrung ist noch nicht implementiert.
 - Infanterie trägt 20 Nahrung je Überlebendem. Späher/Aufklärungsflugzeuge tragen 0 und sind für Farmangriffe nicht zugelassen; LKWs folgen später.
 - Beute = Minimum aus verbleibender Traglast und abgerundetem tatsächlichen NPC-Vorrat, nur bei Sieg.
 - Beispiel: 10 Angreifer gegen 5 Verteidiger verlieren 3 eigene Einheiten; 7 Überlebende tragen höchstens 140 Nahrung.
