@@ -39,12 +39,14 @@ test('NPC-Regeneration erhält Bruchteile und spart bei voller Garnison nichts a
   assert.equal(npc.resources.food.amount, 100);
 });
 
-test('Farmzug reserviert General und Infanterie und wahrt das Führungslimit', () => {
+test('Farmzug reserviert General und Infanterie ohne vorläufiges Führungslimit', () => {
   const origin = { x: 0, y: 0 }; const target = { id: 'npc-1', kind: 'npc', name: 'NPC', x: 1, y: 0 };
   const military = newMilitary('p1'); military.units.infantry = 21;
   const mission = startRaidMission(military, { id: 'raid-1', generalId: 'general-p1', infantry: 20 }, 100, origin, target, 7);
   assert.equal(mission.units.infantry, 1); assert.equal(mission.generals[0].status, 'raiding'); assert.equal(mission.missions[0].eventSequence, 7);
-  assert.throws(() => startRaidMission(military, { id: 'raid-2', generalId: 'general-p1', infantry: 21 }, 100, origin, target, 8), /Führungskapazität/);
+  const allInfantry = startRaidMission(military, { id: 'raid-2', generalId: 'general-p1', infantry: 21 }, 100, origin, target, 8);
+  assert.equal(allInfantry.units.infantry, 0);
+  assert.throws(() => startRaidMission(military, { id: 'raid-3', generalId: 'general-p1', infantry: 22 }, 100, origin, target, 9), /verfügbare Infanterie/);
 });
 
 test('Produktion und Übergänge verändern den Ausgangszustand nicht', () => {
@@ -189,6 +191,15 @@ test('Ausbildung, General und Aufklärung werden zeitlich und einmalig fortgesch
   assert.equal(military.units.scout, 2); assert.equal(military.reports[0].intelligence.food.amount, 321); assert.equal(military.generals[0].experience, 10);
   assert.equal(advanceMilitary(military, 20000, npc).generals[0].experience, 10);
   assert.equal(generalLevel(100), 2); assert.equal(generalLevel(300), 3);
+});
+
+test('Aufklärung darf alle stationierten Späher ohne vorläufiges Führungslimit entsenden', () => {
+  const military = newMilitary('scout-owner');
+  military.units.scout = 25;
+  const mission = startScoutMission(military, { id: 'large-scout', generalId: 'general-scout-owner', scouts: 25 }, 0,
+    { x: 0, y: 0 }, { id: 'npc-1', kind: 'npc', name: 'Ziel', x: 1, y: 0 });
+  assert.equal(mission.units.scout, 0);
+  assert.equal(mission.missions[0].scouts, 25);
 });
 
 test('Generäle behalten stabile Identitäten, getrennten Fortschritt und Unicode-Namen', () => {

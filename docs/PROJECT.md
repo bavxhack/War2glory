@@ -126,7 +126,7 @@ Der Nutzer bestätigt am 29.09.2026 die Umsetzung der Generäle. README und Prot
 
 ## Aktueller Auftrag 8 vom 29.09.2026: NPC-Farmzüge
 
-CODEX_PROMPT.md enthält den nächsten ausführbaren Auftrag: Infanterie mit General entsenden, gemeinsame NPC-Garnison bekämpfen, Nahrung nach verbleibender Traglast laden und bei Rückkehr Bericht, Beute und Erfahrung erhalten. Noch nicht als implementiert bestätigt.
+Der Farmkreislauf ist als vorläufiger Prototyp implementiert: Infanterie mit General entsenden, gemeinsame NPC-Garnison bekämpfen, Nahrung nach verbleibender Traglast laden und bei Rückkehr Bericht, Beute und Erfahrung erhalten.
 
 ### Umfang
 
@@ -144,6 +144,7 @@ Dies sind neue Arbeitsvorschläge des Planungschats, keine einzeln bestätigten 
 - Garnisonsmaximum: 5 × NPC-Schwierigkeitsstufe; Wiederaufbau ein Verteidiger je 300 Sekunden bis zum Maximum. Vorhandene Nahrungsraten und Kapazitäten erhalten und aktivieren.
 - Einfaches Mengenmodell mit A angreifenden Infanteristen und D Verteidigern: bei A > D Sieg, D NPC-Verluste und ceil(D/2) eigene Verluste; bei A <= D und D > 0 Niederlage, A eigene Verluste und floor(A/2) NPC-Verluste. Bei D = 0 keine Verluste und keine Kampfbelohnung.
 - General überlebt vorläufig jede Niederlage und kehrt nach normaler Rückreise allein zurück; verlorene Einheiten werden nicht ersetzt.
+- Für Aufklärung und Farmzüge ist derzeit kein Führungslimit aktiv. Einheiten müssen stationiert und ungebunden sein; der Führungswert bleibt bis zu einem später abgestimmten Regelsatz rein informativ.
 - Infanterie trägt 20 Nahrung je Überlebendem. Späher/Aufklärungsflugzeuge tragen 0 und sind für Farmangriffe nicht zugelassen; LKWs folgen später.
 - Beute = Minimum aus verbleibender Traglast und abgerundetem tatsächlichen NPC-Vorrat, nur bei Sieg.
 - Beispiel: 10 Angreifer gegen 5 Verteidiger verlieren 3 eigene Einheiten; 7 Überlebende tragen höchstens 140 Nahrung.

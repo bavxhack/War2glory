@@ -165,7 +165,7 @@ export function enqueueTraining(previous, city, command, now) {
 export function startScoutMission(previous, command, now, origin, target) {
   const military = advanceMilitary(previous, now); const general = military.generals.find(item => item.id === command.generalId);
   if (!general || general.status !== 'idle') throw new Error('Kein eigener freier General ausgewählt.');
-  if (!Number.isInteger(command.scouts) || command.scouts < 1 || command.scouts > military.units.scout || command.scouts > general.leadership) throw new Error('Nicht genügend verfügbare Späher oder Führungskapazität.');
+  if (!Number.isInteger(command.scouts) || command.scouts < 1 || command.scouts > military.units.scout) throw new Error('Nicht genügend verfügbare Späher.');
   if (!target || target.kind !== 'npc') throw new Error('Nur NPC-Städte können aufgeklärt werden.');
   const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
   const travelMs = Math.max(MILITARY_RULES.minimumTravelMs, Math.ceil(distance) * MILITARY_RULES.scoutTravelMsPerField);
@@ -190,8 +190,8 @@ export function startRaidMission(previous, command, now, origin, target, eventSe
   const military = structuredClone(previous);
   const general = military.generals.find(item => item.id === command.generalId);
   if (!general || general.status !== 'idle') throw new Error('Kein eigener freier General ausgewählt.');
-  if (!Number.isSafeInteger(command.infantry) || command.infantry < 1 || command.infantry > military.units.infantry || command.infantry > general.leadership) {
-    throw new Error('Nicht genügend verfügbare Infanterie oder Führungskapazität.');
+  if (!Number.isSafeInteger(command.infantry) || command.infantry < 1 || command.infantry > military.units.infantry) {
+    throw new Error('Nicht genügend verfügbare Infanterie.');
   }
   if (!target || target.kind !== 'npc') throw new Error('Nur NPC-Städte können angegriffen werden.');
   const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
