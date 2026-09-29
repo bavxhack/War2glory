@@ -18,6 +18,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
 | 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral und Mehrfachverwaltung umgesetzt; Skillgrundlage getestet, aber nicht aktiviert; Forschung weiterhin später |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
+| V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Aktueller Auftrag 9; noch nicht als implementiert bestätigt |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -124,9 +125,9 @@ Der Nutzer bestätigt am 29.09.2026 die Umsetzung der Generäle. README und Prot
 - Daten bleiben privat, serverseitig geprüft, über WebSocket übertragen und in JSON gespeichert. Keine erneute Frontendmigration.
 - Codex liefert neben Implementierung und Prüfungen einen getrennten Vorschlag für die noch offenen Skillregeln. Bürgermeister, Forschungsgeneral und Kampferfahrung bleiben spätere Aufgaben.
 
-## Aktueller Auftrag 8 vom 29.09.2026: NPC-Farmzüge
+## Umgesetzter Auftrag 8: NPC-Farmzüge
 
-Der Farmkreislauf ist als vorläufiger Prototyp implementiert: Infanterie mit General entsenden, gemeinsame NPC-Garnison bekämpfen, Nahrung nach verbleibender Traglast laden und bei Rückkehr Bericht, Beute und Erfahrung erhalten.
+Der Farmkreislauf ist laut Repository-Dokumentation als vorläufiger Prototyp implementiert: Infanterie mit General entsenden, gemeinsame NPC-Garnison bekämpfen, Nahrung nach verbleibender Traglast laden und bei Rückkehr Bericht, Beute und Erfahrung erhalten. Am 29.09.2026 meldet der Nutzer einen erfolgreichen ersten Farmzug. Das ist keine Bestätigung aller Parallelitäts-/Neustarttests durch den Planungschat.
 
 ### Umfang
 
@@ -139,7 +140,7 @@ Der Farmkreislauf ist als vorläufiger Prototyp implementiert: Infanterie mit Ge
 
 ### Vorläufige Regeln für den Review
 
-Dies sind neue Arbeitsvorschläge des Planungschats, keine einzeln bestätigten Nutzerentscheidungen oder War2Glory-Originalwerte. Sie werden als konfigurierbarer Prototyp im PR zur Prüfung vorgelegt. Die Details und Tests stehen im aktuellen Codex-Auftrag.
+Dies sind neue Arbeitsvorschläge des Planungschats, keine einzeln bestätigten Nutzerentscheidungen oder War2Glory-Originalwerte. Sie werden als konfigurierbarer Prototyp im PR zur Prüfung vorgelegt. Die Details und Tests stehen im früheren Auftrag 8 im Git-Verlauf von CODEX_PROMPT.md.
 
 - Garnisonsmaximum: 5 × NPC-Schwierigkeitsstufe; Wiederaufbau ein Verteidiger je 300 Sekunden bis zum Maximum. Vorhandene Nahrungsraten und Kapazitäten erhalten und aktivieren.
 - Einfaches Mengenmodell mit A angreifenden Infanteristen und D Verteidigern: bei A > D Sieg, D NPC-Verluste und ceil(D/2) eigene Verluste; bei A <= D und D > 0 Niederlage, A eigene Verluste und floor(A/2) NPC-Verluste. Bei D = 0 keine Verluste und keine Kampfbelohnung.
@@ -154,14 +155,45 @@ Dies sind neue Arbeitsvorschläge des Planungschats, keine einzeln bestätigten 
 - Negativen kumulierten Kampfbeitrag erhalten; nur die Gesamtanzeige aus Gebäude- und aktiven weiteren Beiträgen auf mindestens null begrenzen. Keine doppelte Niederlagenstrafe.
 - Alle regelabhängigen Ergebnisse versionieren und nur einmal abrechnen. Gegnerdetails und Kampfresultat bleiben bis zur vorgesehenen Berichtsfreigabe privat.
 
+## Aktueller Auftrag 9 vom 29.09.2026: Versorgung und Bürgermeister
+
+Der Nutzer bestätigt: Nach einer Schonfrist gehen Truppen bei Nahrungsmangel verloren. Außerdem kann ein General Bürgermeister werden und anhand seiner Eigenschaft Führung die Nahrungsproduktion erhöhen. Der Bürgermeister wird deshalb gegenüber der vorherigen Reihenfolge vorgezogen.
+
+CODEX_PROMPT.md enthält den ausführbaren nächsten Auftrag. Noch nicht als implementiert bestätigt.
+
+### Bestätigte Anforderungen
+
+- Laufender Nahrungsbedarf unterscheidet sich je Truppentyp und verringert die Nettoproduktion bzw. den Vorrat.
+- Eine anhaltende Unterversorgung führt nach Schonfrist zu tatsächlichen Truppenverlusten.
+- Plünderungen liefern bei Rückkehr Nachschub; negative laufende Bilanz bedeutet weiterhin keine negativen Lagerbestände.
+- Ein eingesetzter Bürgermeister erhöht die Nahrungsproduktion abhängig von Führung.
+- Regeln bleiben serverseitig, ereignisbasiert und dauerhaft gespeichert.
+
+### Vorläufige Vorschläge für den Review
+
+Die folgenden Werte und Detailregeln stammen vom Planungschat. Sie sind keine einzeln bestätigten Nutzerentscheidungen oder Originalwerte:
+
+- Infanterie verbraucht 0,10 Nahrung pro Einheit/Sekunde, Späher 0,05. Generäle selbst haben zunächst keinen zusätzlichen Unterhalt.
+- Heimatstadt versorgt alle lebenden eigenen Einheiten, stationiert und unterwegs, genau einmal. Noch nicht fertige Ausbildungsgruppen zählen nicht.
+- 30 Minuten tatsächlich unversorgte Zeit bis zur ersten Verlustwelle; anschließend alle 5 Minuten weiterer Mangelzeit.
+- Je Welle gehen aufgerundet 5 Prozent der lebenden Einheiten verloren, mindestens eine bei nicht leerer Armee. Verluste proportional über Typen und Aufenthaltsgruppen verteilen; kein Aufrunden je Einzelgruppe.
+- Zwischenversorgung pausiert die Mangelzeit; erst 60 Sekunden stabile Versorgung setzen den Mangelzyklus zurück. Verhindert vollständiges Zurücksetzen durch kleinste kurzzeitige Nahrungsgutschriften.
+- Ausbildung bei tatsächlichem Mangel pausieren, Restzeit und Zahlungen erhalten. Farmzüge und Bau bleiben möglich.
+- Hunger kann marschierende Einheiten und damit Kampfstärke/Traglast verringern. Nicht mehr transportierbare Beute wird als unterwegs verloren dokumentiert; General kehrt auch bei vollständigem Truppenverlust zurück.
+- Ein Bürgermeister je Stadt; General kann nicht gleichzeitig Bürgermeister und Missionsführer sein. Ernennung, Wechsel und Abberufung gelten ab tatsächlichem Zeitpunkt, auch offline.
+- Bürgermeisterbonus = min(50 Prozent, Führung × 1 Prozent). Nur vorhandenen serverseitigen Eigenschaftswert verwenden, nicht das frühere Führungslimit als Ersatz. Keine neue Skillvergabe.
+- Beispiel: Führung 10 ergibt 10 Prozent mehr Nahrung. Grundproduktion 2 Nahrung/Sekunde wird 2,2. Mit 30 Infanteristen (Verbrauch 3) beträgt die Bilanz −0,8 pro Sekunde; 480 Nahrung reichen bei unveränderten Raten 600 Sekunden.
+- Bonus wirkt auf Produktion, nicht Beute, Lagerkapazität oder andere Rohstoffe. Skillumrechnung, militärische Skillboni und Forschungsgeneral bleiben deaktiviert.
+- Kein Wiederherstellen des inzwischen entfernten Führungslimits; vorhandene Grenze von insgesamt 10.000 Einheiten je Einsatz bleibt.
+- Bestehendes Transaktionsjournal und globale Ereignisreihenfolge erweitern. Keine rückwirkenden Unterhaltskosten vor dauerhaft festgehaltenem Einführungszeitpunkt.
+
 ### Weitere Reihenfolge
 
-1. Auftrag 8: NPC-Farmzüge gemäß obiger Spezifikation implementieren und prüfen.
-2. Skill-Kostenkurve, manuelle/automatische Umrechnung und Bonuswirkungen anhand des vorhandenen Vorschlags gemeinsam entscheiden; keine automatische Aktivierung durch den Farmauftrag.
-3. Laufenden typabhängigen Nahrungsunterhalt mit oder unmittelbar nach dem Farmkreislauf aktivieren, nachdem Verbrauchs- und Mangelregeln festgelegt sind.
-4. Universität/Forschung und anschließend die Rollen Bürgermeister/Forschungsgeneral.
-5. LKWs und Ölwirtschaft einschließlich ziviler Raffinerien und typabhängiger Mobilmachungskosten; die konkrete Einordnung gegenüber Forschung bei der Etappenplanung prüfen.
-6. Weitere Einheiten, Bündnisse, Handel, Unterstützung und PvP; anschließend aktive Matrix-Föderation. Identitäten und Protokolle schon vorher erweiterbar halten.
+1. Auftrag 9: Nahrungsunterhalt, Schonfrist/Hungerverluste und Bürgermeister implementieren und prüfen.
+2. Skill-Kostenkurve, Umrechnungsart und weitere Bonuswirkungen entscheiden; vorhandenen Vorschlag nicht automatisch aktivieren.
+3. Universität/Forschung und Forschungsgeneral. Bürgermeister ist bereits in Auftrag 9 vorgezogen.
+4. LKWs und Ölwirtschaft, zusätzliche Einheiten und Waffensysteme; Forschungsvoraussetzungen separat festlegen.
+5. Bündnisse, Handel, Unterstützung, PvP und aktive Matrix-Föderation gemäß bisherigen Zielen.
 
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 
@@ -185,14 +217,14 @@ Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht autom
 - Skillberechnung und Speicherung konfigurierbar vorbereiten und mit isolierten Testregeln prüfen. Echte Umrechnung und Bonusvergabe erst nach Festlegung der offenen Regeln aktivieren.
 - Mehrere Generäle mit Testdaten prüfen; keine frei verfügbare Rekrutierung oder zusätzlichen kostenlosen Generäle für bestehende Konten erfinden.
 - Bestehende Erfahrung, Level und aktive Einsätze erhalten; Änderungen über WebSocket mit serverseitiger Prüfung und privater JSON-Speicherung.
-- Eigenschaften und Einsatzrolle getrennt modellieren. Eine erweiterbare Rollenzuweisung ist der technische Vorschlag; Bürgermeister- und Forschungswirkungen werden jetzt noch nicht aktiviert.
+- Eigenschaften und Einsatzrolle getrennt modellieren. Bürgermeister wird in Auftrag 9 mit führungsabhängiger Nahrungswirkung aktiviert; Forschungsgeneral bleibt später.
 
 ### Noch gemeinsam festzulegen
 
 - Startkosten und Verlauf der steigenden Erfahrungskosten; automatische Umrechnung oder bewusster Spielerbefehl.
 - Bonuswirkungen der bestätigten Eigenschaften Führung, Angriff und Verteidigung, Grenzen und Zusammenspiel mit Level und Führungskapazität.
 - Wirkung dieser Eigenschaften in den Rollen Truppengeneral, Bürgermeister und Forschungsgeneral; Rollenplätze, Voraussetzungen, Wechsel und mögliche gleichzeitige Aufgaben.
-- Erfahrungserwerb in zivilen Rollen und Wirkung von Rollenwechseln auf laufende Vorgänge. Bürgermeister und Forschungsgeneral bleiben spätere Implementierungsaufträge.
+- Erfahrungserwerb in zivilen Rollen bleibt offen. Bürgermeister und seine zeitlich korrekte Produktionswirkung werden in Auftrag 9 vorgezogen; Forschungsgeneral bleibt später.
 - Rekrutierungsbedingungen, mögliche Anzahlgrenzen und spätere Rücksetzung verteilter Punkte.
 - Kampf-Erfahrungsbelohnungen und Verteilung bei mehreren beteiligten Generälen; künftige Rolle von Aufklärungs-Erfahrung.
 
@@ -200,7 +232,7 @@ Technischer Vorschlag für die Kostenbasis: insgesamt erworbene Skillpunkte eins
 
 ## Geplante Logistik: Traglast, LKWs und Öl
 
-Nutzerergänzung vom 28.09.2026. Typabhängige Traglast wird in Auftrag 8 konkretisiert, noch nicht als implementiert bestätigt. LKWs und Öl bleiben spätere Erweiterungen und gehören nicht zum aktuellen NPC-Farmauftrag 8.
+Nutzerergänzung vom 28.09.2026. Typabhängige Traglast ist laut Repository-Dokumentation mit Auftrag 8 eingeführt. Auftrag 9 ergänzt ihre Verringerung bei Hungerverlusten unterwegs. LKWs und Öl bleiben spätere Erweiterungen.
 
 ### Bestätigte Anforderungen
 
@@ -241,7 +273,7 @@ Nutzerergänzung vom 28.09.2026. Typabhängige Traglast wird in Auftrag 8 konkre
 
 ## Geplanter Nahrungsunterhalt der Truppen
 
-Nutzeranforderung vom 28.09.2026. Geplant für die Wirtschafts- und Farmmechanik, noch nicht als implementiert bestätigt. Der laufende Auftrag wird dadurch nicht automatisch um ein aktives Unterhaltssystem erweitert.
+Nutzeranforderung vom 28.09.2026, konkretisiert am 29.09.2026: Truppen gehen nach einer Schonfrist bei Nahrungsmangel verloren. Ein Bürgermeister erhöht anhand von Führung die Nahrungsproduktion. Auftrag 9 setzt dies mit ausdrücklich vorläufigen Verbrauchs-, Frist-, Verlust- und Bonuswerten um; noch nicht als implementiert bestätigt.
 
 ### Bestätigte Anforderungen und Berechnung
 
@@ -257,8 +289,8 @@ Nutzeranforderung vom 28.09.2026. Geplant für die Wirtschafts- und Farmmechanik
 
 - Empfehlung: Datenmodell und Wirtschaftsberechnung beim Lagerausbau vorbereiten; tatsächlichen Nahrungsunterhalt zusammen mit oder unmittelbar nach dem ersten funktionierenden NPC-Farmkreislauf aktivieren. Vor Aktivierung Verbrauchswerte und Verhalten bei leerem Lager festlegen.
 - Noch offen: konkrete Verbrauchswerte, Zeiteinheit, kontinuierliche Verrechnung oder feste Intervalle einschließlich Rundung.
-- Noch offen: Folgen bei aufgebrauchter Nahrung. Keine automatische Desertion, Truppenvernichtung, Kampfschwächung oder Verschuldung erfinden.
-- Noch offen: Versorgung stationierter Truppen, marschierender Armeen, späterer Unterstützungstruppen und Transporteinheiten wie LKWs. Für jede Gruppe müssen zahlende Stadt und Verbrauchszeitraum eindeutig festgelegt werden; keine doppelte Verrechnung und keine unbeabsichtigte Unterhaltsbefreiung durch Entsenden.
+- Bestätigte Folge bei anhaltend aufgebrauchter Nahrung: Truppenverluste nach Schonfrist. Auftrag 9 schlägt konkrete Frist und Verlustwellen vor. Keine Nahrungsschulden oder zusätzliche pauschale Kampfschwächung.
+- Auftrag 9 versorgt als vorläufige Regel stationierte und marschierende eigene Einheiten aus der Heimatstadt. Spätere Unterstützungstruppen und LKWs benötigen eigene Regeln. Keine doppelte Verrechnung oder unbeabsichtigte Unterhaltsbefreiung durch Entsenden.
 - Noch offen: Verbrauchsbeginn bei Ausbildung und Behandlung späterer Verluste, Entlassungen oder Besitzwechsel. Technischer Vorschlag: ausgebildete Einheiten ab tatsächlicher Fertigstellung zählen, Verluste ab dem bestätigten Verlustzeitpunkt.
 - Verbrauch, Produktion, Marschzeiten und NPC-Regeneration müssen zusammen einen erreichbaren Versorgungskreislauf ermöglichen. Konkrete Balancewerte werden separat festgelegt.
 
@@ -351,11 +383,11 @@ Auftrag 5 konkretisiert die Ausbauetappe mit ausdrücklich vorläufigen Arbeitsv
 
 Die in Auftrag 7 vorbereiteten Funktionen aktivieren noch keine Spielregel. Als leicht prüfbarer **Vorschlag**, nicht als War2Glory-Originalwert, könnte der n-te Skillpunkt `10 × n` XP kosten: Punkt 1 kostet 10 XP, Punkt 2 weitere 20 XP und die ersten drei zusammen 60 XP. Rest-XP bleiben erhalten. Eine manuelle Umrechnung macht die Entscheidung sichtbar und vermeidet überraschenden XP-Verbrauch; eine automatische Umrechnung wäre einfacher, müsste aber eindeutig mit der Erfahrungsvergabe ausgelöst werden. Empfohlen wird daher zunächst die manuelle Variante.
 
-Ein späterer Regelsatz sollte Grundwerte und Skillbeiträge getrennt halten. Führung könnte die maximal befehligte Truppenzahl erhöhen, Angriff den ausgeteilten und Verteidigung den vermiedenen Schaden beeinflussen. Konkrete Faktoren, Grenzen und Rundung müssen zusammen mit dem Kampfsystem beschlossen werden; aktuell verändert keine Verteilung Führungskapazität oder Kampfkraft.
+Ein späterer Regelsatz sollte Grundwerte und Skillbeiträge getrennt halten. Führung wurde ursprünglich als mögliche Grenze der Truppenzahl vorgeschlagen; im aktuellen Stand besteht ausdrücklich kein solches Limit. Bestätigt ist jetzt ihre Produktionswirkung beim Bürgermeister in Auftrag 9. Angriff könnte den ausgeteilten und Verteidigung den vermiedenen Schaden beeinflussen. Konkrete Faktoren, Grenzen und Rundung müssen zusammen mit dem Kampfsystem beschlossen werden; aktuell verändert keine Verteilung Führungskapazität oder Kampfkraft.
 
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
-Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen NPC-Farmauftrag 8.
+Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Versorgungsauftrag 9.
 
 ### Universität und Forschungsbereiche
 
