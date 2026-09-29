@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequestId } from '../apps/client/request-id.js';
-import { dragToPan, finishMapPointer } from '../apps/client/map-navigation.js';
+import { dragToPan, finishMapPointer, mapSelectionCoordinate } from '../apps/client/map-navigation.js';
 
 test('Anfrage-IDs funktionieren ohne crypto.randomUUID', () => {
   const generated = createRequestId({
@@ -39,4 +39,10 @@ test('ein Klick auf ein Kartenfeld wird nicht als Ziehen unterdrückt', () => {
     offset: { x: 2, y: 0 },
     suppressClick: true,
   });
+});
+
+test('Pointer-Capture behält das ursprünglich angeklickte Kartenfeld', () => {
+  assert.equal(mapSelectionCoordinate({ clickedCoordinate: null, pressedCoordinate: '4:7', suppressClick: false }), '4:7');
+  assert.equal(mapSelectionCoordinate({ clickedCoordinate: '4:7', pressedCoordinate: '4:7', suppressClick: false }), '4:7');
+  assert.equal(mapSelectionCoordinate({ clickedCoordinate: null, pressedCoordinate: '4:7', suppressClick: true }), null);
 });

@@ -12,3 +12,8 @@ export function finishMapPointer(start, end, tileSize) {
   const offset = dragToPan(start, end, tileSize);
   return { offset, suppressClick: offset.x !== 0 || offset.y !== 0 };
 }
+
+export function mapSelectionCoordinate({ clickedCoordinate, pressedCoordinate, suppressClick }) {
+  if (suppressClick) return null;
+  return clickedCoordinate ?? pressedCoordinate ?? null;
+}
