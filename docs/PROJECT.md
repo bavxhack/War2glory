@@ -17,7 +17,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte laut README umgesetzt; Forschung/Kämpfe später |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
 | 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral und Mehrfachverwaltung umgesetzt; Skillgrundlage getestet, aber nicht aktiviert; Forschung weiterhin später |
-| 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Nahrungsunterhalt, Beute, Rückkehr, General-Erfahrung und Berichte | Geplant; Unterhalt mit oder unmittelbar nach dem Farmkreislauf empfohlen |
+| 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Aktueller Auftrag 8; Nahrungsunterhalt als eigener Folgeschritt |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -112,9 +112,9 @@ Nutzerentscheidung vom 28.09.2026: Nach Umsetzung des Lagerhauses soll die empfo
 - Vite dient Entwicklung und Build; der vorhandene Node-Server liefert im normalen Betrieb die gebauten Assets aus. Docker, CI und Dokumentation werden passend aktualisiert.
 - Die Migration ist laut bisherigem Projektstand umgesetzt und automatisiert geprüft. Am 29.09.2026 bestätigt der Nutzer, dass sie funktioniert. Der Planungschat hat diese Laufzeittests nicht selbst ausgeführt.
 
-## Aktueller Auftrag 7 vom 29.09.2026: Generalverwaltung und Skillgrundlage
+## Umgesetzter Auftrag 7: Generalverwaltung und Skillgrundlage
 
-Nach dem abgeschlossenen React-Refactoring erweitert CODEX_PROMPT.md jetzt die Verwaltung der Generäle. Auftrag erteilt, Umsetzung noch nicht bestätigt.
+Der Nutzer bestätigt am 29.09.2026 die Umsetzung der Generäle. README und Protokolldokumentation beschreiben Generalverwaltung, Namensbearbeitung, gezielte Einsatzwahl und eine getestete, noch deaktivierte Skillgrundlage. Der frühere Auftrag 7 ist im Git-Verlauf von CODEX_PROMPT.md enthalten. Der Planungschat hat keine eigenen Laufzeittests ausgeführt.
 
 - Aktiver Umfang: mehrere Generäle im Datenmodell, verlustfreie Migration, Generalübersicht im Militärbereich, Namensbearbeitung im React-Modal und eindeutige Generalwahl für vorhandene Aufklärung.
 - Keine zusätzlichen Gratisgeneräle und keine frei nutzbare Erzeugungsaktion. Mehrfachbesitz wird mit isolierten Testspielständen geprüft; Rekrutierungsbedingungen bleiben offen.
@@ -124,10 +124,38 @@ Nach dem abgeschlossenen React-Refactoring erweitert CODEX_PROMPT.md jetzt die V
 - Daten bleiben privat, serverseitig geprüft, über WebSocket übertragen und in JSON gespeichert. Keine erneute Frontendmigration.
 - Codex liefert neben Implementierung und Prüfungen einen getrennten Vorschlag für die noch offenen Skillregeln. Bürgermeister, Forschungsgeneral und Kampferfahrung bleiben spätere Aufgaben.
 
+## Aktueller Auftrag 8 vom 29.09.2026: NPC-Farmzüge
+
+CODEX_PROMPT.md enthält den nächsten ausführbaren Auftrag: Infanterie mit General entsenden, gemeinsame NPC-Garnison bekämpfen, Nahrung nach verbleibender Traglast laden und bei Rückkehr Bericht, Beute und Erfahrung erhalten. Noch nicht als implementiert bestätigt.
+
+### Umfang
+
+- Angriffe nur auf NPCs, vorhandene Infanterie als erste Farmtruppe; bestehende Aufklärung bleibt erhalten und zeigt künftig tatsächliche historische Garnisonsdaten.
+- NPC-Garnison und Nahrung werden von allen Spielern geteilt und wachsen allmählich nach.
+- Ganze Welt chronologisch verarbeiten, einschließlich offline befindlicher Spieler und Aufklärungen zwischen Gefechten.
+- Zusammengehörige Welt-/Spieleränderungen absturzsicher protokollieren und wiederherstellen. Einzeldatei-Atomarität allein genügt nicht.
+- General-XP, Kommandanten-Kampfbeiträge und private Kampfberichte einmalig bei Rückkehr verbuchen.
+- Kein PvP, keine Eroberung, keine LKWs/Ölwirtschaft oder Nahrungsunterhaltsaktivierung. Skillumrechnung und neue Boni bleiben deaktiviert.
+
+### Vorläufige Regeln für den Review
+
+Dies sind neue Arbeitsvorschläge des Planungschats, keine einzeln bestätigten Nutzerentscheidungen oder War2Glory-Originalwerte. Sie werden als konfigurierbarer Prototyp im PR zur Prüfung vorgelegt. Die Details und Tests stehen im aktuellen Codex-Auftrag.
+
+- Garnisonsmaximum: 5 × NPC-Schwierigkeitsstufe; Wiederaufbau ein Verteidiger je 300 Sekunden bis zum Maximum. Vorhandene Nahrungsraten und Kapazitäten erhalten und aktivieren.
+- Einfaches Mengenmodell mit A angreifenden Infanteristen und D Verteidigern: bei A > D Sieg, D NPC-Verluste und ceil(D/2) eigene Verluste; bei A <= D und D > 0 Niederlage, A eigene Verluste und floor(A/2) NPC-Verluste. Bei D = 0 keine Verluste und keine Kampfbelohnung.
+- General überlebt vorläufig jede Niederlage und kehrt nach normaler Rückreise allein zurück; verlorene Einheiten werden nicht ersetzt.
+- Infanterie trägt 20 Nahrung je Überlebendem. Späher/Aufklärungsflugzeuge tragen 0 und sind für Farmangriffe nicht zugelassen; LKWs folgen später.
+- Beute = Minimum aus verbleibender Traglast und abgerundetem tatsächlichen NPC-Vorrat, nur bei Sieg.
+- Beispiel: 10 Angreifer gegen 5 Verteidiger verlieren 3 eigene Einheiten; 7 Überlebende tragen höchstens 140 Nahrung.
+- Bei Rückkehr nur freien Lagerplatz befüllen. Nicht eingelagerte Beute wird mit genauer Menge im Bericht als verfallen ausgewiesen. Bestehende heimische Überbestände bleiben erhalten; diese werden nicht gekürzt.
+- General-XP = 2 × vernichtete NPC-Verteidiger. Kampfbeitrag = vernichtete NPC-Verteidiger minus eigene verlorene Infanterie. Beispiel 10 gegen 5: 10 XP und +2 Punkte; 4 gegen 5: 4 XP und −2 Punkte.
+- Negativen kumulierten Kampfbeitrag erhalten; nur die Gesamtanzeige aus Gebäude- und aktiven weiteren Beiträgen auf mindestens null begrenzen. Keine doppelte Niederlagenstrafe.
+- Alle regelabhängigen Ergebnisse versionieren und nur einmal abrechnen. Gegnerdetails und Kampfresultat bleiben bis zur vorgesehenen Berichtsfreigabe privat.
+
 ### Weitere Reihenfolge
 
-1. Auftrag 7: Generalverwaltung mit mehreren Generälen und Skillgrundlage vervollständigen; Kostenkurve und Bonuswirkungen gemeinsam festlegen. Bereits vorhandene Ausbildung und Aufklärung erhalten, verbleibende Lücken gezielt schließen.
-2. NPC-Farmzüge mit Garnison, Kampf, Verlusten, typabhängiger Traglast, gemeinsamer Beute und Regeneration; General-Erfahrung sowie Kampf-/Niederlagenpunkte ergänzen.
+1. Auftrag 8: NPC-Farmzüge gemäß obiger Spezifikation implementieren und prüfen.
+2. Skill-Kostenkurve, manuelle/automatische Umrechnung und Bonuswirkungen anhand des vorhandenen Vorschlags gemeinsam entscheiden; keine automatische Aktivierung durch den Farmauftrag.
 3. Laufenden typabhängigen Nahrungsunterhalt mit oder unmittelbar nach dem Farmkreislauf aktivieren, nachdem Verbrauchs- und Mangelregeln festgelegt sind.
 4. Universität/Forschung und anschließend die Rollen Bürgermeister/Forschungsgeneral.
 5. LKWs und Ölwirtschaft einschließlich ziviler Raffinerien und typabhängiger Mobilmachungskosten; die konkrete Einordnung gegenüber Forschung bei der Etappenplanung prüfen.
@@ -135,7 +163,7 @@ Nach dem abgeschlossenen React-Refactoring erweitert CODEX_PROMPT.md jetzt die V
 
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 
-Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung ist nach dem abgeschlossenen React-Refactoring Gegenstand des aktuellen Auftrags 7. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
+Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung und Skillgrundlage sind mit Auftrag 7 laut Nutzer und Repository-Dokumentation umgesetzt; die Freischaltung von Skills bleibt eine separate Entscheidung. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
 
 ### Bestätigte Anforderungen
 
@@ -170,7 +198,7 @@ Technischer Vorschlag für die Kostenbasis: insgesamt erworbene Skillpunkte eins
 
 ## Geplante Logistik: Traglast, LKWs und Öl
 
-Nutzerergänzung vom 28.09.2026. Diese Anforderungen sind geplant, nicht als implementiert bestätigt. Sie erweitern die späteren Farm- und Einheitenaufträge; LKWs und Öl gehören nicht automatisch zum aktuellen Generalauftrag 7.
+Nutzerergänzung vom 28.09.2026. Typabhängige Traglast wird in Auftrag 8 konkretisiert, noch nicht als implementiert bestätigt. LKWs und Öl bleiben spätere Erweiterungen und gehören nicht zum aktuellen NPC-Farmauftrag 8.
 
 ### Bestätigte Anforderungen
 
@@ -317,15 +345,15 @@ Diese bestätigten Anforderungen sind laut README und Projektstand mit Auftrag 5
 
 Auftrag 5 konkretisiert die Ausbauetappe mit ausdrücklich vorläufigen Arbeitsvorschlägen. Diese ersetzen keine endgültige Abstimmung der Balance und Altbestandsregeln.
 
-## Bestätigte Forschungsanforderungen vom 27.09.2026
-
-Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Generalauftrag 7.
-
 ## Vorschlag für die spätere Skillentscheidung
 
 Die in Auftrag 7 vorbereiteten Funktionen aktivieren noch keine Spielregel. Als leicht prüfbarer **Vorschlag**, nicht als War2Glory-Originalwert, könnte der n-te Skillpunkt `10 × n` XP kosten: Punkt 1 kostet 10 XP, Punkt 2 weitere 20 XP und die ersten drei zusammen 60 XP. Rest-XP bleiben erhalten. Eine manuelle Umrechnung macht die Entscheidung sichtbar und vermeidet überraschenden XP-Verbrauch; eine automatische Umrechnung wäre einfacher, müsste aber eindeutig mit der Erfahrungsvergabe ausgelöst werden. Empfohlen wird daher zunächst die manuelle Variante.
 
 Ein späterer Regelsatz sollte Grundwerte und Skillbeiträge getrennt halten. Führung könnte die maximal befehligte Truppenzahl erhöhen, Angriff den ausgeteilten und Verteidigung den vermiedenen Schaden beeinflussen. Konkrete Faktoren, Grenzen und Rundung müssen zusammen mit dem Kampfsystem beschlossen werden; aktuell verändert keine Verteilung Führungskapazität oder Kampfkraft.
+
+## Bestätigte Forschungsanforderungen vom 27.09.2026
+
+Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen NPC-Farmauftrag 8.
 
 ### Universität und Forschungsbereiche
 
