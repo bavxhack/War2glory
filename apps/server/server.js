@@ -6,7 +6,7 @@ import {
   advanceCity, BUILDINGS, capacityBreakdown, cityOffers, commanderScore, demolishBuilding, demolitionPreview,
   enqueueConstruction, MAX_LEVEL, MAX_QUEUE_LENGTH, productionRates, resourceCapacities, RULESET, STORAGE_RULES,
 } from '../../packages/game-core/index.js';
-import { advanceMilitary, barracksIsBusy, enqueueTraining, GENERAL_SKILL_RULES, MILITARY_RULES, renameGeneral, startScoutMission, UNITS } from '../../packages/game-core/military.js';
+import { advanceMilitary, barracksIsBusy, enqueueTraining, GENERAL_SKILL_RULES, MILITARY_RULES, renameGeneral, startRaidMission, startScoutMission, UNITS } from '../../packages/game-core/military.js';
 import { WorldStorage } from './storage.js';
 import { acceptWebSocket } from './websocket.js';
 import { publicMap } from '../../packages/game-core/world.js';
@@ -26,7 +26,7 @@ const mimeTypes = new Map([['.html', 'text/html; charset=utf-8'], ['.js', 'text/
 
 function commandFingerprint(type, payload) {
   const allowed = type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'unit', 'amount'] :
-    type === 'scouting.start' ? ['targetId', 'generalId', 'scouts'] : type === 'general.rename' ? ['generalId', 'name', 'expectedVersion'] : ['slotId', 'buildingId', 'version'];
+    type === 'scouting.start' ? ['targetId', 'generalId', 'scouts'] : type === 'raid.start' ? ['targetId', 'generalId', 'infantry'] : type === 'general.rename' ? ['generalId', 'name', 'expectedVersion'] : ['slotId', 'buildingId', 'version'];
   return JSON.stringify(Object.fromEntries(allowed.map(key => [key, payload?.[key]])));
 }
 
@@ -54,7 +54,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     return {
       world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ruleset: RULESET,
       player: { id: player.playerId, commanderName: account.displayName }, city, serverTime: now,
-      military, score: commanderScore(city), buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
+      military, score: { ...commanderScore(city), combat: military.combatScore ?? 0, total: Math.max(0, commanderScore(city).buildings + (military.combatScore ?? 0)) }, buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
       capacityBreakdown: capacityBreakdown(city), productionRates: productionRates(city), storageRules: STORAGE_RULES,
       maxLevel: MAX_LEVEL, maxQueueLength: MAX_QUEUE_LENGTH,
       units: UNITS, militaryRules: MILITARY_RULES, generalSkillRules: GENERAL_SKILL_RULES,
@@ -86,6 +86,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       const result = message.type === 'auth.register'
         ? await storage.register(message.payload.username, message.payload.password, message.payload.cityName)
         : await storage.login(message.payload.username, message.payload.password);
+      await storage.exclusive(async () => { await storage.advanceWorld(clock()); result.player = await storage.loadPlayer(result.player.playerId); });
       loginAttempts.delete(address);
       setIdentity(peer, result);
       response(peer, 'auth.success', message.requestId, {
@@ -111,6 +112,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       if (message.type === 'auth.resume') {
         const result = await storage.resume(message.payload.sessionToken);
         if (!result) return response(peer, 'auth.required', message.requestId, { message: 'Sitzung ist ungültig oder abgelaufen.' });
+        await storage.exclusive(async () => { await storage.advanceWorld(clock()); result.player = await storage.loadPlayer(result.player.playerId); });
         setIdentity(peer, result);
         response(peer, 'auth.success', message.requestId, { expiresAt: result.session.expiresAt, commanderName: result.account.displayName, playerId: result.player.playerId });
         response(peer, 'city.snapshot', message.requestId, snapshot(result.player, result.account));
@@ -126,6 +128,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       }
       if (message.type === 'city.sync') {
         return storage.exclusive(async () => {
+          await storage.advanceWorld(clock());
           const player = await storage.loadPlayer(peer.playerId);
           player.city = advanceCity(player.city, clock());
           player.military = advanceMilitary(player.military, clock(), new Map(storage.world.map.entities.filter(entity => entity.kind === 'npc').map(entity => [entity.id, entity])));
@@ -149,6 +152,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       }
       if (message.type === 'building.preview') {
         return storage.exclusive(async () => {
+          await storage.advanceWorld(clock());
           const player = await storage.loadPlayer(peer.playerId); const now = clock();
           player.military = advanceMilitary(player.military, now, new Map(storage.world.map.entities.filter(entity => entity.kind === 'npc').map(entity => [entity.id, entity])));
           const slot = [...player.city.buildingSlots, ...(player.city.militarySlots ?? [])].find(item => item.id === message.payload.slotId);
@@ -157,8 +161,9 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           return response(peer, 'building.preview', message.requestId, preview);
         });
       }
-      if (!['construction.enqueue', 'training.enqueue', 'scouting.start', 'building.demolish', 'general.rename'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
+      if (!['construction.enqueue', 'training.enqueue', 'scouting.start', 'raid.start', 'building.demolish', 'general.rename'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
       await storage.exclusive(async () => {
+        await storage.advanceWorld(clock());
         const player = await storage.loadPlayer(peer.playerId);
         const now = clock();
         player.processedCommands = (player.processedCommands ?? []).filter(item => item.acceptedAt + COMMAND_TTL_MS > now).slice(-MAX_PROCESSED_COMMANDS);
@@ -181,6 +186,13 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
             const origin = storage.world.map.entities.find(entity => entity.playerId === peer.playerId);
             const target = storage.world.map.entities.find(entity => entity.id === message.payload.targetId);
             player.military = startScoutMission(player.military, { id: message.requestId, ...message.payload }, now, origin, target);
+            player.military.missions.at(-1).type = 'scout';
+            player.military.missions.at(-1).eventSequence = storage.nextEventSequence();
+          }
+          if (message.type === 'raid.start') {
+            const origin = storage.world.map.entities.find(entity => entity.playerId === peer.playerId);
+            const target = storage.world.map.entities.find(entity => entity.id === message.payload.targetId);
+            player.military = startRaidMission(player.military, { id: message.requestId, ...message.payload }, now, origin, target, storage.nextEventSequence());
           }
           if (message.type === 'general.rename') player.military = renameGeneral(player.military, message.payload);
           let result = {};
@@ -191,6 +203,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
             player.city = demolition.city; result = { demolition: demolition.result };
           }
           player.processedCommands.push({ id: message.requestId, fingerprint, acceptedAt: now, result });
+          if (message.type === 'scouting.start' || message.type === 'raid.start') await storage.saveWorld();
           await storage.savePlayer(player);
         }
         response(peer, 'command.ok', message.requestId, { duplicate: Boolean(existing), ...(existing?.result ?? player.processedCommands.at(-1)?.result ?? {}) });
@@ -259,10 +272,13 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
   });
 
   const timer = setInterval(async () => {
+    try { await storage.exclusive(() => storage.advanceWorld(clock())); }
+    catch (error) { console.error('Weltzeit konnte nicht gespeichert werden:', error.message); }
     for (const [playerId, peers] of playerConnections) {
       if (!peers.size) continue;
       try {
         await storage.exclusive(async () => {
+          await storage.advanceWorld(clock());
           const player = await storage.loadPlayer(playerId);
           const previousJobs = new Set(player.city.constructionQueue.map(job => job.id));
           const nextCity = advanceCity(player.city, clock());

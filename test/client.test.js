@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequestId } from '../apps/client/request-id.js';
-import { dragToPan } from '../apps/client/map-navigation.js';
+import { dragToPan, finishMapPointer, mapSelectionCoordinate } from '../apps/client/map-navigation.js';
 
 test('Anfrage-IDs funktionieren ohne crypto.randomUUID', () => {
   const generated = createRequestId({
@@ -28,4 +28,21 @@ test('Zeigerbewegungen werden in Kartenfelder zum Verschieben umgerechnet', () =
   assert.deepEqual(dragToPan({ x: 200, y: 150 }, { x: 100, y: 200 }, 50), { x: 2, y: -1 });
   assert.deepEqual(dragToPan({ x: 100, y: 100 }, { x: 90, y: 91 }, 50), { x: 0, y: 0 });
   assert.throws(() => dragToPan({ x: 0, y: 0 }, { x: 1, y: 1 }, 0), /positive Feldgröße/);
+});
+
+test('ein Klick auf ein Kartenfeld wird nicht als Ziehen unterdrückt', () => {
+  assert.deepEqual(finishMapPointer({ x: 100, y: 100 }, { x: 100, y: 100 }, 50), {
+    offset: { x: 0, y: 0 },
+    suppressClick: false,
+  });
+  assert.deepEqual(finishMapPointer({ x: 100, y: 100 }, { x: 25, y: 100 }, 50), {
+    offset: { x: 2, y: 0 },
+    suppressClick: true,
+  });
+});
+
+test('Pointer-Capture behält das ursprünglich angeklickte Kartenfeld', () => {
+  assert.equal(mapSelectionCoordinate({ clickedCoordinate: null, pressedCoordinate: '4:7', suppressClick: false }), '4:7');
+  assert.equal(mapSelectionCoordinate({ clickedCoordinate: '4:7', pressedCoordinate: '4:7', suppressClick: false }), '4:7');
+  assert.equal(mapSelectionCoordinate({ clickedCoordinate: null, pressedCoordinate: '4:7', suppressClick: true }), null);
 });

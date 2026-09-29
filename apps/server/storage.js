@@ -1,13 +1,13 @@
 import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
-import { copyFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
-import { allSlots, constructionQuote, newCity, RULESET } from '../../packages/game-core/index.js';
-import { newMilitary, normalizeGeneral } from '../../packages/game-core/military.js';
-import { randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
+import { advanceCity, allSlots, constructionQuote, newCity, resourceCapacities, RULESET } from '../../packages/game-core/index.js';
+import { generalLevel, newMilitary, normalizeGeneral, resolveNpcCombat } from '../../packages/game-core/military.js';
+import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 5;
+export const PLAYER_SCHEMA_VERSION = 6;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -47,26 +47,39 @@ export class WorldStorage {
     this.playersDirectory = join(this.directory, 'players');
     this.accountsFile = join(this.directory, 'accounts.json');
     this.worldFile = join(this.directory, 'world.json');
+    this.journalFile = join(this.directory, 'transaction.json');
     this.worldName = worldName;
     this.clock = clock;
   }
 
   async initialize() {
     await mkdir(this.playersDirectory, { recursive: true });
+    await this.#recoverTransaction();
     this.accounts = await readJson(this.accountsFile, { schemaVersion: 1, accounts: [], sessions: [] });
     this.world = await readJson(this.worldFile, null);
     if (!this.world) {
-      this.world = createWorld(this.worldName);
+      this.world = createWorld(this.worldName, this.clock());
       await atomicWrite(this.worldFile, this.world);
     } else if (this.world.schemaVersion === 1) {
       await copyFile(this.worldFile, `${this.worldFile}.schema-1.backup`);
-      this.world = { ...this.world, schemaVersion: WORLD_SCHEMA_VERSION, map: createMap(this.world.instanceId) };
+      this.world = { ...this.world, schemaVersion: WORLD_SCHEMA_VERSION, nextEventSequence: 1, map: createMap(this.world.instanceId, this.clock()) };
       await this.#assignMissingLocations();
+      await atomicWrite(this.worldFile, this.world);
+    } else if (this.world.schemaVersion === 2) {
+      const activatedAt = this.clock();
+      this.world.schemaVersion = WORLD_SCHEMA_VERSION;
+      this.world.nextEventSequence = 1;
+      for (const npc of this.world.map.entities.filter(entity => entity.kind === 'npc')) {
+        const capacity = NPC_RULES.infantryPerDifficulty * npc.difficulty;
+        npc.garrison = { amount: capacity, capacity, progressMs: 0, updatedAt: activatedAt, activatedAt };
+        npc.resources.food.updatedAt = activatedAt;
+      }
       await atomicWrite(this.worldFile, this.world);
     } else if (this.world.schemaVersion !== WORLD_SCHEMA_VERSION || !this.world.map) {
       throw new Error(`Unbekannte Welt-Schemaversion: ${this.world.schemaVersion}.`);
     }
     await this.#assignMissingLocations();
+    await this.advanceWorld(this.clock());
     this.#expireSessions();
     await atomicWrite(this.accountsFile, this.accounts);
     return this;
@@ -173,14 +186,110 @@ export class WorldStorage {
       player.military ??= newMilitary(player.playerId);
       player.military.generals = (player.military.generals?.length ? player.military.generals : newMilitary(player.playerId).generals)
         .map(general => normalizeGeneral({ ownerId: player.playerId, ...general }));
-      player.schemaVersion = PLAYER_SCHEMA_VERSION;
+      player.schemaVersion = 5;
       player.ruleset = RULESET;
+    }
+    if (player.schemaVersion === 5) {
+      migrated = true;
+      player.military.combatScore ??= 0;
+      for (const mission of player.military.missions) mission.type ??= 'scout';
+      player.schemaVersion = PLAYER_SCHEMA_VERSION;
     }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
     if (migrated) await this.savePlayer(player);
     return player;
   }
   savePlayer(player) { return atomicWrite(this.playerFile(player.playerId), player); }
+  saveWorld() { return atomicWrite(this.worldFile, this.world); }
+
+  nextEventSequence() { return this.world.nextEventSequence++; }
+
+  async advanceWorld(now) {
+    const files = (await readdir(this.playersDirectory)).filter(file => file.endsWith('.json')).sort();
+    const players = new Map();
+    for (const file of files) {
+      const player = await this.loadPlayer(file.slice(0, -5));
+      players.set(player.playerId, player);
+    }
+    const events = [];
+    for (const player of players.values()) for (const mission of player.military.missions) {
+      if (mission.status === 'outbound' && mission.arrivesAt <= now) events.push({ at: mission.arrivesAt, sequence: mission.eventSequence ?? Number.MAX_SAFE_INTEGER, phase: 'arrival', player, mission });
+      if ((mission.status === 'outbound' || mission.status === 'returning') && mission.returnsAt <= now) events.push({ at: mission.returnsAt, sequence: mission.eventSequence ?? Number.MAX_SAFE_INTEGER, phase: 'return', player, mission });
+    }
+    events.sort((a, b) => a.at - b.at || a.sequence - b.sequence || a.player.playerId.localeCompare(b.player.playerId) || a.phase.localeCompare(b.phase));
+    let worldChanged = false;
+    const changed = new Set();
+    for (const event of events) {
+      const { player, mission, at } = event;
+      player.city = advanceCity(player.city, at);
+      const completedTraining = player.military.trainingQueue.filter(job => job.finishesAt <= at);
+      for (const job of completedTraining) player.military.units[job.unit] += job.amount;
+      player.military.trainingQueue = player.military.trainingQueue.filter(job => job.finishesAt > at);
+      if (event.phase === 'arrival' && mission.status === 'outbound') {
+        const npcIndex = this.world.map.entities.findIndex(entity => entity.id === mission.targetId && entity.kind === 'npc');
+        if (npcIndex < 0) throw new Error('Einsatzziel existiert nicht mehr.');
+        const npc = advanceNpc(this.world.map.entities[npcIndex], at);
+        if (mission.type === 'raid') {
+          const combat = resolveNpcCombat(mission.infantry, npc.garrison.amount);
+          npc.garrison.amount -= combat.defenderLosses;
+          npc.garrison.updatedAt = at;
+          const availableFood = Math.floor(npc.resources.food.amount);
+          const loadedFood = combat.victory ? Math.min(combat.survivors * 20, availableFood) : 0;
+          npc.resources.food.amount -= loadedFood;
+          mission.result = { ...combat, loadedFood, capacity: combat.survivors * 20, generalExperience: combat.defenderLosses * 2,
+            combatScore: combat.defenderLosses - combat.attackerLosses, defenders: combat.defenderLosses + npc.garrison.amount };
+        } else {
+          mission.intelligence = { capturedAt: at, food: { amount: npc.resources.food.amount, capacity: npc.resources.food.capacity },
+            garrison: { amount: npc.garrison.amount, capacity: npc.garrison.capacity } };
+        }
+        this.world.map.entities[npcIndex] = npc;
+        mission.status = 'returning';
+        worldChanged = true;
+      } else if (event.phase === 'return' && mission.status === 'returning') {
+        mission.status = 'completed';
+        const general = player.military.generals.find(item => item.id === mission.generalId);
+        if (!general) throw new Error('Einsatzgeneral existiert nicht mehr.');
+        general.status = 'idle';
+        if (mission.type === 'raid') {
+          const result = mission.result;
+          player.military.units.infantry += result.survivors;
+          const capacity = resourceCapacities(player.city).food;
+          const free = Math.max(0, capacity - player.city.resources.food);
+          const storedFood = Math.min(free, result.loadedFood);
+          player.city.resources.food += storedFood;
+          general.experience += result.generalExperience;
+          general.level = generalLevel(general.experience); general.leadership = general.level * 20;
+          player.military.combatScore += result.combatScore;
+          if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'raid', missionId: mission.id,
+            targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, startedAt: mission.startedAt,
+            arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, infantry: mission.infantry, ...result, storedFood, overflowFood: result.loadedFood - storedFood, ruleset: mission.ruleset });
+        } else {
+          player.military.units.scout += mission.scouts;
+          if (!player.military.rewardedNpcIds.includes(mission.targetId)) { player.military.rewardedNpcIds.push(mission.targetId); general.experience += 10; general.level = generalLevel(general.experience); general.leadership = general.level * 20; }
+          if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'scout', missionId: mission.id, targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, coordinates: mission.coordinates, capturedAt: mission.intelligence?.capturedAt, returnedAt: mission.returnsAt, intelligence: mission.intelligence });
+        }
+      } else continue;
+      changed.add(player.playerId);
+    }
+    if (worldChanged || changed.size) await this.#commitTransaction([...changed].map(id => players.get(id)), worldChanged);
+    return players;
+  }
+
+  async #commitTransaction(players, worldChanged) {
+    const transaction = { id: randomUUID(), world: worldChanged ? this.world : null, players };
+    await atomicWrite(this.journalFile, transaction);
+    if (transaction.world) await atomicWrite(this.worldFile, transaction.world);
+    for (const player of transaction.players) await atomicWrite(this.playerFile(player.playerId), player);
+    await unlink(this.journalFile);
+  }
+
+  async #recoverTransaction() {
+    const transaction = await readJson(this.journalFile, null);
+    if (!transaction) return;
+    if (transaction.world) await atomicWrite(this.worldFile, transaction.world);
+    for (const player of transaction.players ?? []) await atomicWrite(this.playerFile(player.playerId), player);
+    await unlink(this.journalFile);
+  }
 
   async #newSession(playerId) {
     this.#expireSessions();
@@ -226,17 +335,19 @@ function createTokenHash(token) {
 
 function numericSeed(value) { return [...value].reduce((seed, character) => Math.imul(seed ^ character.charCodeAt(0), 16777619) >>> 0, 2166136261); }
 
-function createMap(instanceId) {
+function createMap(instanceId, activatedAt = Date.now()) {
   const seed = numericSeed(instanceId);
   const config = { ...WORLD_CONFIG };
   const entities = [];
   for (let index = 0; index < config.npcCount; index += 1) {
     let position = (seed + index * 97) % (config.width * config.height);
     while (entities.some(entity => entity.x === position % config.width && entity.y === Math.floor(position / config.width)) || terrainAt(position % config.width, Math.floor(position / config.width), seed) === 'water') position = (position + 1) % (config.width * config.height);
-    entities.push({ id: `npc-${index + 1}`, kind: 'npc', name: `Freie Stadt ${index + 1}`, difficulty: 1 + index % 3, x: position % config.width, y: Math.floor(position / config.width),
-      resources: { schemaVersion: 1, food: { amount: 500, capacity: 500, regenerationPerHour: 25, updatedAt: Date.now() } } });
+    const difficulty = 1 + index % 3; const garrisonCapacity = NPC_RULES.infantryPerDifficulty * difficulty;
+    entities.push({ id: `npc-${index + 1}`, kind: 'npc', name: `Freie Stadt ${index + 1}`, difficulty, x: position % config.width, y: Math.floor(position / config.width),
+      resources: { schemaVersion: 1, food: { amount: 500, capacity: 500, regenerationPerHour: 25, updatedAt: activatedAt } },
+      garrison: { amount: garrisonCapacity, capacity: garrisonCapacity, progressMs: 0, updatedAt: activatedAt, activatedAt } });
   }
   return { seed, revision: 1, config, entities };
 }
 
-function createWorld(worldName) { const instanceId = randomUUID(); return { schemaVersion: WORLD_SCHEMA_VERSION, instanceId, worldName, map: createMap(instanceId) }; }
+function createWorld(worldName, activatedAt) { const instanceId = randomUUID(); return { schemaVersion: WORLD_SCHEMA_VERSION, instanceId, worldName, nextEventSequence: 1, map: createMap(instanceId, activatedAt) }; }
