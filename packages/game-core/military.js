@@ -5,6 +5,8 @@ export const MILITARY_RULES = Object.freeze({
   minimumTravelMs: 5000,
   firstScoutExperience: 10,
   maxGeneralLevel: 10,
+  raidRuleset: 'npc-pve-1-provisional',
+  infantryFoodCapacity: 20,
 });
 
 export const UNITS = Object.freeze({
@@ -169,5 +171,35 @@ export function startScoutMission(previous, command, now, origin, target) {
   const travelMs = Math.max(MILITARY_RULES.minimumTravelMs, Math.ceil(distance) * MILITARY_RULES.scoutTravelMsPerField);
   military.units.scout -= command.scouts; general.status = 'scouting';
   military.missions.push({ id: command.id, targetId: target.id, targetName: target.name, coordinates: { x: target.x, y: target.y }, generalId: general.id, generalName: general.name, scouts: command.scouts, status: 'outbound', startedAt: now, arrivesAt: now + travelMs, returnsAt: now + 2 * travelMs });
+  return military;
+}
+
+export function resolveNpcCombat(attackers, defenders) {
+  if (!Number.isSafeInteger(attackers) || attackers <= 0) throw new Error('Die Infanteriezahl muss eine positive Ganzzahl sein.');
+  if (!Number.isSafeInteger(defenders) || defenders < 0) throw new Error('Ungültige NPC-Garnison.');
+  if (defenders === 0) return { victory: true, attackerLosses: 0, defenderLosses: 0, survivors: attackers };
+  if (attackers > defenders) {
+    const attackerLosses = Math.min(attackers, Math.ceil(defenders / 2));
+    return { victory: true, attackerLosses, defenderLosses: defenders, survivors: attackers - attackerLosses };
+  }
+  const defenderLosses = Math.min(defenders, Math.floor(attackers / 2));
+  return { victory: false, attackerLosses: attackers, defenderLosses, survivors: 0 };
+}
+
+export function startRaidMission(previous, command, now, origin, target, eventSequence) {
+  const military = structuredClone(previous);
+  const general = military.generals.find(item => item.id === command.generalId);
+  if (!general || general.status !== 'idle') throw new Error('Kein eigener freier General ausgewählt.');
+  if (!Number.isSafeInteger(command.infantry) || command.infantry < 1 || command.infantry > military.units.infantry || command.infantry > general.leadership) {
+    throw new Error('Nicht genügend verfügbare Infanterie oder Führungskapazität.');
+  }
+  if (!target || target.kind !== 'npc') throw new Error('Nur NPC-Städte können angegriffen werden.');
+  const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
+  const travelMs = Math.max(MILITARY_RULES.minimumTravelMs, Math.ceil(distance) * MILITARY_RULES.scoutTravelMsPerField);
+  military.units.infantry -= command.infantry;
+  general.status = 'raiding';
+  military.missions.push({ id: command.id, type: 'raid', ruleset: MILITARY_RULES.raidRuleset, eventSequence, targetId: target.id,
+    targetName: target.name, coordinates: { x: target.x, y: target.y }, generalId: general.id, generalName: general.name,
+    infantry: command.infantry, status: 'outbound', startedAt: now, arrivesAt: now + travelMs, returnsAt: now + 2 * travelMs });
   return military;
 }

@@ -1,5 +1,27 @@
-export const WORLD_SCHEMA_VERSION = 2;
+export const WORLD_SCHEMA_VERSION = 3;
 export const WORLD_CONFIG = Object.freeze({ width: 24, height: 24, npcCount: 18, maxViewport: 15 });
+export const NPC_RULES = Object.freeze({ version: 'npc-pve-1-provisional', infantryPerDifficulty: 5, rebuildMs: 300_000 });
+
+export function advanceNpc(npc, at) {
+  if (npc.kind !== 'npc') return npc;
+  const next = structuredClone(npc);
+  const food = next.resources.food;
+  const foodElapsed = Math.max(0, at - food.updatedAt);
+  food.amount = Math.min(food.capacity, food.amount + food.regenerationPerHour * foodElapsed / 3_600_000);
+  food.updatedAt = Math.max(food.updatedAt, at);
+  const garrison = next.garrison;
+  const elapsed = Math.max(0, at - garrison.updatedAt);
+  if (garrison.amount >= garrison.capacity) {
+    garrison.progressMs = 0;
+  } else {
+    const progress = (garrison.progressMs ?? 0) + elapsed;
+    const rebuilt = Math.min(garrison.capacity - garrison.amount, Math.floor(progress / NPC_RULES.rebuildMs));
+    garrison.amount += rebuilt;
+    garrison.progressMs = garrison.amount >= garrison.capacity ? 0 : progress - rebuilt * NPC_RULES.rebuildMs;
+  }
+  garrison.updatedAt = Math.max(garrison.updatedAt, at);
+  return next;
+}
 
 export function mapDistance(from, to) {
   if (![from?.x, from?.y, to?.x, to?.y].every(Number.isFinite)) throw new Error('Ungültige Koordinaten.');

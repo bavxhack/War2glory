@@ -12,10 +12,40 @@ import {
   demolitionPreview,
   resourceCapacities,
 } from '../packages/game-core/index.js';
-import { advanceMilitary, applySkillConversion, applySkillDistribution, barracksIsBusy, enqueueTraining, generalLevel, newMilitary, normalizeGeneral, previewSkillConversion, renameGeneral, skillSummary, startScoutMission, validateGeneralName } from '../packages/game-core/military.js';
-import { mapDistance, publicMap, randomFreeLocation, terrainAt } from '../packages/game-core/world.js';
+import { advanceMilitary, applySkillConversion, applySkillDistribution, barracksIsBusy, enqueueTraining, generalLevel, newMilitary, normalizeGeneral, previewSkillConversion, renameGeneral, resolveNpcCombat, skillSummary, startRaidMission, startScoutMission, validateGeneralName } from '../packages/game-core/military.js';
+import { advanceNpc, mapDistance, publicMap, randomFreeLocation, terrainAt } from '../packages/game-core/world.js';
 
 const command = (id, slotId, building) => ({ id, slotId, building });
+
+test('Vorläufiger NPC-Kampf ist deterministisch und validiert Truppenmengen', () => {
+  assert.deepEqual(resolveNpcCombat(10, 5), { victory: true, attackerLosses: 3, defenderLosses: 5, survivors: 7 });
+  assert.deepEqual(resolveNpcCombat(4, 5), { victory: false, attackerLosses: 4, defenderLosses: 2, survivors: 0 });
+  assert.deepEqual(resolveNpcCombat(5, 5), { victory: false, attackerLosses: 5, defenderLosses: 2, survivors: 0 });
+  assert.deepEqual(resolveNpcCombat(5, 0), { victory: true, attackerLosses: 0, defenderLosses: 0, survivors: 5 });
+  for (const invalid of [0, -1, 1.5]) assert.throws(() => resolveNpcCombat(invalid, 5), /positive Ganzzahl/);
+});
+
+test('NPC-Regeneration erhält Bruchteile und spart bei voller Garnison nichts an', () => {
+  const npc = { kind: 'npc', resources: { food: { amount: 100, capacity: 500, regenerationPerHour: 25, updatedAt: 0 } },
+    garrison: { amount: 4, capacity: 5, progressMs: 0, updatedAt: 0 } };
+  const partial = advanceNpc(npc, 150_000);
+  assert.equal(partial.resources.food.amount, 100 + 25 * 150 / 3600);
+  assert.deepEqual({ amount: partial.garrison.amount, progressMs: partial.garrison.progressMs }, { amount: 4, progressMs: 150_000 });
+  const rebuilt = advanceNpc(partial, 300_000);
+  assert.deepEqual({ amount: rebuilt.garrison.amount, progressMs: rebuilt.garrison.progressMs }, { amount: 5, progressMs: 0 });
+  const fullLater = advanceNpc(rebuilt, 900_000);
+  fullLater.garrison.amount = 4;
+  assert.equal(advanceNpc(fullLater, 900_001).garrison.amount, 4);
+  assert.equal(npc.resources.food.amount, 100);
+});
+
+test('Farmzug reserviert General und Infanterie und wahrt das Führungslimit', () => {
+  const origin = { x: 0, y: 0 }; const target = { id: 'npc-1', kind: 'npc', name: 'NPC', x: 1, y: 0 };
+  const military = newMilitary('p1'); military.units.infantry = 21;
+  const mission = startRaidMission(military, { id: 'raid-1', generalId: 'general-p1', infantry: 20 }, 100, origin, target, 7);
+  assert.equal(mission.units.infantry, 1); assert.equal(mission.generals[0].status, 'raiding'); assert.equal(mission.missions[0].eventSequence, 7);
+  assert.throws(() => startRaidMission(military, { id: 'raid-2', generalId: 'general-p1', infantry: 21 }, 100, origin, target, 8), /Führungskapazität/);
+});
 
 test('Produktion und Übergänge verändern den Ausgangszustand nicht', () => {
   const city = newCity(0);
