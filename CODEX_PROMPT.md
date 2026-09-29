@@ -1,97 +1,115 @@
-# Codex-Auftrag 6: Bestehende Spieloberfläche schrittweise auf React und Vite umstellen
+# Codex-Auftrag 7: Generalverwaltung, Eigenschaften-Modal und Skillgrundlage
 
-## Ziel und Arbeitsweise
+## Ausgangspunkt und Ziel
 
-Der Nutzer hat das empfohlene Refactoring beauftragt und meldet das Lagerhaus als umgesetzt. README und Projektplan beschreiben inzwischen auch Lagerwirtschaft und Abriss als implementiert. Prüfe diesen Ausgangspunkt im Code; der Planungschat hat keine eigenen Laufzeittests durchgeführt.
+Der Nutzer bestätigt am 29.09.2026, dass das React-Refactoring umgesetzt ist und funktioniert. README und Projektplan beschreiben den React-/Vite-Client, Lagerwirtschaft, Abriss, Ausbildung, Startgeneral und NPC-Aufklärung als implementiert. Prüfe den tatsächlichen Code; der Planungschat hat keine eigenen Laufzeittests ausgeführt.
 
-Arbeite vom aktuellen main im Repository bavxhack/War2glory aus. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md, docs/DEVELOPMENT.md und docs/FEDERATION.md. Prüfe offene PRs und bestehende Änderungen und bewahre fremde Arbeit. Dieser Auftrag ersetzt Auftrag 5 als aktuellen Arbeitsauftrag; die Spielregeln aus Auftrag 5 bleiben bestehen.
+Arbeite vom aktuellen main im Repository bavxhack/War2glory aus. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md. Prüfe offene PRs und fremde Änderungen; vorhandene Arbeit erhalten. Auftrag 7 ersetzt Auftrag 6 als aktuellen Arbeitsauftrag.
 
-Der Planungschat erstellt ausschließlich Anweisungen. Du, Codex, führst das Refactoring und seine Prüfungen durch und öffnest einen Pull Request. Ziel ist dieselbe vollständig bedienbare Anwendung mit einer wartbaren React-Oberfläche. Migriere in überprüfbaren Abschnitten, führe aber den gesamten hier beschriebenen Frontend-Umfang zu Ende.
+Der Planungschat erstellt nur Anweisungen. Du implementierst diesen Auftrag in überprüfbaren Schritten, testest ihn und lieferst einen Pull Request. Keine erneute React-Migration und keine neuen Kampfregeln.
 
-## 1. Bestandsaufnahme und verbindliche Grenzen
+Jetzt spielbarer Ablauf: Militärbereich öffnen → vorhandene Generäle ansehen → General auswählen → Details im Modal öffnen → Namen ändern → freien General gezielt für eine Aufklärung auswählen → Fortschritt und Status nach Rückkehr und Wiederbeitritt sehen.
 
-- Erfasse vor Änderungen die tatsächlich vorhandenen Bildschirme, Dialoge, Interaktionen, WebSocket-Nachrichten, Clientzustände und Testabdeckung. Halte eine kompakte Funktionsliste für die spätere Abnahme fest.
-- Nimm Referenz-Screenshots der vorhandenen Stadt, Militärseite, Weltkarte, Lageranzeige und Abrissvorschau auf, soweit ausführbar.
-- Behalte JavaScript mit ES-Modulen bei; React-Komponenten dürfen JSX verwenden. Kein zusätzlicher TypeScript-Umbau.
-- React übernimmt Darstellung und lokale Bedienzustände. Server und packages/game-core bleiben für Regeln, Preise, Eigentum, Zeit, Punkte und Fortschritt verbindlich.
-- Erhalte bestehende WebSocket-Nachrichten und serverseitige JSON-Spielstände. Das Refactoring benötigt keine Spielstandmigration, Ressourcenänderung oder Rücksetzung.
-- Änderungen am Server dürfen nur der nötigen Auslieferung des Frontend-Builds dienen, nicht der Neuimplementierung von Spielregeln oder Authentifizierung.
-- Bestehende Stadtdarstellung, Gebäude, Texte, CSS-Grafiken und mobile Bedienung erhalten. Kein gleichzeitiges Redesign und kein Ersatz der vorhandenen Karte durch eine Demo.
-- Öl, Nahrungsunterhalt, Kämpfe, Forschung, zusätzliche Generalrekrutierung und neue Skillregeln bleiben spätere Aufgaben. Schon vorhandene Funktionen vollständig übernehmen.
-- Die frühere Leitlinie „ohne Framework zum Einstieg“ ist durch die Nutzerentscheidung für React im Frontend erweitert; der Spielkern bleibt frameworkunabhängig.
+Zusätzlich wird die technische Grundlage für Erfahrung → Skillpunkte → Eigenschaften vollständig vorbereitet und in isolierten Tests durchgespielt. Ihre Aktivierung im regulären Spiel benötigt noch die unten genannten Produktentscheidungen. Stelle die Grundlage nicht als bereits aktiviertes Skillsystem dar.
 
-## 2. React-/Vite-Grundlage und Betrieb
+## A. Bestätigte Anforderungen und bewusste Grenzen
 
-- Führe React, React DOM, Vite und die erforderliche JSX-Integration im vorhandenen Repository ein. Wähle zueinander und zur Projektlaufzeit passende stabile Versionen anhand offizieller Dokumentation; Lockfile committen.
-- Behalte apps/client als Frontendbereich. Nutze die vorhandene Projektstruktur, ohne einen unnötigen Monorepo-, Serverframework- oder Paketmanagerumbau.
-- Ergänze nachvollziehbare npm-Skripte für Entwicklung, Frontend-Build und bestehende Tests. Halte Abhängigkeiten begrenzt; zusätzliche State-, UI- oder Routingbibliotheken nur bei konkret begründetem Bedarf.
-- Für die Entwicklung darf Vite Assets ausliefern und den bestehenden WebSocket-Endpunkt /game an den Spielserver weiterleiten. Gleiche Protokoll-/Pfadangaben mit docs/WEBSOCKET.md ab.
-- Erhalte Host-/Origin-Prüfungen und bestehende Sitzungsübergabe. Erlaube nur erforderliche Entwicklungsursprünge in einer expliziten Entwicklungskonfiguration. Keine globale Freigabe aller Origins oder Abschaltung bestehender Schutzprüfungen.
-- Im normalen Betrieb liefert der bestehende Node-Server den gebauten Client aus. Kein Vite-Entwicklungsserver im Produktivcontainer.
-- npm start und die vorhandenen Welt-/Portoptionen sowie start:alpha und start:beta müssen nach dokumentierter Installation und Build weiter funktionieren. Bei fehlendem Build eine verständliche Anleitung statt leerer Seite liefern.
-- Docker und CI für reproduzierbaren Paketinstallationsschritt, Tests und Frontend-Build anpassen. Das vorhandene Spielstand-Volume und ein Serverprozess je Welt bleiben erhalten.
-- Baue Browserassets ohne Servermodule, Dateisystemzugriffe, private Spielstände oder Geheimnisse. Keine Tokens in öffentliche Frontend-Konfiguration aufnehmen.
-- Assets mit passenden MIME-Typen und sicheren Pfaden ausliefern; Fehler bei unbekannten Assets nicht durch ein HTML-Dokument verdecken. Bestehende statische öffentliche Endpunkte erhalten.
-- Übernimm die bestehende Seitennavigation zunächst möglichst direkt. Falls echte neue URL-Routen nötig sind, definiere gezielte SPA-Fallbacks, ohne /game oder andere Serverendpunkte zu verschlucken.
-- Dokumentiere die neuen Installations-/Buildschritte, Ports, Entwicklungskonfiguration und Containerabläufe.
+- Ein Kommandant kann mehrere Generäle besitzen. Wann und wie weitere Generäle erzeugt/rekrutiert werden, entscheidet der Nutzer später.
+- Jeder General hat eigene Identität, Namen, Erfahrung, Eigenschaften und Einsatzstatus.
+- Eigenschaften sind Führung, Angriff und Verteidigung.
+- Erfahrung soll später aus Kämpfen entstehen, in Skillpunkte umgerechnet und auf Eigenschaften verteilt werden. Der Erfahrungsbedarf je weiterem Skillpunkt steigt mit dem Fortschritt.
+- Spätere Einsatzrollen sind Truppengeneral, Bürgermeister und Forschungsgeneral. Rollen sind keine zusätzlichen Eigenschaften.
+- Kostenkurve, automatische oder manuelle Umrechnung, Bonusformeln, Obergrenzen, Rekrutierung und Rücksetzung sind nicht bestätigt.
+- Kein Rekrutierungsbutton, keine zusätzlichen Gratisgeneräle, kein neuer aktiver Kampf-/Forschungsbonus und keine Umstellung der bestehenden Levelregeln auf Grundlage erfundener Balancewerte.
+- Bereits vorhandene Aufklärungs-Erfahrung und Führungskapazität bleiben erhalten. Keine stillschweigende Abschaffung der bisherigen Erstzielbelohnung.
 
-## 3. Gemeinsamer Clientzustand und WebSocket-Lebenszyklus
+## B. Mehrere Generäle im persistenten Spielmodell
 
-- Trenne Transport, serverbestätigten Clientzustand und React-Komponenten. Eine zentrale Transportschicht pro Browsertab verwaltet Verbindung, Anmeldung/Sitzungswiederaufnahme, Ereignisverteilung und offene Anfragen.
-- React-Komponenten abonnieren Zustände und rufen benannte Aktionen auf. Keine eigenständige WebSocket-Verbindung je Komponente und kein zweiter paralleler Ereigniszustand für dieselben Spieldaten.
-- Verwende eine überschaubare Zustandslösung; lokale Formularentwürfe, ausgewählter Bauplatz und offene Dialoge bleiben lokale Bedienzustände. Dauerhafter Fortschritt kommt weiterhin vom Server.
-- Erhalte requestId, Fehlerantworten und Deduplizierung. Eine Mutation wird durch eine Benutzeraktion ausgelöst, nicht als Nebeneffekt eines Renderns oder bloßen Komponenten-Mounts.
-- Nach Verbindungsabbruch ausstehende Mutationen nicht blind mit neuen IDs erneut senden. Nutze das bestehende Wiederaufnahmeverfahren und gleiche den bestätigten Zustand ab.
-- Abonnements, Listener, Timer und Reconnect-Versuche sauber aufräumen. Navigation, Hot Reload und React Strict Mode dürfen keine doppelten Verbindungen, Aktionen oder unkontrollierten Wiederverbindungszyklen erzeugen.
-- Bei Logout, Sitzungsablauf und Kontowechsel private Zustände sowie offene Dialoge/Anfragen zuverlässig trennen. Verspätete Antworten einer alten Sitzung dürfen nicht im neuen Konto erscheinen.
-- Datenfluss bleibt ereignisbasiert. Kein neues HTTP-Polling für Spielstände. HTTP für statische HTML-/CSS-/JS-Assets ist weiterhin normal.
-- Sichtbare Countdowns oder interpolierte Ressourcenanzeigen dürfen lokal aktualisiert werden, aber keine Bauabschlüsse, Ressourcenbuchungen oder Punkte verbindlich berechnen. Nach Servermeldungen korrigieren.
-- Verhindere unnötige Neuberechnung der gesamten Weltkarte bei jedem Countdown. Getrennte Ansichten gezielt abonnieren; Optimierungen nur bei beobachtbarem Bedarf.
+- Prüfe zuerst, ob bereits eine Sammlung statt eines Einzelobjekts existiert. Erweitere diese gezielt statt eine zweite Datenstruktur einzuführen.
+- Jeder General erhält eine stabile ID und den eindeutigen Besitzer innerhalb seiner Welt. Namen sind veränderbare Anzeigewerte, niemals Schlüssel für Einsätze.
+- Ein vorhandener General wird verlustfrei übernommen: ID, Name, Erfahrung, Level, Kapazität, Einsatzstatus und aktive Verweise bleiben erhalten.
+- Migriere versioniert und idempotent. Mehrfachlogin, Reconnect, Neustart und erneute Migration dürfen keinen weiteren Startgeneral vergeben.
+- Ein Startgeneral ist eine einmalige Einstiegshilfe, keine maximale Bestandszahl. Mehrfachbesitz darf im Datenmodell und in der Ansicht nicht auf das erste Element reduziert werden.
+- Prüfe mehrere Generäle mit isolierten Testspielständen. Testdaten dürfen nie zusätzliche Generäle in regulären Weltverzeichnissen erzeugen. Kein öffentlich nutzbarer Test-/Erzeugungsendpunkt.
+- Erhalte Aufträge, Gebäude, Truppen, Rohstoffe, Forschungsplatzhalter und Kommandantenpunkte. Keine Spielstandrücksetzung.
+- Rollen/Zuordnungen erweiterbar halten. Jetzt sind nur die vorhandenen militärischen Einsätze aktiv; Bürgermeister und Forschungsgeneral bekommen noch keine Ernennungsaktion oder Wirkung.
 
-## 4. Migration der vorhandenen Oberfläche
+## C. Generalübersicht und React-Modal
 
-Führe diese Reihenfolge in nachvollziehbaren Commits durch:
+- Ergänze im Militärbereich eine übersichtliche Generalverwaltung. Zeige je General Name, Level, Erfahrung und verfügbaren/gebundenen Status; vorhandene Kapazität nachvollziehbar anzeigen.
+- Ein Klick öffnet ein Modal des konkreten Generals. Ein ausgewählter General bleibt anhand seiner ID ausgewählt, auch wenn die Sammlung neu übertragen oder anders sortiert wird.
+- Ermögliche Namensänderungen. Vorläufige technische Eingabegrenze: nach Entfernen äußerer Leerzeichen 1 bis 40 Unicode-Codepunkte, keine Steuerzeichen; dokumentiere diese UI-Grenze, behalte normale Unicode-Namen bei. Gleichnamige Generäle dürfen existieren, da IDs unterscheiden.
+- Der Server prüft Namen und Eigentum. Namen sicher als Text darstellen; keine ungeprüfte HTML-Ausgabe.
+- Zeige Führung, Angriff und Verteidigung mit ihren tatsächlich gespeicherten bzw. abgeleiteten Werten. Fehlende Werte nicht als bereits verdiente Boni darstellen.
+- Zeige Gesamt-Erfahrung, für die spätere Umrechnung verfügbare Erfahrung und gegebenenfalls freie Skillpunkte klar getrennt. Noch nicht aktive Funktionen verständlich kennzeichnen.
+- Bereite Plus-/Minus-Bedienung für einen lokalen Verteilungsentwurf und eine Vorschau vor. Minus nimmt nur noch ungespeicherte Änderungen zurück; bereits gespeicherte Verteilungen erhalten keine kostenlose Rücksetzung.
+- Im regulären Spiel bleiben Umrechnung und Skillverteilung serverseitig deaktiviert, solange kein freigegebener Regelsatz vorliegt. Im Modal erklären, dass die Skillregeln noch festgelegt werden; keine scheinbar funktionierenden Schaltflächen.
+- Die Namensbearbeitung funktioniert unabhängig davon. Schließen/Abbrechen einer Skillvorschau bucht keine Erfahrung oder Punkte.
+- Normale Servermeldungen dürfen einen Namensentwurf nicht ungefragt überschreiben. Bei konkurrierender Änderung einen nachvollziehbaren Konflikt bzw. aktualisierten Stand anzeigen.
+- Mobile Bedienung, beschriftete Felder, Tastaturbedienung, Fokusführung, Escape und Fokusrückkehr berücksichtigen.
 
-1. React-App-Grundgerüst, Anmeldung/Sitzungszustand, Navigation, Verbindungsanzeige, Ressourcen-/Punkteanzeige und gemeinsame Dialogbausteine.
-2. Stadtansicht mit Gebäudeplätzen, Auswahl, Angeboten, Bau-/Ausbauaktionen, Warteschlange, Lagerhaus und Kapazitätsdetails.
-3. Abrissvorschau und Bestätigung einschließlich historischer Investitionshinweise, Kapazitäts-/Produktions-/Punkteänderungen und serverseitiger Sperren.
-4. Militärbereich mit eigenen Bauplätzen, vorhandenen Kasernen, Ausbildung, Warteschlangen, Truppen und aktueller Generaldarstellung.
-5. Weltkarte einschließlich Koordinatensuche, Ausschnittsladen, Zoom, Maus-/Touch-Verschieben, Auswahl, öffentlichen Details und vorhandener Aufklärung.
-6. Einsatzauswahl, Hin-/Rückmarschübersicht und private historische Berichte sowie alle weiteren in der Bestandsaufnahme gefundenen bestehenden Interaktionen.
+## D. Nachvollziehbare Erfahrungs- und Skillgrundlage
 
-- Baue fachlich verständliche Komponenten und Hooks, keine einzige riesige App-Komponente. Gemeinsame Dialoge, Ressourcenwerte und Warteschlangenanzeigen wiederverwenden, ohne unnötig ein allgemeines UI-Framework zu entwickeln.
-- Während der Migration darf ein klar abgegrenzter alter Teil übergangsweise bestehen. React und alter DOM-Code dürfen nie dieselben Elemente gleichzeitig verwalten.
-- Am Ende müssen sämtliche bestehenden Spielbildschirme im React-Client erreichbar sein. Überholte DOM-Renderer und Eventhandler entfernen; keine dauerhaft parallelen Frontends.
-- Vorhandene reine Karten-/Geometrie-/Formatierungsfunktionen können weiterverwendet werden. Falls eine imperative Grafikfläche existiert, über eine kontrollierte React-Komponente mit vollständigem Aufräumen integrieren.
-- Erhalte Kartenposition und Zoom bei gewöhnlichen Spielereignissen. Gesuchte Koordinaten, Bauplatzwahl und Formulare dürfen nicht durch jede Servermeldung ungewollt zurückgesetzt werden.
-- Erfolgs-, Fehler-, Lade- und Verbindungszustände müssen verständlich bleiben. Während unklarer Serverbestätigung keine scheinbar abgeschlossenen Käufe oder Abrisse anzeigen.
-- Nutzernamen und andere variable Texte sicher als Text darstellen. Kein ungeprüftes HTML für Benutzerinhalte.
-- Dialoge mit Tastatur bedienen können: sinnvolle Fokusführung, Escape/Abbrechen, beschriftete Felder und Fokusrückkehr. Responsive Stadt-/Militär-/Kartenbedienung erhalten.
+- Halte mindestens folgende Größen getrennt nachvollziehbar: insgesamt verdiente Erfahrung, bereits zur Skillumrechnung verwendete Erfahrung, noch verfügbare Erfahrung, insgesamt erworbene Skillpunkte, freie Skillpunkte und Verteilungen auf Eigenschaften.
+- Vermeide unnötig redundant gespeicherte Werte. Abgeleitete Werte müssen eindeutig aus dem verbindlichen Zustand berechenbar sein.
+- Bestehende Generallevel beruhen weiterhin auf der bislang geltenden Erfahrungsauswertung. Eine spätere XP-Ausgabe darf Gesamt-Erfahrung nicht löschen oder dadurch einen unbeabsichtigten Levelverlust erzeugen.
+- Migrationsregel für Generäle ohne vorheriges Skillsystem: vorhandene XP bleiben Gesamt-Erfahrung; keine erfundenen früheren Umrechnungen oder Skillbelohnungen. Neue Skillzähler/Verteilungen beginnen ohne vergebene Punkte. Falls im tatsächlichen Code schon Skillfortschritt existiert, verlustfrei erhalten und die abweichende Migration dokumentieren.
+- Technischer Vorschlag für die Kostenbasis: insgesamt jemals erworbene Skillpunkte einschließlich bereits verteilter Punkte. Kosten dürfen nicht sinken, nur weil freie Punkte ausgegeben werden. Diese Auslegung bleibt als Vorschlag gekennzeichnet.
+- Implementiere reine, konfigurierbare Berechnungsfunktionen im Spielkern für Vorschau, Umrechnung und Verteilung. Die produktive Konfiguration enthält noch keinen automatisch aktivierten neuen Regelsatz.
+- Ein gültiger Testregelsatz hat positive, ganzzahlige und mit der erworbenen Skillpunktzahl steigende XP-Kosten. Bei mehreren Umrechnungen wird jeder Punkt mit dem dann gültigen neuen Preis berechnet. Nicht benötigte Erfahrung bleibt übrig.
+- Teste exakte Schwellen, nicht ausreichende XP, mehrere aufeinanderfolgende Käufe, Rest-XP und numerische Grenzen. Keine negative Erfahrung, Bruchteile von Skillpunkten oder übergroße unkontrollierte Schleifen zulassen.
+- Invariante bei dem hier vorbereiteten Modell ohne Gratispunkte: erworbene Skillpunkte = freie Skillpunkte + Summe der verteilten Skillpunkte. Die Ausgabe von XP und Erzeugung von Skillpunkten erfolgen gemeinsam.
+- Grundwerte, zugewiesene Skillpunkte und daraus abgeleitete Boni sind getrennte Größen. Test-Bonusformeln ausdrücklich als Testdaten behandeln; keine versteckte neue produktive Führungskapazität oder Kampfkraft.
+- Automatische und manuelle Umrechnung dürfen nicht gleichzeitig dieselbe Erfahrung nutzen. Berechnungsbausteine unabhängig vom später gewählten Auslöser halten.
+- Für spätere Kampferfahrung eine nachvollziehbare, serverseitige Vergabe vorbereiten; noch keine neue Belohnungsquelle aktivieren. Wiederholte Ergebnisereignisse dürfen keine doppelte XP-Buchung erzeugen.
+- Kommandantenpunkte bleiben von General-XP und Skills getrennt.
 
-## 5. Prüfungen und Abnahme
+## E. Einsatzwahl und Schutz bestehender Aufklärung
 
-- Führe die vorhandenen Regel- und Serverintegrationstests aus. Passe Tests nicht so an, dass ungewollt geänderte Spielregeln als korrekt gelten.
-- Ergänze gezielte Frontend-/Integrationstests für zentrale Risiken des Umbaus statt Tests, die nur die Komponentenstruktur nachbilden.
-- Prüfe reproduzierbare Installation mit Lockfile, Frontend-Build und Start des gebauten Clients über den normalen Node-Server sowie den Container-Build.
-- Prüfe mindestens folgende Abläufe mit zwei unabhängigen Benutzerkontexten:
-  - Registrierung/Login, Reload, Logout/Kontowechsel und Sitzungswiederaufnahme.
-  - Bauen/Ausbauen, Warteschlangen, Kapazitätszuwachs und Lagerhaus.
-  - Abrissvorschau abbrechen bzw. bestätigen, gesperrter Abriss, Überbestand und aktualisierte Gebäudepunkte.
-  - Getrennte zivile/militärische Bauangebote und vorhandene Ausbildungsabläufe.
-  - Kartenbedienung, NPC-Aufklärung, Einsätze und private Berichte; keine privaten Daten beim zweiten Nutzer.
-  - Verbindung während einer Mutation unterbrechen, erneut verbinden und Zustand abgleichen: keine doppelte Zahlung, Auftragserzeugung oder Rückerstattung.
-  - Wiederholte Navigation und Strict Mode ohne doppelte aktive Listener/Verbindungen und ohne mehrfach gesendete Mutationen.
-- Mit einem vorhandenen Testspielstand arbeiten, der Gebäude, Lagerhaus, Truppen und laufende Vorgänge enthält. Produktionsdaten weder ins Repository kopieren noch überschreiben.
-- Vergleiche fachlich relevante Zustände vor/nach Umstellung; normale zeitabhängige Produktion und fällige Ereignisse berücksichtigen.
-- Browserprüfung in Desktop- und schmaler Mobilansicht: Stadt, Militär, Lager-/Abrissdialog, Karte, Missions-/Berichtsansicht. Nutze die Referenz-Screenshots zur Kontrolle; geliefertes Ergebnis mit Screenshots dokumentieren.
-- Keine neuen Konsolenfehler, fehlenden Assets oder endlosen Reconnects im normalen Betrieb.
-- Falls Tests mangels Werkzeug/Zugriff nicht ausführbar sind, benenne die Lücke konkret. Keine ungetestete Funktion als geprüft darstellen.
+- Im vorhandenen Aufklärungsdialog einen konkreten eigenen freien General auswählen. ID, verfügbare Kapazität und Status serverseitig prüfen.
+- Ein General kann nur einen aktiven Einsatz führen. Zwei Generäle dürfen unterschiedliche verfügbare Truppen gleichzeitig führen, soweit die bisherigen Einsatzregeln dies erlauben.
+- Verhindere doppelte Reservierung derselben stationierten Truppen über mehrere Generäle oder Verbindungen. Keine globale Sperre aller Generäle als Ersatz für korrekte Reservierung.
+- Speichere den eingesetzten General eindeutig an der Mission. Bei Rückkehr genau diesen General freigeben und ihm die vorhandene Belohnung zuweisen.
+- Die bisherige Erstaufklärungsbelohnung je Kommandant/NPC darf durch Wechsel des Generals nicht erneut erschlichen werden. Den vorhandenen Berechtigungsumfang erhalten.
+- Umbenennen verändert weder Missionen noch historische Berichte. Zeige in bereits erstellten Berichten den damals gespeicherten Namen, soweit vorhanden; IDs nicht nach Namen auflösen.
+- Laufende Einsätze behalten ihre beim Start geltenden relevanten Werte. Neue Fortschritte oder spätere Skills dürfen deren Dauer oder Kapazität nicht rückwirkend verändern.
+- Ungültige, fremde, nicht existierende oder bereits gebundene General-IDs ohne Buchung/Reservierung ablehnen.
 
-## 6. Lieferung und nächste Arbeit
+## F. WebSocket, Konsistenz und Speicherung
 
-- Liefere die vollständige Migration in einem reviewbaren Pull Request mit nachvollziehbaren Teilcommits. Nicht eigenständig zusammenführen oder deployen.
-- Beschreibe auf Deutsch Motivation, neue Frontendstruktur, Betriebsschritte, durchgeführte Tests und verbleibende Einschränkungen.
-- Aktualisiere README, Entwicklungs-/WebSocket-Dokumentation, Projektplan und erforderliche Projektleitlinien anhand des tatsächlichen Ergebnisses. Alte Aussagen „keine npm-Abhängigkeiten“ erst mit der Implementierung ersetzen.
-- Dokumentiere React/Vite als Grundlage künftiger Oberfläche, ohne den Spielkern an React zu koppeln.
-- Keine Balanceänderungen oder neuen Spielmechaniken in diesen PR mischen.
-- Danach folgt die Generalverwaltung mit mehreren Generälen und später die im Projektplan beschriebenen Farm-, Unterhalts-, Forschungs- und Föderationsschritte.
+- Verwende den zentralen React-Clientzustand und bestehenden WebSocket-Transport. Keine neue Verbindung je General oder Modal, kein HTTP-Spielpolling.
+- Ergänze benannte Nachrichten für die tatsächlich neuen Vorgänge entsprechend dem bestehenden versionierten Protokoll; vor Nutzung vorhandene Nachrichten prüfen. Client sendet Wünsche und IDs, keine verbindlichen Punkte, Kosten, Boni oder Besitzer.
+- Der Server erzwingt die deaktivierte Skillfunktion unabhängig von der Oberfläche. Testregeln nur in isolierten Tests oder ausdrücklich separater lokaler Testwelt injizieren, niemals per unberechtigtem Clientparameter aktivieren.
+- Besitz und Sitzung bei jedem Befehl prüfen; private Daten anderer Kommandanten weder in Listen, Berichten noch Fehlern übertragen.
+- Speichere akzeptierte Änderungen mit Deduplizierungsnachweis konsistent vor Erfolgsbestätigung. JSON-Persistenz und bestehenden seriellen Schreibablauf beibehalten.
+- Gleiche requestId mit gleichem Inhalt darf keine zweite Wirkung haben; gleicher Schlüssel mit anderem Inhalt wird abgewiesen.
+- Skillvorschau/Bestätigung für den späteren aktiven Modus an Generalversion und Regelversion binden. Parallel geänderte XP oder Verteilungen werden serverseitig neu geprüft; keine Teilbuchung bei Konflikten.
+- Reconnect und Kontowechsel dürfen keine alten Entwürfe für einen anderen Besitzer übernehmen. Verspätete Antworten eindeutig der Sitzung/Anfrage zuordnen.
+
+## G. Abnahme und gezielte Tests
+
+Führe vorhandene Tests und Frontend-Build aus. Ergänze gezielte Prüfungen für:
+
+1. Verlustfreie Migration mit vorhandenem General und laufendem Hin-/Rückmarsch; mehrfaches Laden ohne zusätzliche Generäle.
+2. Mehrere Generäle mit getrenntem Fortschritt, gleicher Namenswahl und stabilen IDs.
+3. Namensvalidierung, Unicode, sichere Darstellung, fremde IDs, doppelte Nachrichten und konkurrierende Änderungen.
+4. Auswahl verschiedener Generäle, gemeinsame Truppenverfügbarkeit, keine doppelte Reservierung, Rückgabe an den korrekten General.
+5. Erstaufklärungsbelohnung weiterhin je Kommandant/NPC, auch beim Wechsel des Generals.
+6. Skillberechnung mit isolierten Testregeln: steigende Kosten, Rest-XP, Grenzen, unveränderte Gesamt-XP/Level sowie konsistente Punktverteilung.
+7. Abbrechen eines Entwurfs ohne Mutation, keine kostenlose Rücksetzung gespeicherter Punkte und keine doppelte Umrechnung bei Parallelität oder Neustart.
+8. Skillaktionen bleiben in der regulären Konfiguration auch bei direkt gesendeten WebSocket-Befehlen deaktiviert.
+9. Speicherfehler, verlorene Erfolgsantwort und erneute Anfrage ohne doppelten Fortschritt.
+10. Zwei Konten: private General-/Skilldaten und aktive Einsätze strikt getrennt.
+11. Regression für Stadt/Militär, Lagerhaus/Abriss, Ausbildung, Karte und bestehenden React-Verbindungsablauf.
+
+Browserprüfung auf Desktop und Mobilansicht: Generalübersicht → Name ändern → Modal abbrechen/speichern → General für Aufklärung wählen → Rückkehr → erneuter Login. Mehrfachbesitz und Skillentwurf zusätzlich in isolierter Testwelt prüfen. Screenshots liefern und Testwelt klar von aktivem Produktumfang unterscheiden.
+
+## H. Lieferung und anschließende Entscheidungen
+
+- Liefere nachvollziehbare Commits und einen Pull Request, nicht selbstständig mergen oder deployen.
+- Aktualisiere README, docs/PROJECT.md und Protokoll-/Speicherdokumentation. Trenne klar: aktive Generalverwaltung, geprüfte Skillgrundlage und noch nicht aktivierte Spielregeln.
+- Dokumentiere Migration, Testergebnisse, Einschränkungen und den weiterhin einmaligen Startgeneral. Nicht ausgeführte Prüfungen ausdrücklich benennen.
+- Lege für den folgenden Planungsdialog einen kurzen Vorschlag für eine steigende XP-Kostenkurve mit Rechenbeispielen, automatische gegenüber manueller Umrechnung und Wirkungen von Führung/Angriff/Verteidigung vor. Das ist ein Vorschlag, kein stillschweigender produktiver Regelwechsel.
+- Spätere Rekrutierung und zivile Rollen bleiben offen. Keine Bonusaktivierung allein deshalb, weil eine Testfunktion existiert.
+- Anschließend folgt der eigene NPC-Farmauftrag: tatsächliche Garnison, Kampf/Verluste, typabhängige Traglast, gemeinsam begrenzte Vorräte, Rückkehr mit Nahrung, Regeneration, General-XP und Kampf-/Niederlagenpunkte. Vor diesem Auftrag werden Kampf- und Bonusregeln festgelegt.
+- Nahrungsunterhalt mit oder unmittelbar nach dem Farmkreislauf nach Festlegung von Verbrauch und Mangelregeln. Öl/LKWs, Forschung, Bürgermeister/Forschungsgeneral, PvP und Föderation bleiben gemäß Projektplan spätere Etappen.
