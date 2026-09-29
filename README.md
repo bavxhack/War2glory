@@ -77,7 +77,8 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Dauerhafte gemeinsame 24×24-Weltkarte mit Gelände, zufällig vergebenen eindeutigen Spielerpositionen und 18 gemeinsam sichtbaren NPC-Städten.
 - Kartenwechsel, Verschieben per Maus, Touch, Richtungstasten oder Pfeiltasten, Koordinatensuche, Zoom und öffentliche Stadtinformationen über WebSocket.
 - Abgeleitete Kommandantenpunkte, ein getrennter Militärbereich mit vier Bauplätzen sowie persistente Gruppenausbildung von Spähern/Infanterie mit drei eigenen Warteschlangenslots je Kaserne. Einheitenkarten visualisieren Späher als Aufklärungsflugzeuge.
-- Ein kostenloser Startgeneral und verlustfreie NPC-Aufklärung mit Hin-/Rückmarsch, privaten historischen Berichten und einmaliger Erstziel-Erfahrung.
+- Ein idempotent vergebener kostenloser Startgeneral, eine auf mehrere Generäle ausgelegte Verwaltung mit sicherer Namensänderung und verlustfreie NPC-Aufklärung mit gezielter Generalwahl, Hin-/Rückmarsch, privaten historischen Berichten und einmaliger Erstziel-Erfahrung.
+- Führung, Angriff, Verteidigung sowie getrennte Erfahrungs-/Skillzähler sind als persistente und getestete Grundlage vorhanden. XP-Umrechnung, Skillverteilung und deren Boni sind im regulären Spiel bewusst noch deaktiviert, bis ein Regelsatz beschlossen ist.
 - Spielregeln und Serverintegration mit `npm test` prüfen.
 
 Für die Frontend-Entwicklung laufen Spielserver und Vite getrennt: `npm start` stellt den WebSocket auf Port 3000 bereit, `npm run dev` die Oberfläche auf http://localhost:5173. Der Vite-Server leitet `/game` gezielt an den lokalen Spielserver weiter. Der normale Server und das Container-Image verwenden ausschließlich den mit `npm run build` erzeugten Client in `apps/client/dist`; fehlt er, erklärt die Startseite den erforderlichen Build-Schritt.

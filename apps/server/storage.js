@@ -3,11 +3,11 @@ import { copyFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/pr
 import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
 import { allSlots, constructionQuote, newCity, RULESET } from '../../packages/game-core/index.js';
-import { newMilitary } from '../../packages/game-core/military.js';
+import { newMilitary, normalizeGeneral } from '../../packages/game-core/military.js';
 import { randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 4;
+export const PLAYER_SCHEMA_VERSION = 5;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -165,6 +165,14 @@ export class WorldStorage {
         // A persisted queue entry can only have been created after the old server charged this exact ruleset quote.
         paidCost: job.paidCost ?? constructionQuote(job.level).cost,
       }));
+      player.schemaVersion = 4;
+      player.ruleset = RULESET;
+    }
+    if (player.schemaVersion === 4) {
+      migrated = true;
+      player.military ??= newMilitary(player.playerId);
+      player.military.generals = (player.military.generals?.length ? player.military.generals : newMilitary(player.playerId).generals)
+        .map(general => normalizeGeneral({ ownerId: player.playerId, ...general }));
       player.schemaVersion = PLAYER_SCHEMA_VERSION;
       player.ruleset = RULESET;
     }
