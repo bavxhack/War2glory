@@ -42,6 +42,7 @@ class TestSocket extends EventEmitter {
     while (this.buffer.length >= 2) {
       let length = this.buffer[1] & 127; let offset = 2;
       if (length === 126) { if (this.buffer.length < 4) return; length = this.buffer.readUInt16BE(2); offset = 4; }
+      if (length === 127) { if (this.buffer.length < 10) return; length = Number(this.buffer.readBigUInt64BE(2)); offset = 10; }
       if (this.buffer.length < offset + length) return;
       const opcode = this.buffer[0] & 15; const body = this.buffer.subarray(offset, offset + length); this.buffer = this.buffer.subarray(offset + length);
       if (opcode === 1) this.emit('event', JSON.parse(body.toString()));
@@ -402,4 +403,57 @@ test('research appointment and mission compete for the same binding; stale remov
     const requestId = a.send('general.researcher', { generalId: null, expectedRoleVersion: p.military.roleVersion - 1 }); assert.match((await a.next('command.error', requestId)).payload.message, /veraltet/);
     assert.equal((await running.server.storage.loadPlayer(p.playerId)).military.researcherGeneralId, generalId);
   }
+});
+
+test('Postbox: private delivery, all tabs, report/message reads, retry, offline delivery and restart', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'mail-ws-'));
+  let now = 100000;
+  let running = await start(directory, () => now);
+  const clients = [];
+  t.after(async () => { clients.forEach(client => client.close()); await close(running.server); rmSync(directory, { recursive: true, force: true }); });
+  const a = await websocket(running.port), b = await websocket(running.port), e = await websocket(running.port), b2 = await websocket(running.port);
+  clients.push(a, b, e, b2);
+  const alice = await authenticate(a, 'register', 'MailAlice');
+  const bob = await authenticate(b, 'register', 'MailBob');
+  await authenticate(e, 'register', 'MailEve');
+  await authenticate(b2, 'login', 'MailBob');
+  const payload = { recipient: 'mailbob', subject: '<script>Betreff</script>', body: 'Hallo\nKommandant!' };
+  const incoming = b.next('city.updated'), otherTab = b2.next('city.updated');
+  const id = a.send('mail.send', payload);
+  const receipt = (await a.next('command.ok', id)).payload;
+  assert.equal(receipt.duplicate, false);
+  for (const event of [await incoming, await otherTab]) {
+    assert.equal(event.payload.mailbox.unreadCount, 1);
+    assert.equal(event.payload.mailbox.messages[0].body, payload.body);
+    assert.equal(event.payload.mailbox.messages[0].senderId, alice.snapshot.player.id);
+  }
+  let sync = e.send('city.sync');
+  assert.deepEqual((await e.next('city.snapshot', sync)).payload.mailbox.messages, []);
+  const foreign = e.send('mail.read', { kind: 'message', id: receipt.messageId });
+  await e.next('command.error', foreign);
+  a.send('mail.send', payload, id);
+  assert.equal((await a.next('command.ok', id)).payload.duplicate, true);
+  a.send('mail.send', { ...payload, body: 'Anderer Inhalt' }, id);
+  await a.next('command.error', id);
+  const readTab = b2.next('city.updated');
+  const readId = b.send('mail.read', { kind: 'message', id: receipt.messageId });
+  await b.next('command.ok', readId);
+  assert.equal((await readTab).payload.mailbox.unreadCount, 0);
+  let player = await running.server.storage.loadPlayer(bob.snapshot.player.id);
+  player.military.reports.push({ id: 'new-scout', type: 'scout', returnedAt: now, intelligence: { food: { amount: 55 } } }, { id: 'new-raid', type: 'raid', returnedAt: now });
+  await running.server.storage.savePlayer(player);
+  sync = b.send('city.sync'); assert.equal((await b.next('city.snapshot', sync)).payload.mailbox.unreadCount, 2);
+  const reportRead = b.send('mail.read', { kind: 'report', id: 'new-scout' }); await b.next('command.ok', reportRead);
+  clients.forEach(client => client.close()); await close(running.server);
+  running = await start(directory, () => now);
+  const anew = await websocket(running.port); clients.push(anew); await authenticate(anew, 'login', 'MailAlice');
+  now += 61000;
+  const offline = anew.send('mail.send', { recipient: 'MailBob', subject: 'Offline', body: 'Bleibt gespeichert' }); await anew.next('command.ok', offline);
+  const bnew = await websocket(running.port); clients.push(bnew);
+  const resumed = await authenticate(bnew, 'login', 'MailBob');
+  assert.equal(resumed.snapshot.mailbox.unreadCount, 2); // unread raid and offline message
+  assert.equal(resumed.snapshot.mailbox.messages.length, 2);
+  assert.equal(resumed.snapshot.mailbox.messages[0].readAt, 100000);
+  assert.ok(resumed.snapshot.mailbox.readReportIds.includes('new-scout'));
+  assert.equal(resumed.snapshot.military.reports.length, 2);
 });

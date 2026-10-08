@@ -175,3 +175,11 @@ Schema 10 erhält alte Generäle, XP/Skills, Missionen, Forschung und Versorgung
 ### 20 individuelle Generalporträts
 
 Generäle und Bewerber erhalten ein dauerhaft gespeichertes Zufallsporträt aus 20 fiktiven Charakteren: 10 Frauen und 10 Männer. Die Bilder erscheinen in Bewerberkarten, Generalübersicht und Generalmodal. Das angezeigte Bewerberbild bleibt nach der Verpflichtung erhalten; innerhalb des eigenen Bestands werden Doppelbilder bei neuen Vergaben vermieden, solange freie Motive verfügbar sind. Schema 11 migriert bestehende Generäle und gespeicherte Bewerber einmalig zufällig, ohne ihre Namen, Eigenschaften, Skills, Rollen oder Aufträge zu verändern. Neustart und Umbenennen wechseln das Bild nicht. Herkunft und Katalog: `apps/client/assets/README.md`.
+
+## Postbox und private Nachrichten
+
+Die Postbox bündelt Aufklärungsberichte, Angriffsberichte, eingegangene Nachrichten und gesendete Nachrichten. Jeder Bereich zeigt höchstens zehn Einträge pro Seite, neueste zuerst, mit Suche und Ungelesen-Filter. Ein ausgewählter Bericht zeigt Verluste, Beute, Erfahrung beziehungsweise damalige Aufklärungswerte im Detail. Die bisherigen langen Berichtslisten im Militärbereich entfallen.
+
+Nachrichten gehen an den Kommandantennamen eines anderen registrierten Spielers derselben Welt; Antworten übernehmen Empfänger und Betreff. Betreff bis 100, Text bis 4000 Zeichen; maximal fünf neue Nachrichten pro Minute (eigene Prototypgrenze). Namen und Text werden ausschließlich als Text dargestellt. Nachrichten, Absenderkopie und Lesestatus bleiben nach Abmeldung/Neustart erhalten. Online-Spieler und deren weitere Tabs erhalten Änderungen über den bestehenden privaten WebSocket; Offline-Empfänger sehen sie beim nächsten Login.
+
+Bei neuen ungelesenen Nachrichten oder zurückgekehrten Aufklärungs-/Angriffsberichten blinkt das Postbox-Symbol rot und zeigt die ungelesene Anzahl. Öffnen eines Eintrags markiert nur diesen als gelesen. Bei reduzierter Bewegung bleibt das Symbol rot ohne Animation. Gesendete Nachrichten zählen nicht als ungelesener Eingang. Schema 12 ergänzt die Postbox; alle alten Berichte und Spielstände bleiben erhalten, historische Berichte gelten zunächst als gelesen. Es gibt noch keine Löschung, Anhänge oder Nachrichten zwischen Serverwelten.

@@ -19,9 +19,11 @@ export class WebSocketPeer extends EventEmitter {
   send(value) {
     if (this.#closed) return;
     const body = Buffer.from(JSON.stringify(value));
-    const header = body.length < 126
-      ? Buffer.from([0x81, body.length])
-      : Buffer.from([0x81, 126, body.length >> 8, body.length & 255]);
+    const header = Buffer.alloc(body.length < 126 ? 2 : body.length <= 65535 ? 4 : 10);
+    header[0] = 0x81;
+    if (body.length < 126) header[1] = body.length;
+    else if (body.length <= 65535) { header[1] = 126; header.writeUInt16BE(body.length, 2); }
+    else { header[1] = 127; header.writeBigUInt64BE(BigInt(body.length), 2); }
     this.socket.write(Buffer.concat([header, body]));
   }
 

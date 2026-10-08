@@ -1,6 +1,7 @@
 import { normalizeResearch } from '../../packages/game-core/research.js';
 import { normalizeOfficers, syncCandidates } from '../../packages/game-core/officers.js';
 import { assignMissingPortraits } from '../../packages/game-core/portraits.js';
+import { MAIL_RULES, validateMail } from '../../packages/game-core/mailbox.js';
 import { parseConfiguration } from './config.js';
 import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { copyFile, mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
@@ -12,7 +13,7 @@ import { advanceSupplyHistory, refreshSupplyAt, SUPPLY_RULES, settleSupplyAt } f
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 11;
+export const PLAYER_SCHEMA_VERSION = 12;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -139,6 +140,7 @@ export class WorldStorage {
         city: { ...newCity(now), name: typeof cityName === 'string' && cityName.trim().length >= 3 && cityName.trim().length <= 32 ? cityName.trim() : `${displayName}s Stadt` },
         military: newMilitary(playerId), generalSkillRuleset: GENERAL_SKILL_RULES.version, processedCommands: [], createdAt: now,
       };
+      player.mailbox = { messages: [], readReportIds: [] };
       normalizeOfficers(player);
       assignMissingPortraits(player, randomInt);
       const account = { playerId, displayName, normalized, password: credentials, createdAt: now };
@@ -259,6 +261,11 @@ export class WorldStorage {
       normalizeOfficers(player); player.schemaVersion = 10;
     }
     if (player.schemaVersion === 10) { migrated = true; assignMissingPortraits(player, randomInt); player.schemaVersion = 11; }
+    if (player.schemaVersion === 11) {
+      migrated = true;
+      player.mailbox = { messages: [], readReportIds: player.military.reports.map(report => report.id) };
+      player.schemaVersion = 12;
+    }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
     normalizeOfficers(player);
     if (migrated) await this.savePlayer(player);
@@ -266,6 +273,29 @@ export class WorldStorage {
   }
   savePlayer(player) { return atomicWrite(this.playerFile(player.playerId), player); }
   saveWorld() { return atomicWrite(this.worldFile, this.world); }
+
+  // Caller holds the world's exclusive queue. Delivery and sender copy share its recovery journal.
+  async sendMail(senderId, commandId, payload, now) {
+    const mail = validateMail(payload);
+    const sender = await this.loadPlayer(senderId);
+    const fingerprint = createHash('sha256').update(JSON.stringify(mail)).digest('hex');
+    const existing = sender.mailbox.messages.find(message => message.senderId === senderId && message.commandId === commandId);
+    if (existing) {
+      if (existing.fingerprint !== fingerprint) throw new Error('Diese Befehls-ID wurde bereits mit anderem Inhalt verwendet.');
+      return { players: [sender], messageId: existing.id, duplicate: true };
+    }
+    const account = this.accounts.accounts.find(account => account.normalized === mail.recipient);
+    if (!account) throw new Error('Empfänger in dieser Welt nicht gefunden.');
+    if (account.playerId === senderId) throw new Error('Bitte einen anderen Kommandanten wählen.');
+    if (sender.mailbox.messages.filter(message => message.senderId === senderId && message.sentAt > now - 60000).length >= MAIL_RULES.sendsPerMinute) throw new Error('Höchstens fünf Nachrichten pro Minute. Bitte später erneut senden.');
+    const recipient = await this.loadPlayer(account.playerId);
+    const message = { id: randomUUID(), commandId, fingerprint, senderId, senderName: sender.commanderName,
+      recipientId: recipient.playerId, recipientName: account.displayName, subject: mail.subject, body: mail.body, sentAt: now, readAt: null };
+    sender.mailbox.messages.push(structuredClone(message));
+    recipient.mailbox.messages.push(structuredClone(message));
+    await this.commitPlayers([sender, recipient]);
+    return { players: [sender, recipient], messageId: message.id, duplicate: false };
+  }
 
   nextEventSequence() { return this.world.nextEventSequence++; }
 
@@ -353,6 +383,8 @@ export class WorldStorage {
     if (worldChanged || changed.size) await this.#commitTransaction([...changed].map(id => players.get(id)), worldChanged);
     return players;
   }
+
+  async commitPlayers(players) { return this.#commitTransaction(players, false); }
 
   async #commitTransaction(players, worldChanged) {
     const transaction = { id: randomUUID(), world: worldChanged ? this.world : null, players };
