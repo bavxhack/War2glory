@@ -109,7 +109,7 @@ export function WorldView({ state, map, details, transport }) {
               aria-label={entity ? `${entity.name}, ${terrain.x}, ${terrain.y}` : `${terrain.type}, ${terrain.x}, ${terrain.y}`}
             >
               <span className="coordinates">{terrain.x},{terrain.y}</span>
-              {entity && <><span className="city-marker">{entity.type === 'npc' ? '♜' : '◆'}</span><strong>{entity.name}</strong></>}
+              {entity && <><img className="city-marker" src={entity.type === 'npc' ? '/assets/city-npc.svg' : '/assets/city-player.svg'} alt=""/><strong>{entity.name}</strong></>}
             </button>;
           })}
         </div>

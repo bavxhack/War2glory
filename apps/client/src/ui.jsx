@@ -7,7 +7,9 @@ export const canAfford = (state, quote) => Object.entries(quote.cost).every(([re
 export const capacitySummary = capacities => Object.entries(capacities).map(([resource, value]) => `${resourceLabels[resource]} ${value}`).join(' · ');
 
 export function ActionButton({ label, detail, disabled, onClick }) { return <button type="button" className="action" disabled={disabled} onClick={onClick}><strong>{label}</strong><span>{detail}</span></button>; }
-export function BuildingArt({ type }) { return <span className={`building-art ${type}`} aria-hidden="true">{type === 'sawmill' && <><i className="house"/><i className="logs"/></>}{type === 'quarry' && <><i/><i/><i/></>}{type === 'farm' && <><i className="barn"/><i className="field"/></>}{type === 'warehouse' && <><i className="warehouse-box"/><i className="warehouse-door"/></>}</span>; }
+export function BuildingArt({ type }) {
+  return <img className="building-art" src={`/assets/buildings/${type}.svg`} alt="" aria-hidden="true"/>;
+}
 
 export function Dialog({ open, title, kicker, danger = false, onClose, children, actions }) {
   const ref = useRef(null); const returnFocus = useRef(null);

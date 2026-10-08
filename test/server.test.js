@@ -96,6 +96,9 @@ test('WebSocket: getrennte Konten, Sitzung, Deduplizierung, Push und Neustart', 
     assert.equal((await fetch(`${running.url}/map-navigation.js`)).status, 200);
     assert.equal((await fetch(`${running.url}/assets/scout-aircraft.svg`)).headers.get('content-type'), 'image/svg+xml');
     assert.equal((await fetch(`${running.url}/assets/infantry.svg`)).status, 200);
+    assert.equal((await fetch(`${running.url}/assets/buildings/barracks.svg`)).status, 200);
+    assert.equal((await fetch(`${running.url}/assets/general.svg`)).status, 200);
+    assert.equal((await fetch(`${running.url}/assets/city-npc.svg`)).status, 200);
     assert.equal((await fetch(`${running.url}/api/state`)).status, 410);
     const a = await websocket(running.port); const b = await websocket(running.port); clients.push(a, b);
     const authA = await authenticate(a, 'register', 'Alpha'); const authB = await authenticate(b, 'register', 'Bravo');
