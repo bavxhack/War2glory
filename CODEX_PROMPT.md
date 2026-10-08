@@ -1,8 +1,12 @@
-# Codex-Auftrag 13: Forschungsfreischaltungen, Ölwirtschaft und LKW-Farmzüge
+# Codex-Auftrag 13: Ölwirtschaft, LKWs, Stadtversorgung und verzögerte Ankunft
 
 ## Auftrag und Arbeitsweise
 
 Der Nutzer bestätigt Auftrag 12 am 08.10.2026 als abgeschlossen und beauftragt den nächsten Schritt. Implementiere einen vollständigen Ablauf: Ölverarbeitung erforschen → zivile Ölraffinerie bauen → Motorisierung erforschen → Fahrzeugfabrik auf Militärbauplatz bauen → LKWs herstellen → Infanterie und LKWs gemeinsam zum NPC schicken → begrenzte Nahrung erbeuten und zurückbringen.
+
+Verbindliche Nutzerergänzung vom 09.10.2026: Unterwegs befindliche Truppen verbrauchen keine Nahrung aus der Stadt. Beim Angriff/Farmzug soll eine zusätzliche Ankunftsverzögerung in Minuten wählbar sein, für die der Ölbedarf linear steigt. Kampfflugzeuge, Raketenwerfer und zusätzliche Generalfähigkeiten für Luftvorteile sind für eine spätere Phase vorgemerkt, nicht jetzt zu implementieren.
+
+Diese Fassung ersetzt die frühere Versorgung reisender Truppen in Auftrag 13. Bereits begonnene Arbeiten anpassen und Daten bewahren. Konkrete neue Zuschläge/Grenzen sind vorläufige Balancevorschläge; die drei genannten Nutzeranforderungen sind verbindlich.
 
 Der Planungschat aktualisiert ausschließlich Anweisungen. Du implementierst auf Basis des aktuellen main in bavxhack/War2glory, liest AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md, beachtest offene PRs/fremde Änderungen und lieferst einen getesteten PR ohne selbstständiges Merge/Deployment. Vorläufige neue Zahlen sind eigene Balancevorschläge, keine War2Glory-Originalwerte.
 
@@ -11,7 +15,7 @@ Auftrag 12 sowie die danach ergänzten individuellen Porträts und die Postbox e
 Reihenfolge als nachvollziehbare Teilcommits:
 1. Neue Ressource, zwei Forschungsfreischaltungen und Gebäude.
 2. Fahrzeugherstellung und typabhängige Einsatzvorschau einschließlich Öl.
-3. Gemischte Farmzüge, Transportverluste, Versorgung und Berichte.
+3. Gemischte Farmzüge, Ankunftsverzögerung, stationärer Nahrungsunterhalt und Berichte.
 4. Migration/Integration prüfen und Dokumentation vervollständigen.
 
 ## 1. Konkrete Ansatzpunkte
@@ -20,7 +24,7 @@ Gegen tatsächlichen Arbeitsstand verifizieren:
 - packages/game-core/index.js: RESOURCE_KEYS enthält wood/stone/food; Bauangebote, Ressourceninitialisierung, Kapazitäten, Investitionen, Produktion und Rückerstattung auf Öl erweitern.
 - packages/game-core/research.js: derzeit ein globales maxLevel und einheitliche Kosten/Dauer. Technologien benötigen eigene Voraussetzungen, Maximalstufe und Grundkosten/-dauer, ohne alte Technologien zu verändern.
 - packages/game-core/military.js: Einheiten scout/infantry, Ausbildung bislang kasernengebunden; startRaidMission und Missionsdaten nutzen einzelne Infanteriefelder.
-- packages/game-core/supply.js: livingUnitGroups, Hungerverluste und Rückwegtraglast sind teilweise explizit an Infanterie bzw. Späher gebunden.
+- packages/game-core/supply.js: livingUnitGroups mischt stationierte und reisende Einheiten für Unterhalt/Hunger. Bestandsanzeige und versorgungspflichtige Gruppen bewusst trennen. Ab neuem gespeichertem Regelwechsel zählt nur stationierter Bestand; historische Zeiträume benötigen weiterhin die alte Abrechnung.
 - apps/server/storage.js: Kampfauswertung, Beute und Rückkehr rechnen derzeit mit survivors × 20 sowie Infanterie. Diese Stellen gemeinsam generalisieren; nicht nur UI-Eingabe für LKWs ergänzen.
 - Auftrag 12 verwendet npc-pve-3-general-bases-provisional, Grundwerte plus Skills und beim Start gespeicherte Boni. Alte Kampfversionen weiter unterstützen.
 - Storage enthält Schema 12, Porträtmigrationen, Nachrichten und Lesestatus. Nächste Migration daran anschließen; kein Überspringen alter Migrationen.
@@ -80,7 +84,7 @@ Vier bestehende Wirtschafts-/Lagertechnologien bleiben unverändert. Zwei neue T
 
 Vorläufige Werte:
 
-| Typ | Kampfwirkung | Nahrungstraglast | Nahrung pro Stunde | Öl je Einheit/Feld/einfache Strecke |
+| Typ | Kampfwirkung | Nahrungstraglast | Nahrung pro Stunde bei Stationierung | Öl je Einheit/Feld/einfache Strecke |
 | --- | --- | --- | --- | --- |
 | Infanterie | Bestehende Kampfformel | 20 | Bestehende ENV, Standard 360 | 0 |
 | Späher | Bisherige Aufklärung, nicht in Farmzügen | 0 | Bestehende ENV, Standard 180 | 0 |
@@ -88,17 +92,41 @@ Vorläufige Werte:
 
 - LKW ist transportfähig, nicht unverwundbar. Keine Erhöhung der Infanteriestärke, Siegchance oder Verringerung ihrer Verluste allein durch mehr LKWs.
 - Die Ölstandards 0 für bestehende Einheiten vermeiden eine neue zwingende Ölhürde für bisherige reine Infanterie-/Spähereinsätze. Betreiber können typabhängige Raten ändern.
-- Fahrgeschwindigkeit zunächst wie vorhandene Farmzüge: pro Richtung max(5 Sekunden, ceil(Luftlinienentfernung) × 5 Sekunden). Keine neue Wegfindung, Geländekosten oder Geschwindigkeitsboni.
+- Grundreisezeit T zunächst wie vorhandene Farmzüge: pro Richtung max(5 Sekunden, ceil(Luftlinienentfernung) × 5 Sekunden). Optionale Hinreiseverlängerung siehe unten; Rückreise bleibt T. Keine neue Wegfindung, Geländekosten oder Geschwindigkeitsboni.
 - Für neue Missionen Distanzfelder d = max(1, ceil(Luftlinienentfernung)).
-- Gesamtöl = ceil(2 × d × Summe(entsendete Anzahl je Typ × Ölrate je Typ)). Faktor 2 umfasst Hin- und Rückweg; nur Gesamtsumme einmal aufrunden.
+- Unverzögerter ungerundeter Ölbedarf B = 2 × d × Summe(entsendete Anzahl je Typ × Ölrate je Typ). Faktor 2 umfasst Hin- und Rückweg. Ohne Verzögerung Gesamtöl = ceil(B); mit Verzögerung kommt vor einmaliger Gesamtrundung der unten definierte Zuschlag hinzu.
 - Beispiel 20 Infanteristen und 4 LKWs bei Distanz 5: ceil(2 × 5 × (20 × 0 + 4 × 1)) = 40 Öl.
 - Gesamtes Öl beim erfolgreichen Start aus der Heimatstadt einmalig abbuchen, zusammen mit Truppenreservierung, Generalbindung, Missionssnapshot und Wiederholungsbeleg.
 - Fehlendes Öl verhindert Start ohne Teilbuchung. Keine spätere Rückwegabbuchung, kein zusätzliches Öl pro Tick und kein automatisches Auffüllen.
 - Verluste oder ausgefallener Angriff erstatten keinen bereits bezahlten Kraftstoff. Keine neue Abbruchaktion in diesem Auftrag.
 - Eingesetzte Infanterie/Späher werden nur dann ölpflichtig, wenn der Betreiber ausdrücklich ihre Raten erhöht. Auch neue Aufklärungsstarts benötigen dann die serverseitige Ölvorschau/-prüfung.
 - Alte bereits laufende Missionen behalten 0 neu fällige Ölkosten; niemals rückwirkend belasten.
-- Neue Mission speichert Entfernungsgrundlage, Hin-/Rückwegkosten, Einheitensnapshot, Preisregelversion, bezahltes Gesamtöl und Traglastwerte. Künftige Konfigurationswechsel verändern diese Werte nicht.
+- Neue Mission speichert Entfernungsgrundlage, Grundreisezeit, Zusatzverzögerung, Hin-/Rückwegkosten, Ölzuschlag, Einheitensnapshot, Preisregelversion, bezahltes Gesamtöl, Ankunft/Rückkehr und Traglastwerte. Künftige Konfigurationswechsel verändern diese Werte nicht.
 - Ölverbrauch und Kapazität anhand tatsächlich gestarteter Truppen; Client kann weder Preise noch Distanzen festlegen.
+
+### Zusätzliche Ankunftsverzögerung für Angriffe/Farmzüge
+
+- Im Startdialog zusätzliche Verzögerung in ganzen Minuten einstellen, Standard 0. Vorläufig maximal 1440 Minuten (24 Stunden), durch MAX_ATTACK_DELAY_MINUTES konfigurierbar.
+- Truppen und General verlassen die Stadt bei erfolgreichem Start sofort und sind ab dann gebunden/unterwegs. Es ist keine spätere Abreise und kein geplanter Stadt-Warteauftrag.
+- Bei Grundhinreise T und Zusatzverzögerung D gilt: arrivesAt = startedAt + T + D; returnsAt = arrivesAt + T. Nur die Hinreise verlängern.
+- Nutzerbeispiel: T = 1 Minute, Zusatzverzögerung = 30 Minuten → Ankunft nach 31 Minuten, Rückkehr nach 32 Minuten ab Start. „30 Minuten“ bedeutet zusätzliche Zeit, nicht Ankunft bei Minute 30.
+- Verzögerung wird nur vor Start gewählt. Kein kostenloses nachträgliches Verlängern, Verkürzen, Umplanen oder Abbrechen.
+- NPC-Regeneration, Kampf und Beute erst am gespeicherten tatsächlichen Ankunftstermin abrechnen. Kein früher Kampf am ursprünglichen Termin, keine frühzeitige Reservierung von NPC-Vorräten.
+- Gleichzeitige Ankünfte weiterhin deterministisch über vorhandene Ereignisnummern ordnen; mehrere Tabs und Wiederanmeldung ändern keine Termine.
+- In dieser Etappe für vorhandene NPC-Farmangriffe aktivieren. Spätere PvP-Angriffe sollen denselben Mechanismus nutzen können, PvP hier nicht implementieren. Aufklärung unterstützt weiterhin keine Zusatzverzögerung; unerlaubten positiven Parameter serverseitig ablehnen.
+
+Vorläufiger linearer Ölzuschlag:
+- OIL_DELAY_PER_UNIT_PER_MINUTE, Standard 0,1 Öl je entsendeter Einheit und zusätzlicher Minute.
+- Bei m Verzögerungsminuten und N tatsächlich entsendeten Einheiten über alle zulässigen Typen: Zuschlag Z = m × N × Zuschlagsrate.
+- Gesamtzahlung = ceil(B + Z), wobei B der ungerundete normale Hin-/Rückwegbedarf ist. Nicht jeden Typ, Reiseabschnitt oder Zuschlag einzeln aufrunden.
+- Damit ist jeder weitere Verzögerungsminute derselbe ungerundete Zuschlag zugeordnet; angezeigte Gesamtzahlung folgt der dokumentierten Rundung auf ganze Öleinheiten.
+- Beispiel bestehender Distanz-5-Zug mit 20 Infanteristen/4 LKWs: B = 40; bei 30 Zusatzminuten Z = 30 × 24 × 0,1 = 72; Gesamtöl 112.
+- Reine Infanterie darf nicht kostenlos verzögert werden, nur weil OIL_INFANTRY_PER_FIELD standardmäßig 0 ist: 10 Infanteristen mit 30 Zusatzminuten kosten 30 Öl Zuschlag. Ohne Verzögerung bleibt normale Ölfreiheit erhalten.
+- Zuschlag hat einen positiven konfigurierten Satz und gilt auch für Einheiten mit normaler Ölrate 0. Nahrungsbefreiung unterwegs durch keine andere versteckte Nahrungskosten ersetzen.
+- Endliche nicht negative Ganzzahlminuten, Grenzen und sichere Zeit-/Kostenarithmetik prüfen. Server vertraut keinen gelieferten Zeitstempeln, Anzahlwerten oder Preisen ohne erneute Prüfung.
+- Vorschau zeigt Grundreisezeit, Zusatzminuten, Ankunfts-/Rückkehrzeit, normalen Ölbedarf, Zuschlag und gerundete Gesamtzahlung; bei veränderter Eingabe neu prüfen.
+- Berechnung aus Serverzeit beim tatsächlichen Start; Vorschauzeitpunkte als Vorschau kennzeichnen. Normale Verzögerung zwischen Vorschau und Bestätigung verschiebt Abfahrt und damit absolute Termine, nicht gewählte Dauer/Preis. Geänderte Dauer/Regeln/Mengen verlangen neue Bestätigung.
+- Ölzahlung und vollständiger Missionsplan atomar und idempotent speichern. Für fehlendes Öl keine Reservierung oder halbe Mission.
 
 ## 6. Gemischter Farmzug und klare Verlustregeln
 
@@ -107,14 +135,14 @@ Start:
 - Reine LKW-Farmzüge ablehnen, auch bei zuletzt unverteidigtem Ziel. Mindestens ein Infanterist beim Start erforderlich.
 - Vorhandene 10.000-Einheiten-Grenze umfasst Summe aller entsendeten Typen. Kein militärisches Führungslimit wieder einführen.
 - Alle Mengen sichere Ganzzahlen, unbekannte Typen ablehnen; stationierte verfügbare Bestände prüfen und gemeinsam reservieren.
-- Vorschau zeigt Truppen, Reisefristen, Öl, Nahrung pro Stunde und maximale Starttraglast. Keine ungeklärten aktuellen NPC-Vorräte/Garnisonen oder garantierte Beute offenlegen. Alte Aufklärung bleibt datierter Bericht.
+- Vorschau zeigt Truppen, Grundreisezeit, Zusatzminuten, Ankunft/Rückkehr, Ölaufschlüsselung, Stadtunterhalt vor/nach Abreise und maximale Starttraglast. Keine ungeklärten aktuellen NPC-Vorräte/Garnisonen oder garantierte Beute offenlegen. Alte Aufklärung bleibt datierter Bericht.
 
 Kampf:
 - Neue gemischte Missionsregelversion, beispielsweise npc-pve-4-logistics-provisional. Infanteriekampf unverändert nach der Grundwert-/Skillregel aus Auftrag 12 rechnen.
 - Kampfwerte ausschließlich aus beim Start gespeicherten Generalboni und bei Ankunft noch lebender Infanterie. LKWs zählen nicht zu Angreiferstärke und verursachen keine Verteidigerverluste.
 - Sei I die bei Kampfbeginn lebende Infanterie, T die dann lebenden LKWs und L die durch diesen Kampf verlorene Infanterie. LKW-Kampfverluste = min(T, ceil(T × L / I)), wenn I > 0. Bei L = 0 keine LKW-Verluste. Ganzzahlig sicher berechnen.
 - Das gilt bei Sieg und Niederlage. Überlebende beider Typen kehren zurück; Niederlage bringt keine Beute. Keine Erbeutung oder Reparatur beschädigter Fahrzeuge.
-- Sonderfall I = 0 bei Ankunft durch Hunger: Angriff fällt aus, keine Verteidigerverluste, keine Beute/XP/Kampfpunkte; verbliebene LKWs treten den planmäßigen Rückweg an. Kein Teilen durch null. Hunger bleibt aktiv.
+- Robustheits-/Altbestandsfall I = 0 bei Ankunft (etwa Verlust vor Aktivierung der neuen Versorgungsregel): Angriff fällt aus, keine Verteidigerverluste, keine Beute/XP/Kampfpunkte; verbliebene LKWs treten den planmäßigen Rückweg an. Kein Teilen durch null. Nach neuem Versorgungsbeginn gibt es keine zusätzlichen Stadt-Hungerverluste unterwegs.
 - Bei unverteidigtem Ziel und I > 0 Sieg ohne Kampfverluste, aber weiterhin ohne künstliche Kampf-XP oder Punkte.
 - General überlebt gemäß bisherigen Regeln und bleibt bis zur Rückkehr gebunden.
 
@@ -123,26 +151,44 @@ Beute:
 - Geladene Nahrung bei Sieg = min(floor(tatsächlich verfügbarer NPC-Nahrung), Kapazität). Keine Beute bei Niederlage/ausgefallenem Angriff.
 - NPC-Abzug und Missionsladung atomar im Weltjournal, weiter für alle Spieler gemeinsame NPC-Bestände und geordnete gleichzeitige Ankünfte.
 - Beispiel ohne Generalboni: 20 Infanteristen + 4 LKWs gegen 10 Verteidiger. Infanterieverlust 5, LKW-Verlust ceil(4 × 5 / 20) = 1. Es bleiben 15 Infanteristen und 3 LKWs, Kapazität 15 × 20 + 3 × 200 = 900. Bei 1000 NPC-Nahrung werden 900 geladen, bei 500 nur 500.
-- Allgemeine Traglastfunktion verwenden, dieselbe in Vorschau, Kampf, Hunger und Rückkehr; Ressourcen später nicht jeweils mit voller identischer Kapazität beladen.
+- Allgemeine Traglastfunktion in Vorschau, Kampf, historischer Verlustabrechnung und Rückkehr verwenden; Ressourcen später nicht jeweils mit voller identischer Kapazität beladen.
 - In dieser Etappe ausschließlich Nahrung als Beute. Kein Handel, selbstständiger Transportauftrag oder PvP.
 
-## 7. Unterhalt, Hungerverluste, Rückkehr und Punkte
+## 7. Nahrung nur für stationierte Truppen, Rückkehr und Punkte
 
-- Jeder lebende LKW benötigt Nahrung gemäß ENV, stationiert und unterwegs genau einmal. In Produktion befindliche LKWs noch nicht zählen.
-- Beispiel Standardwerte: 20 Infanteristen und 4 LKWs = 20 × 360 + 4 × 180 = 7920 Nahrung/Stunde = 2,2/Sekunde.
-- Rückkehrende Mission zählt aktuelle Überlebende pro Typ, nicht ursprünglichen Bestand zusätzlich. Abgeschlossene Missionen zählen nicht.
-- Bestehende Schonfrist, proportional/deterministisch verteilte Hungerwellen und Erholungsregeln auf LKW-Gruppen erweitern. Auch LKWs können bei Hunger dauerhaft ausfallen.
-- Null-Unterhaltswerte bleiben gültig; solche Einheiten weiterhin anzeigen, nicht in hungerpflichtige Verlustgruppen nehmen. Gemischte Einheiten mit unterschiedlichen Kosten korrekt erfassen.
-- Nach Hungerwelle aktuelle Gesamttraglast berechnen und überschüssige Ladung dauerhaft entfernen. In Berichten separat ausweisen, nicht wieder beim NPC gutschreiben.
-- Beispiel mit 15 Infanteristen, 3 LKWs und 900 geladener Nahrung: Ein LKW fällt auf Rückweg aus → Kapazität 700, 200 Nahrung gehen verloren.
-- Wenn alle Infanteristen auf Rückweg sterben, dürfen überlebende LKWs weiter vorhandene Beute transportieren; Begleitpflicht gilt für Angriff, nicht als zusätzliche automatische Vernichtung auf Rückweg.
-- Alle Truppen tot: Ladung vollständig verloren, General kommt zum bestehenden Rückkehrtermin zurück; keine zweite Rückkehrbelohnung.
-- Bei Rückkehr alle noch lebenden Typen stationär hinzufügen, Nahrung bis zur dann freien Lagerkapazität einlagern; Überlauf verfällt nach bestehender Regel.
-- Kampfverluste, spätere Hungerverluste, geladene Nahrung, unterwegs verlorene Nahrung, eingelagerte Nahrung und Lagerüberlauf getrennt speichern, nicht rückwirkend Kampfergebnis überschreiben.
-- General-XP weiterhin 2 je getötetem NPC-Verteidiger. Keine XP für LKWs, Transportmenge oder Verluste.
-- Vorläufiger Kampfbeitrag neuer Missionen: getötete NPC-Verteidiger minus eigene im Kampf verlorene Infanteristen minus eigene im Kampf verlorene LKWs, je Einheit ein Punkt. Hunger weiter ohne zusätzlichen Kampfpunktabzug.
-- Beispiel oben: 10 − 5 − 1 = +4 Kampfpunkte und 20 General-XP. Nur einmal bei bisherigem Belohnungszeitpunkt buchen. Alte Missionen/Berichte behalten alte Wertung.
-- Forschungspunkte bleiben abgeleitet; keine doppelte Gutschrift über neue Freischaltungsereignisse.
+Diese Regel ersetzt ausdrücklich die frühere laufende Stadtversorgung reisender Truppen.
+
+- Laufenden Unterhalt aus der Heimatstadt ausschließlich für dort stationierte lebende Einheiten berechnen. Gilt für Infanterie, Späher, LKWs und später weitere Typen.
+- Unterwegs auf Hinreise, zusätzlicher Verzögerung und Rückreise: kein Nahrungsabzug aus Heimatstadt. In Herstellung befindliche Einheiten bleiben ebenfalls bis Abschluss unberücksichtigt.
+- In dieser Fassung kein mitgenommener Reiseproviant, keine pauschale Nahrungszahlung beim Start, keine separate Feldversorgung und keine Nahrungskosten bei Rückkehr. Ein späteres Proviantsystem benötigt eigene Spezifikation.
+- Aus diesem Modell folgen keine durch Heimatmangel verursachten Hungerverluste unterwegs. Keine Nahrung aus Beuteladung verbrauchen. Solche Verluste nicht weiterhin in einer zweiten Hintergrundroutine anwenden.
+- Bestehende Gesamt-/stationiert-/unterwegs-Ansicht bleibt korrekt. Militärische Gesamtstärke nicht auf versorgungspflichtige Einheiten verkürzen; getrennte Helfer für sichtbare Bestände und Stadtverbrauch.
+- Standardbeispiel: 20 Infanteristen und 4 LKWs vollständig stationiert → 20 × 360 + 4 × 180 = 7920 Nahrung/Stunde. Nach Abreise aller dieser Einheiten → 0 Stadtunterhalt aus ihnen; andere stationierte Einheiten bleiben kostenpflichtig.
+- Teilabreise ebenso korrekt: von 20 stationierten Infanteristen verlassen 12 die Stadt → Verbrauch sinkt von 7200 auf 2880/Stunde. Nach Rückkehr von 10 Überlebenden sind 18 stationiert → 6480/Stunde.
+- Vor Abreise alle bis zur Befehlszeit fälligen Ereignisse nach bestehender Ordnung abrechnen, danach Bestände reservieren und neuen Stadtverbrauch ab diesem Zeitpunkt ableiten.
+- Unterhalt der Rückkehrer beginnt exakt mit Rückkehr, keine Nachzahlung für Reisezeit. Alle Überlebenden einmalig stationär hinzufügen; Beute einmalig bis freie Lagerkapazität einlagern, Überlauf verfällt.
+- Bei gleichzeitiger Rückkehr/Hungerwelle erst Überlebende und rechtzeitig eintreffende Nahrung einlagern, dann tatsächlichen Stadtmangel neu bewerten und ggf. fällige Welle auf nun stationierte Einheiten anwenden.
+- Stationierte Truppen behalten bestehende Schonfrist, proportionale deterministische Hungerverluste, Erholung und Auswirkungen auf Herstellung. Null-Unterhalts-Einheiten anzeigen, aber nicht in hungerpflichtige Verlustgruppen nehmen.
+- Abreise setzt Mangelzeit nicht unmittelbar zurück. Reicht die verbleibende Stadtversorgung, beginnt normale stabile Erholung; Rückkehr vor Ende bewahrt bisherigen Zähler. Auch wenn alle kostenpflichtigen Einheiten weg sind, kann die vorhandene Erholungsfrist normal ablaufen; keine künstliche Ausnahme.
+- Bei Rückkehr in weiterhin mangelversorgte Stadt können die Rückkehrer in eine bereits fällige Hungerwelle geraten. Dies als Stadtverlust nach Rückkehr ausweisen, nicht als rückwirkenden Kampf-/Transportverlust.
+- In neuer Versorgung keine hungerbedingte Beutereduktion unterwegs. Vor dem Regelwechsel bereits eingetretene Verluste und beschädigte Beuteladung historischer Missionen bewahren; nichts ersetzen oder wiederauffüllen.
+- Bereits gespeicherte Kampfverluste, historische Reise-Hungerverluste, historische Ladungsverluste, Einlagerung und Lagerüberlauf getrennt halten. Ein veralteter Bericht bekommt keine erfundenen neuen Werte.
+- General überlebt und bleibt bis geplanter Rückkehr gebunden, auch wenn alle Truppen im Kampf verloren gehen. Keine vorzeitige doppelte Freigabe/Belohnung.
+- General-XP weiter 2 je getötetem NPC-Verteidiger, keine XP für Transportmenge/LKWs.
+- Neuer Kampfbeitrag = getötete NPC-Verteidiger minus eigene Infanterie-/LKW-Kampfverluste. Stationärer Hunger gibt keinen zusätzlichen Kampfpunktabzug.
+- Beispiel 20 Infanterie/4 LKW gegen 10 ohne Boni: +4 Kampfbeitrag und 20 General-XP. Einmal beim bisherigen Belohnungszeitpunkt; Altversionen behalten ihre Wertung.
+- Forschungspunkte weiter abgeleitet, keine doppelte Gutschrift.
+
+### Einführung der geänderten Versorgung ohne rückwirkende Umschreibung
+
+- Dauerhaften serverseitigen Aktivierungszeitpunkt und Regelversion für stationären Unterhalt speichern, z. B. upkeepScope: stationed gegenüber historisch all-living.
+- Vor Aktivierung vergangene Intervalle nach alten gespeicherten Regeln einschließlich damaliger Reiseverluste korrekt nachberechnen. Ab Aktivierung gilt stationed für ALLE unterwegs befindlichen Missionen, auch bereits laufende alte Missionen.
+- Das ist eine bewusste Ausnahme vom unveränderten Kampfsnapshot alter Missionen: Kampfwerte, Öl, Ankunft/Rückkehr und Berichte bleiben unverändert; nur zukünftiger laufender Stadtunterhalt/Hunger folgt ab Wechsel der neuen Stadtregel.
+- Keine rückwirkende Erstattung, Wiederbelebung oder Auffüllung von schon verlorener Ladung. Alte Intervalle nicht mit heutiger stationärer Auswahl neu berechnen.
+- Regelwechsel mit bestehendem Welt-/Spielerjournal absturzsicher speichern und beim Wiederanlauf nicht erneut aktivieren. Auch lange nicht eingeloggte Spieler an derselben gespeicherten Zeitgrenze behandeln.
+- An der Aktivierungsgrenze historische Zeit vor dem Zeitpunkt, neue Gruppenauswahl ab diesem Zeitpunkt. Fällige Grenzereignisse dokumentiert und deterministisch behandeln; keine doppelte oder ausgelassene Hungerwelle.
+- Aktive Mangelzyklen behalten gespeicherte Frist-/Verlustwerte, aber NICHT historische Auswahl reisender Einheiten. Versorgungsscope und Verlustgruppenauswahl aus aktuell zeitlich gültiger Stadtregel, Zyklus nur für Frist/Prozentsatz.
+- Regeln von heute nicht mutierend in alte Regelhistorie schreiben. Historische Datensätze ohne upkeepScope ausdrücklich all-living, nicht mit einem neuen Default unbemerkt umdeuten.
 
 ## 8. ENV und Regelwechsel
 
@@ -150,26 +196,28 @@ Bestehenden zentralen Konfigurationseinstieg verwenden; reine Spiellogik erhält
 
 | Variable | Standard | Einheit |
 | --- | --- | --- |
-| UPKEEP_TRUCK_PER_HOUR | 180 | Nahrung je lebendem LKW/Stunde |
+| UPKEEP_TRUCK_PER_HOUR | 180 | Nahrung je stationiertem lebendem LKW/Stunde |
 | OIL_INFANTRY_PER_FIELD | 0 | Öl je Infanterist/Feld/einfache Strecke |
 | OIL_SCOUT_PER_FIELD | 0 | Öl je Späher/Feld/einfache Strecke |
 | OIL_TRUCK_PER_FIELD | 1 | Öl je LKW/Feld/einfache Strecke |
 | TRUCK_CARGO_CAPACITY | 200 | Nahrungstraglast je LKW |
+| MAX_ATTACK_DELAY_MINUTES | 1440 | Maximale zusätzliche Hinreisezeit in ganzen Minuten |
+| OIL_DELAY_PER_UNIT_PER_MINUTE | 0.1 | Öl je entsendeter Einheit und zusätzlicher Minute |
 
 - Unterhalt wie vorhandene Unterhaltsvariablen validieren, inklusive 0. Ölraten 0–100.000 mit maximal drei Nachkommastellen; einmal auf feste ganzzahlige Tausendstelbasis bringen, damit Aufrundung nicht durch binäre Rundungsfehler zusätzlichen Treibstoff verlangt.
-- Kapazität Ganzzahl 1–1.000.000. Ungültig/leer/negativ/NaN/Infinity/Überlauf vor Spielstandänderung ablehnen; fehlend nutzt Standard, explizit 0 bei Unterhalt/Öl nicht ersetzen.
+- Kapazität Ganzzahl 1–1.000.000. MAX_ATTACK_DELAY_MINUTES als Ganzzahl 0–10080 (0 deaktiviert Verlängerung), OIL_DELAY_PER_UNIT_PER_MINUTE positiv 0,001–100.000 mit höchstens drei Nachkommastellen auf derselben festen Zahlenbasis. Ungültig/leer/negativ/NaN/Infinity/Überlauf ablehnen. Fehlend nutzt Standard; explizit 0 bei normalem Unterhalt/normalen Ölraten erlaubt, nicht beim Verzögerungszuschlag.
 - Preise, Forschungs-/Bau-/Produktionswerte und Herstellungsdauer zentral in versionierten Definitionen halten; dafür in diesem Auftrag keine zusätzlichen ENV-Schalter nötig.
 - .env.example, native Starts, Prozessvorrang, Compose-Weitergabe und zulässige Snapshotwerte ergänzen. Keine ganze ENV an Client, kein Frontend-Rebuild nötig.
 - Unterhaltsänderung über vorhandene gespeicherte Versorgungsregelhistorie: alte Offlinezeit mit alten Werten, neue Werte erst ab gespeichertem Wechsel. Historische Regeln ohne truck entsprechen für diesen Typ 0, keine nachträgliche Historienmutation.
 - Aktive Hungerzyklen bewahren ihre bisherigen Frist-/Verlustregeln. Änderungen dürfen keinen Reset verschenken.
-- Neue Ölraten/Traglast gelten nur für neu gestartete Einsätze. Bereits bezahlte Missionen verwenden gespeicherte Werte auch nach Neustart.
+- Neue normale Ölraten, Verzögerungszuschläge, Verzögerungsgrenzen und Traglast gelten nur für neue Starts. Bereits gestartete Missionen verwenden bezahlte Beträge und gespeicherte Zeiten/Traglast auch nach Neustart; kleineres Verzögerungslimit verkürzt laufende Reisen nicht.
 - Versionierte Vorschau erkennt Konfigurationsänderung und verlangt neue Prüfung, keine heimliche Nachberechnung beim Start.
 - Zwei Weltinstanzen mit verschiedenen Einstellungen dürfen sich nicht beeinflussen.
 
 ## 9. Zeit, Speicherung, Migration und WebSocket
 
 - Neue Aktionen/Angebote/Push-Zustände ausschließlich über vorhandenen WebSocket. Bestehende Ausbildungs-/Bau-/Forschungsbefehle gezielt erweitern, Missionen um serverseitige Vorschau ergänzen.
-- Vorschau bindet eigene Truppenmengen, General-ID/Version, Ziel-ID, relevante Regeln und Voraussetzungen. Start prüft aktuellen Bestand, Öl, Rolle und Eigentum erneut. Ein zwischenzeitlich veränderter sichtbarer Vorschauwert erfordert erneute Bestätigung.
+- Vorschau bindet eigene Truppenmengen, General-ID/Version, Ziel-ID, Zusatzverzögerung in Minuten, relevante Regeln und Voraussetzungen. Start prüft aktuellen Bestand, Öl, Rolle und Eigentum erneut. Ein zwischenzeitlich veränderter sichtbarer Vorschauwert erfordert erneute Bestätigung.
 - Keine private HTTP-Spiel-API, Client-Timer oder zweite Tickautorität. Fällige Ereignisse vor Befehlsprüfung bis Serverzeit verarbeiten.
 - Bei gleichem Zeitstempel bisherige Ordnung erhalten: Wirtschafts-/Forschungsabschlüsse, geordnete Missionsereignisse einschließlich Einlagerung, dann verbleibende Hungerwelle.
 - Forschung/Bauproduktion ab tatsächlichem Abschluss; Herstellung, Ölverbrauch, Kampf und Hunger zeitlich konsistent auch bei langen Offlineintervallen.
@@ -178,7 +226,7 @@ Bestehenden zentralen Konfigurationseinstieg verwenden; reine Spiellogik erhält
 - Versionierte Migration ab aktuellem Schema 12 auf nächste freie Version. Ältere Ketten vollständig ausführen; vorher Journal wiederherstellen.
 - oil=0, truck=0 und neue Forschungsstufen=0 ergänzen; vorhandene Ressourcen, Gebäude, Investitionen, Forschung, Missionen, Generalprofile, Erwerbszähler, Bewerbertermine, Porträts, Nachrichten und Lesestatus bewahren.
 - Neue Städte ebenfalls Öl 0. Keine rückwirkende Ölproduktion ohne Raffinerie, keine kostenlosen LKWs oder Freischaltungen.
-- Alte Missionsversionen 1–3 anhand alter Felder/Regeln auf beiden Reisephasen korrekt fertigstellen. Keine neuen Truckverluste/Ölrechnungen und keine geänderten historischen Berichte.
+- Alte Missionsversionen 1–3 anhand alter Kampffelder/-regeln korrekt fertigstellen; delayMinutes=0 für fehlende Zusatzverzögerung, vorhandene Termine nicht neu berechnen. Keine neuen Truckverluste/Ölrechnungen oder geänderten historischen Berichte. Zukünftiger Stadtunterhalt für alte Missionen folgt ausdrücklich dem Aktivierungswechsel aus Abschnitt 7.
 - Ressourcenschlüssel in alten Investitionsobjekten vorsichtig erweitern; fehlendes Öl ist 0, unbekannte alte Holz-/Steinkosten bleiben unbekannt.
 - Unbekannte/inkonsistente Schemas konkret melden, nie automatisch zurücksetzen. Keine Umplatzierung oder Vermehrung von Bauplätzen.
 
@@ -187,10 +235,10 @@ Bestehenden zentralen Konfigurationseinstieg verwenden; reine Spiellogik erhält
 - Forschung zeigt zwei neue Freischaltungen mit Bedingungen und Wirkung.
 - Stadt bietet freigeschaltete Ölraffinerie; Militär Fahrzeugfabrik und LKW-Produktion. Gesperrte Angebote nennen fehlende Forschung.
 - Öl in Sidebar/Lageraufschlüsselung; Nahrung weiter mit Brutto, Bürgermeister, Forschung, typabhängigem Unterhalt und Netto.
-- Militärübersicht zeigt LKW-Bestand, stationiert, unterwegs und in Herstellung getrennt.
-- Einsatzdialog zeigt wählbare Infanterie/LKWs, Traglast, Öl für Hin/Rückweg, Reisezeit, stündlichen Nahrungsbedarf und Bestätigung. Klar erklären: mehr LKWs ist keine höhere Kampfkraft, Starttraglast ist keine garantierte Beute.
+- Militärübersicht zeigt Gesamtbestand, stationiert, unterwegs und in Herstellung je Typ getrennt. Sidebar verwendet nur stationierte Mengen für tatsächlichen Nahrungsverbrauch und erklärt Unterwegs-Befreiung.
+- Einsatzdialog zeigt Infanterie/LKWs, Zusatzverzögerung in Minuten, Traglast, Grundöl/Zuschlag/Gesamtöl, Grundreisezeit, Ankunft/Rückkehr und Stadtverbrauch vor/nach Abreise. Auf unterwegs entfallenden Stadtunterhalt hinweisen. LKWs erhöhen keine Kampfkraft; Starttraglast ist keine garantierte Beute.
 - Bestehende private Aufklärungsinformationen mit Datum verwenden, keine Live-NPC-Geheimnisse in Vorschau.
-- Neue gemischte Angriffsberichte in vorhandener Postbox: Startmengen, Kampf-/Hunger-/Rückkehrmengen je Typ, Kraftstoff, Boni, Traglast, Beuteverlust und Einlagerung. Alte Berichte weiterhin korrekt anzeigen, fehlende alte Ölwerte als nicht erhoben/alte Version statt erfundene Zahlung.
+- Neue gemischte Angriffsberichte in vorhandener Postbox: Startmengen, Kampf-/Rückkehrmengen je Typ, Grundreisezeit, gewählte Zusatzminuten, tatsächliche Zeitpunkte, Grundöl/Zuschlag/Gesamtöl, Boni, Traglast und Einlagerung. Historische Reise-Hunger-/Ladungsverluste weiterhin anzeigen, aber keine neuen solchen Ereignisse nach Aktivierung erfinden. Alte Berichte weiterhin korrekt anzeigen, fehlende alte Ölwerte als nicht erhoben/alte Version statt erfundene Zahlung.
 - Neue Berichte und Ungelesenzähler/Animation genau einmal auslösen. Bereits gelesene Berichte und private Nachrichten erhalten.
 - Illustrationen/Porträts erhalten; für Raffinerie, Fabrik und LKW passende eigene lokal ausgelieferte Darstellung erstellen, keine Originalgrafiken des Vorbilds übernehmen.
 - Schmale Bildschirme und Tastaturbedienung überprüfen. Keine nur scheinbar bedienbaren Platzhalter.
@@ -198,27 +246,32 @@ Bestehenden zentralen Konfigurationseinstieg verwenden; reine Spiellogik erhält
 ## 11. Abnahme und Tests
 
 Mit unabhängigen Erwartungen prüfen:
-1. Technologieabhängigkeiten, individuelle Maximalstufe 1, alter Maximalwert 5, echter serverseitiger Bauschutz und erreichbarer Start ohne Öl. Motorisierung mit Universität 2/Führung 20 dauert 182 Sekunden.
-2. Ölressource mit 0, Produktion ab Fertigstellung, Beispielkapazität 3025, Lagerhaus-/Lagerlogistikwirkung, Offlineproduktion und Abriss/Überbestand.
-3. Raffinerie nur zivil, Fabrik nur militärisch; LKW nur Fabrik, andere Einheiten nur Kaserne. Bauplätze und alte Queues unverändert.
-4. Gruppenherstellung: einmalige Kosten, Fertigstellung, mehrere Fabriken, Hungerpause/Fortsetzung, Ausbau-/Abrisssperre und Neustart.
-5. Distanz-5-Beispiel mit 20 Infanteristen/4 LKWs kostet 40 Öl. Fehlendes Öl keine Teilbuchung. Ölraten 0 gültig; konfigurierter Späherbedarf auch beim Aufklärungsstart geprüft. Rundung einmal über gesamte Hin-/Rückstrecke.
-6. Maximalmenge typübergreifend, unbekannte Typen, negative/gebrochene Mengen, reine LKW-Mission und fremde Generäle/Bauten/Truppen abgewiesen.
-7. Kampfbeispiel 20 Infanterie/4 LKW gegen 10 ohne Boni: 5 Infanterie- und 1 LKW-Verlust, Kapazität 900, XP 20, Kampfbeitrag +4. Dieselbe Infanterie ohne LKW erzeugt dieselben Verteidiger-/Infanterieverluste.
-8. Niederlage mit Überlebenden, vollständiger Kampfverlust, unverteidigtes Ziel und Infanterie bereits vor Ankunft durch Hunger verloren. Keine LKW-Kampfkraft oder Teilung durch null.
-9. Gemeinsamer NPC mit knapper Nahrung und konkurrierenden Angriffen: Summe Beute nie größer als tatsächlicher Bestand plus korrekte Regeneration.
-10. Unterhalt 20 Infanteristen/4 LKW = 7920 pro Stunde. Stationierung → Hinweg → Kampf → Rückweg → Rückkehr ohne Doppelzählung; Null-Unterhalt, Ausbildung und hungerbedingte Verluste pro Typ.
-11. Rückwegbeispiel 900 Nahrung/15 Infanterie/3 LKW: Verlust eines LKW reduziert Ladung auf 700; Rückkehrlager mit nur 600 frei lagert 600 ein und verliert weitere 100 als Überlauf. Getrennte Verlustgründe, keine Neugutschrift beim NPC.
-12. Große Offlineabrechnung und viele kleine Schritte ergeben denselben Bestand, Termine und Berichte, einschließlich Forschung/Bau/Produktion, Hunger und Rückkehr auf gleicher Zeitgrenze.
-13. Neustart vor/nach Ölbuchung, Kampfauswertung und Rückkehr sowie Schreibfehler/Journalwiederherstellung. Request-Wiederholung/mehrere Tabs dürfen weder Öl noch Beute/Truppen/XP/Punkte duplizieren.
-14. Migration ab Schema 12 und älterer Kette; Missionen 1–3 auf Hin-/Rückweg, laufende Forschung, Ausbildung, Postboxlesestatus und Porträts erhalten. Wiederholung der Migration ohne Zusatzbestände.
-15. ENV native/Compose, ungültige Werte, isolierte Welten, historische Unterhaltswechsel und eingefrorene Öl-/Traglastwerte. Aktive Mangelzyklen nicht zurücksetzen.
-16. Postbox zeigt neue und historische Berichte korrekt, keine privaten Leaks oder doppelten Ungelesenmeldungen. Bestehende Bewerber/Forschungsleiter/Messaging-Funktionen regressionsfrei.
+1. Technologieabhängigkeiten, individuelle Maximalstufe 1, alte Maximalstufe 5, Bauschutz und erreichbarer Start ohne Öl. Motorisierung bei Universität 2/Führung 20 dauert 182 Sekunden.
+2. Öl 0 bei Neuanlage/Migration, Produktion ab Fertigstellung, Beispielkapazität 3025, Lagerhaus-/Logistikwirkung, Offlineproduktion und Abriss/Überbestand.
+3. Raffinerie nur zivil, Fabrik nur militärisch; LKW nur Fabrik, andere Einheiten nur Kaserne. Gruppenherstellung, Hungerpause/Fortsetzung, parallele Fabriken, Ausbau-/Abrisssperre und einmalige Kosten.
+4. Distanz-5-Zug mit 20 Infanteristen/4 LKWs: ohne Zusatzzeit 40 Öl, mit 30 Zusatzminuten 112 Öl (40 + 30 × 24 × 0,1). Fehlendes Öl lässt Truppen, General und Ressourcen unverändert.
+5. Linearität vor Rundung: derselbe Zug mit 10/20/30 Zusatzminuten kostet 64/88/112 Öl. Normale Ölraten 0 umgehen Zuschlag nicht: 10 Infanteristen/30 Zusatzminuten = 30 Öl, bei 0 Zusatzminuten 0.
+6. Alle Teilbeträge erst am Ende runden, inklusive Dezimalraten; positive kleine Zuschläge dürfen wegen Rundung einzelne gleiche Gesamtpreise ergeben. Sichere Ganzzahlarithmetik für Zeit, Kosten und Grenzwerte.
+7. Zeitbeispiel Grundreise 1 Minute + 30 Minuten Verzögerung: Ankunft bei Minute 31, Rückkehr bei Minute 32. NPC bei Minute 1 unverändert durch diesen Einsatz; erst bei Minute 31 regenerieren/angreifen/plündern. Nicht auf Minute 30 verkürzen und Rückweg nicht nochmals verzögern.
+8. Zusatzminuten 0/Maximum erlaubt, negativ/gebrochen/über Maximum/NaN/Infinity/Stringmanipulation abgewiesen. Positiver Verzögerungsparameter bei Aufklärung gesperrt. Eingabeänderung verlangt neue Vorschau; neuer Startzeitpunkt verschiebt nur absolute Termine.
+9. Summe 10.000 über Typen, ungültige Typen/Mengen, reine LKW-Mission und fremde IDs abweisen. Konkurrierende verzögerte Starts binden General/Truppen nur einmal und bezahlen Öl nur einmal.
+10. Kampfbeispiel 20 Infanterie/4 LKW gegen 10 ohne Boni: 5 Infanterie- und 1 LKW-Verlust, Kapazität 900, XP 20, Beitrag +4. Ohne LKW dieselben Infanterie-/Verteidigerverluste. Niederlage/Überlebende, unverteidigtes Ziel und historischer Null-Infanterie-Fall.
+11. Konkurrierende echte Ankünfte teilen tatsächlich verfügbaren NPC-Vorrat; spätere Ankunft kann andere Beute vorfinden. Vorschau reserviert weder Vorrat noch Garnison.
+12. 20 Infanterie/4 LKW stationiert = 7920 Nahrung/Stunde, nach vollständiger Abreise = 0 aus diesem Kontingent. Teilabreise 20 → 8 Infanterie = 7200 → 2880/Stunde, Rückkehr von 10 = 6480/Stunde. Kein einmaliger Reiseproviant oder nachträgliche Nachzahlung.
+13. Durchgehend leere Heimat mit langer Verzögerung: reisende Einheiten verlieren durch Stadthunger keine Truppen oder Ladung; verbliebene stationierte Einheiten hungern weiterhin nach Regeln. Gesamtbestand zeigt beide Gruppen korrekt.
+14. Abreise/Rückkehr an exakter Produktions-, Leerstands-, Erholungs- und Hungergrenze, fertige Herstellung während Abwesenheit, Heimkehr mit/ohne ausreichende Beute. Rückkehr erst einlagern, dann fällige Stadt-Hungerwelle; keine sofortige Rücksetzung des Mangelzählers bei Abreise.
+15. Regelwechsel mitten in einer alten laufenden Mission: vor Aktivierung alter Verbrauch/alte Verluste, danach keine Reisebelastung, nach Rückkehr wieder Stadtunterhalt. Kampf- und Reisezeit-Snapshot unverändert. Bestehende historische Ladungsverluste weder löschen noch auffüllen.
+16. Beispiel Rückkehr 900 Ladung und 600 freies Lager: 600 einlagern, 300 Überlauf. Nach Aktivierung keine neue Reise-Hungerreduktion; alte gespeicherte Reduktionen bleiben korrekt in alten Berichten.
+17. Großer Offline-Schritt gleich vielen kleinen: Aktivierungswechsel, Abreise, verzögerte Ankunft, Kampf, Rückkehr, Forschung, Bau, Hunger und ENV-Wechsel chronologisch identisch. Altregeln ohne Scope weiter historisch all-living lesen.
+18. Neustart/Schreibfehler vor und nach Migration, Ölbuchung, Kampf und Rückkehr; Journal, gleiche requestId/Payload und Konfliktfälle verhindern Doppelbuchung. Lange nicht eingeloggte Spieler erhalten dieselbe Aktivierungsgrenze, nicht Loginzeit.
+19. Migration aktueller/älterer Schemas erhält Missionen 1–3, Forschung, Queues, Porträts, Bewerber und Postboxlesestatus. Fehlende Verzögerung 0 ergänzt ohne vorhandene Termine zu verändern.
+20. ENV native/Compose, Null-Raten und positive Verzögerungsrate, Limits, isolierte Welten, niedrigere neue Verzögerungsgrenze und eingefrorene laufende Zeiten/Öl/Traglast. Historische Versorgung und aktive Fristen ohne Reset.
+21. Postbox neue/alte Berichte korrekt, einmalige Ungelesenmeldung, private Daten geschützt. Bewerber, Forschungsleitung und Nachrichten regressionsfrei.
 
-npm test und npm run build sowie betroffene Container-/Startprüfung ausführen. Manuellen kompletten Durchlauf mit neuen Gebäuden und gemischtem Farmzug dokumentieren, einschließlich Wiederanmeldung und Neustart. In docs/LOGISTICS_VALIDATION.md ausgeführte Prüfungen, Balancebeispiele und tatsächlich offene Einschränkungen festhalten; keine ungetesteten Behauptungen.
+npm test und npm run build sowie betroffene Container-/Startprüfung ausführen. In docs/LOGISTICS_VALIDATION.md ausgeführte Prüfungen und offene Einschränkungen ehrlich dokumentieren. Manueller Ablauf: Freischaltungen/Gebäude/LKWs → Stadtunterhalt prüfen → verzögerten Farmzug mit Ölaufschlüsselung starten → Unterhalt sinkt sofort → Login/Neustart → erst verspätete Ankunft → normal langer Rückweg → Unterhalt steigt mit Überlebenden → Bericht/Einlagerung prüfen. Testuhr verwenden statt reale Wartezeiten abzusitzen.
 
 ## 12. Lieferung und Folgeplanung
 
 Ein reviewbarer PR mit nachvollziehbaren Teilcommits, Umsetzung, Migration, Tests und aktualisierten README, Projektplan, WebSocket-/Entwicklungsdokumentation und .env.example. Bestehende Historie und Dateien erhalten; Implementiert/Geplant klar trennen.
 
-Nicht Teil dieses Auftrags: andere Beuteressourcen, PvP, Spielerhandel, unabhängige Transportmissionen, neue Kampfeinheiten/Waffen, weitere Öltechnologien, Gebäudeflächenvergrößerung oder aktive Matrix-Föderation. Nach dem Logistikkreislauf Balance/Spieltempo prüfen und dann Unterstützung/Handel beziehungsweise zusätzliche militärische Technologien getrennt spezifizieren. Föderation bleibt Kernziel, benötigt später eigene Identitäts- und Vertrauensregeln.
+Nicht Teil dieses Auftrags: andere Beuteressourcen, PvP, Spielerhandel, unabhängige Transportmissionen, Kampfflugzeuge, Raketenwerfer, zusätzliche Generalfähigkeiten für Luftvorteile, weitere Öltechnologien, Gebäudeflächenvergrößerung oder aktive Matrix-Föderation. Flugzeuge/Raketenwerfer und Luftfähigkeiten sind bestätigte spätere Ziele, keine sofortigen Einheiten oder heutigen Skillpunkte. Ihre Freischaltungen, Gebäudebedarf, Luft-/Boden-Interaktionen, Konter, Öl/Unterhalt und getrennten Bonuswirkungen später gemeinsam spezifizieren. Die grafische Darstellung bisheriger Späher als Flugzeuge ersetzt diese neue Kampfmechanik nicht. Nach dem Logistikkreislauf Balance/Spieltempo prüfen und dann Unterstützung/Handel beziehungsweise zusätzliche militärische Technologien getrennt spezifizieren. Föderation bleibt Kernziel, benötigt später eigene Identitäts- und Vertrauensregeln.
