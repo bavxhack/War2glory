@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { finishMapPointer, mapSelectionCoordinate } from '../map-navigation.js';
-import { ActionButton, Dialog } from './ui.jsx';
+import { ActionButton, GameArt, Dialog } from './ui.jsx';
 
 const terrainLabels = { plains: 'Ebene', forest: 'Wald', hills: 'Hügel', water: 'Wasser' };
 export function WorldView({ state, map, details, transport }) {
@@ -109,7 +109,7 @@ export function WorldView({ state, map, details, transport }) {
               aria-label={entity ? `${entity.name}, ${terrain.x}, ${terrain.y}` : `${terrain.type}, ${terrain.x}, ${terrain.y}`}
             >
               <span className="coordinates">{terrain.x},{terrain.y}</span>
-              {entity && <><span className="city-marker">{entity.type === 'npc' ? '♜' : '◆'}</span><strong>{entity.name}</strong></>}
+              {entity && <><GameArt type="town"/><strong>{entity.name}</strong></>}
             </button>;
           })}
         </div>
@@ -127,7 +127,7 @@ export function WorldView({ state, map, details, transport }) {
     <RaidDialog target={raiding} state={state} transport={transport} onClose={() => setRaiding(null)}/>
   </section>;
 }
-function MapDetails({ selection, state, onScout, onRaid }) { if (!selection) return <section className="card"><p>Wähle ein Feld oder eine Stadt.</p></section>; const { entity, terrain } = selection; const distance = Number.isFinite(entity?.distance) ? entity.distance : 0; const general = state.military.generals.find(item => item.status === 'idle'); const scouts = state.military.units.scout; return <section className="card has-selection" tabIndex="-1" aria-live="polite"><span className="kicker">KOORDINATE {terrain.x}, {terrain.y}</span><h2>{entity?.name ?? 'Unbebautes Feld'}</h2><p>Gelände: {terrainLabels[terrain.type]}</p>{entity && <>{<p>{entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`}</p>}<p>Entfernung: {distance.toFixed(2)} Felder Luftlinie</p>{entity.type !== 'own-city' && <p className="notice">Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.</p>}{entity.type === 'npc' && <ActionButton label="Stadt ausspähen" detail={!general ? 'Kein freier General' : scouts < 1 ? 'Zuerst Aufklärungsflugzeuge ausbilden' : `Hinweg ca. ${Math.max(5, Math.ceil(distance) * 5)} s`} disabled={!general || scouts < 1} onClick={() => onScout(entity)}/>} {entity.type === 'npc' && <ActionButton label="NPC angreifen" detail={!general ? 'Kein freier General' : state.military.units.infantry < 1 ? 'Zuerst Infanterie ausbilden' : 'Vorläufige PvE-Regeln · Verluste möglich'} disabled={!general || state.military.units.infantry < 1} onClick={() => onRaid(entity)}/>} {entity.type === 'player-city' && <p className="notice">Spielerstädte können noch nicht ausgespäht werden.</p>}</>}</section>; }
+function MapDetails({ selection, state, onScout, onRaid }) { if (!selection) return <section className="card"><p>Wähle ein Feld oder eine Stadt.</p></section>; const { entity, terrain } = selection; const distance = Number.isFinite(entity?.distance) ? entity.distance : 0; const general = state.military.generals.find(item => item.status === 'idle'); const scouts = state.military.units.scout; return <section className="card has-selection" tabIndex="-1" aria-live="polite"><span className="kicker">KOORDINATE {terrain.x}, {terrain.y}</span>{entity && <GameArt type="town" label={entity.name}/>}<h2>{entity?.name ?? 'Unbebautes Feld'}</h2><p>Gelände: {terrainLabels[terrain.type]}</p>{entity && <>{<p>{entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`}</p>}<p>Entfernung: {distance.toFixed(2)} Felder Luftlinie</p>{entity.type !== 'own-city' && <p className="notice">Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.</p>}{entity.type === 'npc' && <ActionButton label="Stadt ausspähen" detail={!general ? 'Kein freier General' : scouts < 1 ? 'Zuerst Aufklärungsflugzeuge ausbilden' : `Hinweg ca. ${Math.max(5, Math.ceil(distance) * 5)} s`} disabled={!general || scouts < 1} onClick={() => onScout(entity)}/>} {entity.type === 'npc' && <ActionButton label="NPC angreifen" detail={!general ? 'Kein freier General' : state.military.units.infantry < 1 ? 'Zuerst Infanterie ausbilden' : 'Vorläufige PvE-Regeln · Verluste möglich'} disabled={!general || state.military.units.infantry < 1} onClick={() => onRaid(entity)}/>} {entity.type === 'player-city' && <p className="notice">Spielerstädte können noch nicht ausgespäht werden.</p>}</>}</section>; }
 function ScoutingDialog({ target, state, transport, onClose }) {
   const idle = state.military.generals.find(item => item.status === 'idle');
   const [generalId, setGeneralId] = useState(idle?.id ?? '');
@@ -139,7 +139,7 @@ function ScoutingDialog({ target, state, transport, onClose }) {
   const valid = general && Number.isInteger(scouts) && scouts >= 1 && scouts <= maxScouts;
   const seconds = Math.max(5, Math.ceil(target.distance ?? 0) * 5);
   return <Dialog open title="Stadt ausspähen" kicker="EINSATZ PLANEN" onClose={onClose} actions={<button disabled={!valid} onClick={() => { transport.mutate('scouting.start', { targetId: target.id, generalId, scouts }); transport.setMessage(`${scouts} Aufklärungsflugzeuge wurden entsandt.`); onClose(); }}>Einsatz starten</button>}>
-    <p>{target.name} · Koordinate {target.x}, {target.y} · Entfernung {target.distance.toFixed(2)}</p>
+    <GameArt type="scout" label="Aufklärungsflugzeug"/><p>{target.name} · Koordinate {target.x}, {target.y} · Entfernung {target.distance.toFixed(2)}</p>
     <label>General<select value={generalId} onChange={event => setGeneralId(event.target.value)}>{state.military.generals.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'idle'}>{item.name} · Level {item.level}{item.status !== 'idle' && ' · nicht verfügbar'}</option>)}</select></label>
     <label>Anzahl Aufklärungsflugzeuge<input type="number" min="1" max={maxScouts} value={scouts} onChange={event => setScouts(Number(event.target.value))}/></label>
     <div className="mission-preview"><strong>{seconds} s Hinweg · {seconds} s Rückweg</strong><span>{state.military.units.scout} stationiert · Einsatzlimit insgesamt {missionLimit.toLocaleString('de-DE')} Einheiten · kein Führungslimit</span></div>
@@ -158,7 +158,7 @@ function RaidDialog({ target, state, transport, onClose }) {
   const seconds = Math.max(5, Math.ceil(target.distance ?? 0) * 5);
   const freeFood = Math.max(0, state.capacities.food - state.city.resources.food);
   return <Dialog open title="NPC-Stadt angreifen" kicker="VORLÄUFIGER FARMZUG" onClose={onClose} actions={<button disabled={!valid} onClick={() => { transport.mutate('raid.start', { targetId: target.id, generalId, infantry }); transport.setMessage(`${infantry} Infanteristen wurden entsandt.`); onClose(); }}>Angriff starten</button>}>
-    <p>{target.name} · {seconds} s Hinweg · {seconds} s Rückweg</p>
+    <GameArt type="infantry" label="Infanterie"/><p>{target.name} · {seconds} s Hinweg · {seconds} s Rückweg</p>
     <p className="notice">Prototypregel: Infanterie kämpft deterministisch und trägt je Überlebendem 20 Nahrung. Der General überlebt; bei Niederlage fällt die gesamte Angriffstruppe. Gegner und Beute können sich bis zur Ankunft ändern.</p>
     <label>General<select value={generalId} onChange={event => setGeneralId(event.target.value)}>{state.military.generals.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'idle'}>{item.name}{item.status !== 'idle' && ' · gebunden'}</option>)}</select></label>
     <label>Infanterie<input type="number" min="1" max={maxInfantry} value={infantry} onChange={event => setInfantry(Number(event.target.value))}/></label>

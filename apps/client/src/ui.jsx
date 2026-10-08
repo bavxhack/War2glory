@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import gameArtwork from '../assets/game-art.png';
 
 export const resourceLabels = { wood: 'Holz', stone: 'Stein', food: 'Nahrung' };
 export const formatDuration = milliseconds => `${Math.max(0, Math.ceil(milliseconds / 1000))} s`;
@@ -7,7 +8,12 @@ export const canAfford = (state, quote) => Object.entries(quote.cost).every(([re
 export const capacitySummary = capacities => Object.entries(capacities).map(([resource, value]) => `${resourceLabels[resource]} ${value}`).join(' · ');
 
 export function ActionButton({ label, detail, disabled, onClick }) { return <button type="button" className="action" disabled={disabled} onClick={onClick}><strong>{label}</strong><span>{detail}</span></button>; }
-export function BuildingArt({ type }) { return <span className={`building-art ${type}`} aria-hidden="true">{type === 'sawmill' && <><i className="house"/><i className="logs"/></>}{type === 'quarry' && <><i/><i/><i/></>}{type === 'farm' && <><i className="barn"/><i className="field"/></>}{type === 'warehouse' && <><i className="warehouse-box"/><i className="warehouse-door"/></>}</span>; }
+const artPositions = { sawmill: [0, 0], quarry: [50, 0], farm: [100, 0], warehouse: [0, 50], barracks: [50, 50], scout: [100, 50], infantry: [0, 100], general: [50, 100], town: [100, 100] };
+export function GameArt({ type, label, className = '' }) {
+  const [x, y] = artPositions[type] ?? artPositions.town;
+  return <span className={`game-art ${className}`} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} style={{ backgroundImage: `url(${gameArtwork})`, backgroundPosition: `${x}% ${y}%` }}/>;
+}
+export function BuildingArt({ type }) { return <GameArt type={type} className="building-art"/>; }
 
 export function Dialog({ open, title, kicker, danger = false, onClose, children, actions }) {
   const ref = useRef(null); const returnFocus = useRef(null);

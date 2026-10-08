@@ -13,6 +13,18 @@ import {
   resourceCapacities,
 } from '../packages/game-core/index.js';
 import { advanceMilitary, applySkillConversion, applySkillDistribution, barracksIsBusy, enqueueTraining, generalLevel, newMilitary, normalizeGeneral, previewSkillConversion, renameGeneral, resolveNpcCombat, skillSummary, startRaidMission, startScoutMission, validateGeneralName, validateMissionUnits } from '../packages/game-core/military.js';
+
+test('lokale Militärfortschreibung rechnet Farmzüge nicht als Späherrückkehr ab', () => {
+  const military = newMilitary('raid-clock');
+  military.units.infantry = 20;
+  const deployed = startRaidMission(military, { id: 'raid-clock', generalId: military.generals[0].id, infantry: 10 }, 0,
+    { x: 0, y: 0 }, { id: 'npc', name: 'Ziel', kind: 'npc', x: 1, y: 0 }, 1);
+  assert.deepEqual(advanceMilitary(deployed, 20_000), deployed);
+  deployed.missions[0].status = 'returning';
+  deployed.missions[0].result = { survivors: 7 };
+  assert.deepEqual(advanceMilitary(deployed, 20_000), deployed);
+  assert.equal(deployed.units.scout, 0);
+});
 import { advanceNpc, mapDistance, publicMap, randomFreeLocation, terrainAt } from '../packages/game-core/world.js';
 
 const command = (id, slotId, building) => ({ id, slotId, building });

@@ -22,7 +22,7 @@ const staticFiles = new Map([
   ['/assets/scout-aircraft.svg', ['assets/scout-aircraft.svg', 'image/svg+xml']],
   ['/assets/infantry.svg', ['assets/infantry.svg', 'image/svg+xml']],
 ]);
-const mimeTypes = new Map([['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'], ['.css', 'text/css; charset=utf-8'], ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.webp', 'image/webp'], ['.woff2', 'font/woff2']]);
+const mimeTypes = new Map([['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'], ['.css', 'text/css; charset=utf-8'], ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'], ['.woff2', 'font/woff2']]);
 
 function commandFingerprint(type, payload) {
   const allowed = type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'unit', 'amount'] :

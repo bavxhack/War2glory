@@ -132,6 +132,9 @@ export function advanceMilitary(previous, now, npcById = new Map()) {
   for (const job of completedTraining) military.units[job.unit] += job.amount;
   military.trainingQueue = military.trainingQueue.filter(job => job.finishesAt > now);
   for (const mission of military.missions) {
+    // Raids require the shared NPC state and are settled by WorldStorage.
+    // Never run them through the legacy scout-only return path.
+    if (mission.type === 'raid') continue;
     if (mission.status === 'outbound' && mission.arrivesAt <= now) {
       mission.status = 'returning';
       const npc = npcById.get(mission.targetId);
