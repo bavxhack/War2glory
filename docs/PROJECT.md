@@ -13,10 +13,11 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Implementiert als Prototyp; Balance und Altbestandsregel bleiben zu prüfen |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
 | UI | React-/Vite-Migration der vorhandenen Oberfläche bei unveränderter Spiellogik | Implementiert mit Auftrag 6 |
+| Konfiguration | Weltgröße, NPC-Anzahl und Versorgung per validierter ENV mit gespeicherten Regelversionen | Aktueller Auftrag 11 |
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
-| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte laut README umgesetzt; Forschung/Kämpfe später |
+| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäude-/Kampfwertung umgesetzt; Forschungspunkte in Auftrag 11 |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral/Mehrfachverwaltung umgesetzt; manuelle Skills und begrenzte Wirkungen mit Auftrag 10 implementiert; Forschung weiterhin später |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills umgesetzt; Universität und erste Forschung in Auftrag 11, Forschungsgeneral später |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
@@ -189,7 +190,7 @@ Die folgenden Werte und Detailregeln stammen vom Planungschat. Sie sind keine ei
 
 ## Umgesetzter Auftrag 10 vom 08.10.2026: General-Skills aktivieren
 
-Nach Abschluss von Auftrag 9 folgt die Aktivierung der vorhandenen Skillgrundlage. CODEX_PROMPT.md enthält den neuen Arbeitsauftrag. Implementiert und mit Regel-, Speicher-, WebSocket-Tests und Frontend-Build geprüft. Die unten genannten Balancewerte bleiben vorläufig; Browserprüfung und Grenzen werden im PR ausgewiesen.
+Der Nutzer meldet Auftrag 10 am 08.10.2026 als weitgehend fertig. Die Repository-Dokumentation beschreibt die Skillaktivierung als implementiert und durch Regel-, Speicher-, WebSocket-Tests sowie Frontend-Build geprüft. Diese Tests wurden vom Planungschat nicht selbst ausgeführt. Der frühere Auftrag 10 ist im Git-Verlauf von CODEX_PROMPT.md erhalten. Seine Balancewerte bleiben vorläufig.
 
 ### Umfang
 
@@ -217,13 +218,55 @@ Diese Werte sind neue Arbeitsvorschläge des Planungschats bzw. greifen den best
 - Beispiel: 10 Angreifer gegen 20 Verteidiger verlieren weiterhin; mit 10 Verteidigungspunkten gehen 8 statt 10 Angreifer verloren, 2 kehren ohne Beute zurück.
 - Die konkreten Formeln, Rundungen, Migrationsregeln und Tests stehen in CODEX_PROMPT.md und werden im PR zur Prüfung dokumentiert.
 
+## Aktueller Auftrag 11 vom 08.10.2026: Unterhaltsprüfung, ENV-Konfiguration und Forschung
+
+Der Nutzer beauftragt Universität/erste Forschungen gemeinsam mit konfigurierbarer Weltgröße und Truppenunterhalt und bittet um Prüfung möglicherweise zu hoher oder falsch berechneter Unterhaltskosten. CODEX_PROMPT.md enthält den ausführbaren Auftrag. Noch nicht als implementiert bestätigt.
+
+### Priorität und vorläufige Codeprüfung
+
+1. Unterhalt reproduzierbar prüfen und bestätigte Fehler korrigieren.
+2. Validierte serverseitige .env-/Umgebungskonfiguration und zeitlich korrekte Regelwechsel einführen.
+3. Universität, erste Wirtschafts-/Lagerforschung und Forschungspunkte integrieren.
+
+Die Codelektüre durch den Planungschat am 08.10.2026 zeigte:
+- In packages/game-core/supply.js stehen 0,1 Nahrung/Sekunde je Infanterist und 0,05 je Späher. Das entspricht 360 bzw. 180 pro Stunde. Ein Bauernhof Stufe 1 mit 1 Nahrung/Sekunde trägt ohne Boni zehn Infanteristen. Hohe Kosten sind damit zunächst eine Balancefrage.
+- supplySummary summiert lebende stationierte und missionsgebundene Einheiten. Eine doppelte Abbuchung ist durch diese bloße Lektüre nicht nachgewiesen; Abschlusswege und Zeitmarken sind im Implementierungsauftrag gezielt zu prüfen.
+- Konkreter Fehlerverdacht: advanceSupply verrechnet vor Schonfristende bereits einen Fünf-Minuten-Modulo. Bei zehn Minuten bestehendem Mangel berechnet die gelesene Formel weitere 30 statt 20 Minuten bis zum Fristende. Vergleich 0 → 31 Minuten gegen 0 → 10 → 31 Minuten mit leerem Lager und keiner Produktion muss die erste Welle jeweils bei Minute 30 ergeben.
+- Die Prüfung ist statisch; keine Anwendungstests durch den Planungschat. Codex soll Reproduktion, Ergebnis und Korrekturen in docs/UPKEEP_AUDIT.md dokumentieren und Balance von Rechenfehlern trennen.
+
+### Konfiguration
+
+- „Feldgröße“ wird zunächst als Weltkartenbreite/-höhe in Feldern verstanden; quadratische Zellen und getrennte Bauplätze bleiben erhalten.
+- WORLD_WIDTH, WORLD_HEIGHT und WORLD_NPC_COUNT steuern neue Welten; Standard 24, 24 und 18.
+- Gespeicherte Karten bestehender Welten bleiben verbindlich. Abweichende Erzeugungswerte werden deutlich gemeldet, ohne Karte oder Städte neu anzulegen.
+- UPKEEP_INFANTRY_PER_HOUR und UPKEEP_SCOUT_PER_HOUR steuern Verbrauch, kompatible Standards 360 und 180. Explizites 0 muss unterstützt werden.
+- Optionales milderes Beispiel für Betreiber: 36/18 Nahrung pro Stunde, ein Zehntel der bisherigen Raten. Keine automatische oder als Fehlerkorrektur getarnte Senkung.
+- SUPPLY_GRACE_SECONDS, SUPPLY_LOSS_INTERVAL_SECONDS, SUPPLY_LOSS_PERCENT und SUPPLY_RECOVERY_SECONDS erhalten kompatible Standards 1800, 300, 5 und 60.
+- .env.example, tatsächliches Laden beim nativen Start, Container-Weitergabe, Validierung, Einheiten und Vorrangregeln dokumentieren. Keine Geheimnisse oder vollständige ENV an den Browser übertragen.
+- Neue Laufzeitraten ab gespeichertem Wechselzeitpunkt nach Neustart; vorherige Offlinezeit mit bisher gültigen Regeln abrechnen. Aktive Mangelzyklen behalten vorläufig ihre Frist-/Verlustregeln bis zur Erholung.
+- Kein Frontend-Rebuild für Spielregeländerungen. Reine Spiellogik erhält Konfiguration explizit.
+
+### Universität und vorläufige Forschungsregeln
+
+Die folgenden Forschungswerte sind Vorschläge des Planungschats für den Review, keine einzeln bestätigten Nutzerentscheidungen:
+- Universität als ausbaubares ziviles Gebäude ohne Rohstoffproduktion, mit vorhandener ziviler Baukosten-/Zeitkurve und Gebäude-Punktewirkung.
+- Mehrere Universitäten möglich, aber zunächst nur ein aktiver Forschungsauftrag pro Stadt, ohne Warteschlange oder Abbruch.
+- Forschungszielstufe n benötigt Universitätsstufe mindestens n und abgeschlossene Vorgängerstufe. Laufende Forschung bindet das ausgewählte Gebäude gegen Abriss.
+- Forstwirtschaft, Steinverarbeitung und Landwirtschaft erhöhen jeweils die passende Produktion um 5 Prozent je abgeschlossener Stufe; Lagerlogistik erhöht alle aktiven Lagerkapazitäten um 5 Prozent je Stufe. Jeweils maximal Stufe 5.
+- Kosten pro Zielstufe n: 100 × n Holz und 100 × n Stein. Dauer: ceil(60 × n / (1 + 0,1 × (Universitätsstufe − 1))) Sekunden, beim Start festgeschrieben.
+- Beispiel: Zielstufe 2 an Universität Stufe 2 kostet 200 Holz/200 Stein und dauert 110 Sekunden.
+- Nahrung = Gebäudegrundproduktion × Landwirtschaftsfaktor × Bürgermeisterfaktor; davon einmalig Unterhalt abziehen. Beispiel 2 × 1,10 × 1,20 = 2,64 Nahrung/Sekunde; bei Unterhalt 3 ergibt sich −0,36.
+- Lagerforschung multipliziert bestehende Grund-/Gebäudekapazität; Ergebnis abrunden. Kein automatisches Auffüllen von Vorräten.
+- Abgeschlossene Forschung gilt stadtbezogen, bleibt nach Universitätsabriss erhalten und wirkt ab tatsächlichem Abschluss.
+- Forschungspunkte: 10 × Summe abgeschlossener Forschungsstufen; keine doppelte Gutschrift oder Punkte für laufende Forschung.
+- Forschung läuft auch bei Nahrungsmangel weiter. Forschungsgeneral, militärische Freischaltungen, Öl und neue Einheiten bleiben spätere Etappen.
+
 ### Weitere Reihenfolge
 
-1. Auftrag 10 ist implementiert; Skillumrechnung, Verteilung und begrenzte Bürgermeister-/Kampfwirkungen bleiben als Prototyp im Review.
-2. Universität und erste Wirtschafts-/Lagerforschung, einschließlich Forschungspunkten.
-3. Forschungsgeneral, weitere Forschungen/Freischaltungen und separate Regeln für zusätzliche Generäle.
-4. LKWs und Ölwirtschaft, zusätzliche Einheiten und Waffensysteme; Forschungsvoraussetzungen separat festlegen.
-5. Bündnisse, Handel, Unterstützung, PvP und aktive Matrix-Föderation gemäß bisherigen Zielen.
+1. Auftrag 11: Unterhaltsprüfung/Fixes, ENV-Konfiguration und Universität/Wirtschaftsforschung.
+2. Forschungsgeneral, zusätzliche Forschungszweige/Freischaltungen und Regeln zur Rekrutierung weiterer Generäle.
+3. LKWs, Ölwirtschaft und weitere Einheiten/Waffensysteme.
+4. Bündnisse, Handel, Unterstützung, PvP und aktive Föderation gemäß bisherigen Zielen.
 
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 
@@ -417,7 +460,7 @@ Noch offen bleiben endgültige Balance, Rücksetzung/Umverteilung, Rekrutierung 
 
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
-Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Skillauftrag 10.
+Die ersten Wirtschafts-/Lagerforschungen und der Gebäudetyp Universität sind Gegenstand des aktuellen Auftrags 11. Noch nicht als implementiert bestätigt. Der obige Abschnitt konkretisiert den ersten Prototyp; spätere Freischaltungen und Forschungsgeneral bleiben offen.
 
 ### Universität und Forschungsbereiche
 
@@ -430,13 +473,13 @@ Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universitä
 
 ### Vor der Umsetzung abzustimmen
 
-- Konkrete Forschungen, Voraussetzungen und Abhängigkeiten; ein Forschungsbaum ist ein möglicher Darstellungs- und Strukturierungsvorschlag, noch keine fertig definierte Technologieauswahl.
+- Auftrag 11 definiert zunächst vier Wirtschafts-/Lagertechnologien. Weitere Technologien, militärische Freischaltungen und deren Abhängigkeiten bleiben abzustimmen.
 - Forschungsstufen, Kosten, Dauer und maximale Verbesserungen.
 - Universitätsausbau und dessen Einfluss, etwa auf verfügbare Forschungen, Forschungsgeschwindigkeit oder parallele Forschungsplätze.
 - Eine oder mehrere gleichzeitig laufende Forschungen, Warteschlange sowie Abbruch- und Rückerstattungsregeln.
 - Gültigkeit abgeschlossener Forschung pro Stadt oder für das gesamte Spielerkonto innerhalb einer Welt.
 - Auswirkungen eines Universitätsabrisses auf laufende Forschung, abgeschlossene Erkenntnisse und bereits freigeschaltete Gebäude/Einheiten.
-- Verrechnung von Forschungsboni mit Gebäudestufen und anderen Verbesserungen, einschließlich Rundung und etwaigen Grenzen. Keine Prozentwerte oder additive/multiplikative Formel sind bislang beschlossen.
+- Auftrag 11 schlägt konkrete Faktoren und Rundung für erste Forschung vor. Dies sind vorläufige Prototypregeln; weitere Boni und endgültige Balance bleiben abzustimmen.
 - Ob militärische Verbesserungen bereits vorhandene Truppen betreffen und wie Freischaltungen mit Rekrutierung und Gebäudevoraussetzungen zusammenwirken.
 
 ### Leitplanken für die spätere Codex-Umsetzung
@@ -451,7 +494,7 @@ Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universitä
 
 ## Kommandanten-Punktesystem: hohe Priorität
 
-Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden. Sein Gebäude-Grundsystem wurde in Auftrag 4 eingeführt und wird in der README als implementiert beschrieben; Forschungs- und Kampfbeiträge folgen mit den jeweiligen Spielsystemen.
+Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden. Sein Gebäude-Grundsystem wurde in Auftrag 4 eingeführt und wird in der README als implementiert beschrieben; Kampfbeiträge sind mit den Farmzügen eingeführt; Forschungspunkte folgen in Auftrag 11.
 
 ### Umfang und schrittweise Einführung
 
