@@ -84,3 +84,29 @@ Ein Forschungsauftrag speichert stabile ID, Technologie/Zielstufe, Universitäts
 Die gemeinsame Simulation rechnet Wirtschaft bis zur nächsten Bau-/Forschungs-/Ausbildungs-/Missions-/Versorgungsgrenze ab. Bei gleichem Zeitpunkt: Bauabschluss, Forschungsabschluss, zulässige Ausbildung, bestehende geordnete Missionen (Ankunft/Rückkehr), zuletzt weiterhin fälliger Hunger. Dadurch nutzt Rückkehr die rechtzeitig erhöhte Kapazität und rechtzeitige neue Produktion/Beute kann eine Hungerwelle verhindern. Ausbildung pausiert bei Mangel, Forschung nicht. Snapshot-Projektion und Befehle besitzen keinen zweiten Abschlussweg. Ein fehlgeschlagener Journalcommit wird vor weiterer Zeitabrechnung auch im gleichen Prozess wiederhergestellt.
 
 Universität ist zivil, mit normaler Investitionshistorie und Gebäudepunkten. Aktive Forschung sperrt Abrissvorschau und Abriss des gebundenen Gebäudes. Ausbau ist erlaubt, beeinflusst den laufenden Auftrag nicht. Abgeschlossene Stufen bleiben bei Abriss erhalten. Öffentliche Kartendetails enthalten weiterhin keine Forschungs-, Ressourcen- oder Garnisonsdaten.
+
+## Offiziersbewerber und Forschungsleitung (Auftrag 12)
+
+Private Snapshots enthalten `officerRules`, `recruitment` (Kosten, nächste Kosten, Sperrgrund), `researcher` und in `military` den `candidatePool`, `acquiredCount`, `rosterVersion`, `roleVersion` und `researcherGeneralId`. Öffentliche Kartendaten enthalten diese Informationen nicht. `city.sync` aktualisiert den Pool, ohne freien Neuwurf. Namen werden als Text gerendert.
+
+- `general.recruit.preview`: `{candidateId}` → Antwort desselben Typs mit `poolId`, `poolVersion`, `candidateId`, `expiresAt`, `acquiredCount`, `rosterVersion`, `rulesetVersion`, `cost`, `nextCost`.
+- `general.recruit`: dieselben Bindungsfelder und optional `name`. Preise/Grundwerte werden ausschließlich aus gespeichertem Pool und wirksamen Regeln berechnet. Kaufantwort `command.ok` enthält `generalId`; UI wählt den neuen General. Genau eine Verpflichtung pro Pool, ab exakt `expiresAt` ungültig.
+- `general.researcher`: `{generalId: ID oder null, expectedRoleVersion}`. Freier eigener General und fertige Universität nötig. Während Forschung gesperrt. Alte und neue Rolle gemeinsam speichern.
+- `general.mayor`: zusätzlich `expectedRoleVersion`. Rolle und Status bleiben exklusiv; abweichende Version verlangt erneute Prüfung.
+- `research.preview`: bisherige Felder, zusätzlich Antwort `researcher` (General-ID/-Version, damaliger Name, effektive Führung, Bonus, Rollen-/Betreiberregelversion), `universityFactor`, `durationWithoutGeneralMs`.
+- `research.start`: bisherigen Bindungsfeldern das unveränderte `researcher`-Objekt aus der Vorschau hinzufügen. Der Server vergleicht erneut. Auftrag speichert diese Werte; laufende Jobs werden durch Skill-/Namens-/Regeländerung nicht verändert.
+
+Bestehende requestId/Payload-Deduplizierung bleibt aktiv, auch nach Poolablauf. Gleiches Ergebnis wird aus gespeichertem Beleg zurückgegeben; anderer Inhalt zur selben ID wird abgelehnt. Erfolgsantwort erst nach atomarer Spielerdatei inklusive Zahlung, Poolverbrauch, General, Erwerbszähler und Beleg. Weltzeit/Pools verwenden das vorhandene Journal, keine Browserautorität. Wirtschafts-/Forschungsabschlüsse bis Serverzeit werden vor Rollenbefehlen verarbeitet; Forschungsabschluss belässt das Amt. Neue Farmzüge nutzen `npc-pve-3-general-bases-provisional`, alte Missionen 1/2 ausschließlich ihre gespeicherten Regeln.
+
+Generäle und Bewerber besitzen seit Schema 11 eine private `portraitId` aus dem festen lokalen Katalog mit 20 Einträgen. Diese Kennung wird ausschließlich serverseitig zugeteilt und gespeichert, beim Kauf vom Bewerber übernommen und bei Umbenennen/Skills/Neustart beibehalten. Clientwerte für Porträtwahl werden nicht als Zuweisung verwendet. Keine neuen Befehle oder öffentlichen Kartendaten nötig.
+
+## Postbox
+
+`city.snapshot`/`city.updated` enthalten die eigene `mailbox`: `messages`, `readReportIds`, `unreadCount`. Berichte bleiben unverändert in `military.reports`; `readReportIds` speichert ihren persönlichen Lesestatus. Nachrichten enthalten serverseitige IDs, Absender-/Empfänger-ID und damalige Kommandantennamen, Betreff, Text, `sentAt` und empfangsseitiges `readAt`. Öffentliche Kartenantworten enthalten keine Postboxdaten.
+
+- `mail.send`: `{recipient: Kommandantenname, subject, body}` → `command.ok` mit `messageId`, `duplicate`. Empfänger ist ein anderer existierender Spieler derselben Welt. NFKC/kleingeschriebene Empfängersuche wie bei der Anmeldung. Betreff 1–100, Text 1–4000 Unicode-Codepunkte; Steuerzeichen außer Zeilenumbruch/Tab im Nachrichtentext abgewiesen. Maximal fünf neue Sendungen im gleitenden Minutenfenster. Absender, Zeiten und Nachricht-ID stammen ausschließlich vom Server.
+- `mail.read`: `{kind: 'message' oder 'report', id}` → `command.ok`. Nur eigene Einträge, keine fremden IDs. Wiederholtes Lesen ist wirkungslos; das erste `readAt` bleibt erhalten.
+
+Sendungen sind in der Weltwarteschlange serialisiert; Senderkopie und Empfängerkopie werden gemeinsam mit dem bestehenden Transaktionsjournal gespeichert. Bestätigung und private Broadcasts erst danach. Derselbe Sender/requestId/Inhalt liefert dauerhaft dieselbe Nachricht-ID, ohne zweite Zustellung oder erneute Rate-Limit-Buchung; anderer Inhalt wird abgewiesen. Die Nachrichtenkopie enthält dafür `commandId`/`fingerprint`, unabhängig von der begrenzten allgemeinen Befehlshistorie. Lesestatusänderungen werden in der eigenen Spielerdatei gespeichert und an alle eigenen Verbindungen gesendet. Kein Nachrichten-Polling oder zusätzlicher Socket. Große ausgehende private Snapshots nutzen gültige 64-Bit-WebSocket-Längen.
+
+Migration 11 → 12 ergänzt leere Nachrichten und markiert ausschließlich bereits vorhandene Berichts-IDs als gelesen. Später abgeschlossene Einsätze liefern weiterhin neue ungelesene Berichte, auch bei Offline-Abrechnung. Keine rückwirkende Änderung der Berichtsinhalte.

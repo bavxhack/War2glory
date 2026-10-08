@@ -2,8 +2,12 @@ import { readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 import { createHash } from 'node:crypto';
 import { SUPPLY_RULES } from '../../packages/game-core/supply.js';
+import { OFFICER_RULES } from '../../packages/game-core/officers.js';
 
 const definitions = {
+  GENERAL_MAX_COUNT: [3, 1, 100, true], GENERAL_RECRUIT_WOOD: [500, 1, 1000000, true], GENERAL_RECRUIT_STONE: [500, 1, 1000000, true],
+  GENERAL_RECRUIT_COST_EXPONENT: [2, 1, 3, true], GENERAL_CANDIDATE_REFRESH_HOURS: [24, 1 / 60, 8760],
+  RESEARCH_LEADERSHIP_PERCENT: [1, 0, 10], RESEARCH_BONUS_CAP_PERCENT: [50, 0, 100],
   WORLD_WIDTH: [24, 2, 64, true], WORLD_HEIGHT: [24, 2, 64, true], WORLD_NPC_COUNT: [18, 0, 4095, true],
   UPKEEP_INFANTRY_PER_HOUR: [360, 0, 3600000], UPKEEP_SCOUT_PER_HOUR: [180, 0, 3600000],
   SUPPLY_GRACE_SECONDS: [1800, 0.001, 31536000], SUPPLY_LOSS_INTERVAL_SECONDS: [300, 0.001, 31536000],
@@ -25,7 +29,11 @@ export function parseConfiguration(env = {}) {
     lossRate: numbers.SUPPLY_LOSS_PERCENT / 100, recoveryMs: numbers.SUPPLY_RECOVERY_SECONDS * 1000 };
   const changed = Object.keys(SUPPLY_RULES).some(key => key !== 'version' && JSON.stringify(supply[key]) !== JSON.stringify(SUPPLY_RULES[key]));
   if (changed) supply.version = `supply-env-1-${createHash('sha256').update(JSON.stringify(supply)).digest('hex').slice(0, 16)}`;
-  return { map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply };
+  const officers = { ...OFFICER_RULES, maxCount: numbers.GENERAL_MAX_COUNT, wood: numbers.GENERAL_RECRUIT_WOOD, stone: numbers.GENERAL_RECRUIT_STONE,
+    exponent: numbers.GENERAL_RECRUIT_COST_EXPONENT, refreshMs: Math.round(numbers.GENERAL_CANDIDATE_REFRESH_HOURS * 3600000),
+    leadershipPercent: numbers.RESEARCH_LEADERSHIP_PERCENT, bonusCapPercent: numbers.RESEARCH_BONUS_CAP_PERCENT };
+  officers.version = `officers-1-${createHash('sha256').update(JSON.stringify(officers)).digest('hex').slice(0, 16)}`;
+  return { map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
 }
 
 export async function loadConfiguration({ env = {}, file = '.env', cli = {} } = {}) {

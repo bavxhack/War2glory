@@ -16,6 +16,7 @@ const server = createGameServer({
 });
 await server.ready;
 console.log(`Versorgungsregeln ${server.storage.supplyRules.version}: ${JSON.stringify(server.storage.supplyRules.upkeepPerSecond)} Nahrung/Einheit/Sekunde; wirksam ab ${new Date(server.storage.world.supplyRuleHistory.at(-1).effectiveAt).toISOString()}`);
+console.log('Wirksame Offiziersregeln (vorläufig):', JSON.stringify(config.officers));
 console.log('Wirksame Spielkonfiguration:', JSON.stringify({ map: server.storage.world.map.config,
   upkeepPerHour: Object.fromEntries(Object.entries(server.storage.supplyRules.upkeepPerSecond).map(([unit, rate]) => [unit, rate * 3600])),
   graceSeconds: server.storage.supplyRules.graceMs / 1000, lossIntervalSeconds: server.storage.supplyRules.lossIntervalMs / 1000,

@@ -91,6 +91,7 @@ function produce(city, until, rateAdjustments = {}) {
 }
 
 function finishConstruction(city, job) {
+  if (job.building === 'barracks') city.officerEligibleAt ??= job.finishesAt;
   const slot = allSlots(city).find(candidate => candidate.id === job.slotId);
   if (job.type === 'build') {
     slot.building = job.building; slot.buildingId = job.buildingId; slot.investment = emptyInvestment();

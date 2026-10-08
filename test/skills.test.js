@@ -49,9 +49,10 @@ test('Skillinvariante, effektive Grundwerte und Wirkungsschranken erhalten Altwe
   for (const key of ['leadership', 'attack', 'defense']) assert.throws(() => applySkillDistribution(distributed, { [key]: 1 }), /Wirkungsobergrenze/);
   const legacy = { ...bought, attributes: { leadership: 200, attack: 300, defense: 400 } };
   assert.throws(() => applySkillDistribution(legacy, { leadership: 1 }), /Wirkungsobergrenze/);
-  const improved = applySkillDistribution(legacy, { attack: 1 });
+  assert.throws(() => applySkillDistribution(legacy, { attack: 1 }), /Wirkungsobergrenze/);
+  const improved = legacy;
   assert.equal(improved.attributes.leadership, 200);
-  assert.deepEqual(combatBonuses(improved), { attackPercent: 2, defensePercent: 0 });
+  assert.deepEqual(combatBonuses(improved), { attackPercent: 50, defensePercent: 50 });
 });
 
 test('Kampf: alle Abnahmerechnungen, rationale Siegschwellen und unverteidigtes Ziel', () => {

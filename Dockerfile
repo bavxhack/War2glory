@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY apps ./apps
+COPY packages ./packages
 RUN npm run build
 
 FROM node:24-alpine AS runtime

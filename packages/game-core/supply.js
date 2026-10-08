@@ -164,6 +164,7 @@ export function advanceSupply(previous, now, activatedAt = previous.supply?.acti
 
 export function assignMayor(previous, generalId) {
   const military = structuredClone(previous);
+  if (generalId != null && generalId === military.mayorGeneralId && military.generals.find(g => g.id === generalId)?.status === 'mayor') return military;
   if (generalId === null) {
     const current = military.generals.find(general => general.id === military.mayorGeneralId);
     if (current) { current.status = 'idle'; current.version += 1; }
@@ -171,7 +172,7 @@ export function assignMayor(previous, generalId) {
     return military;
   }
   const general = military.generals.find(candidate => candidate.id === generalId);
-  if (!general || general.status !== 'idle') throw new Error('Nur ein eigener freier General kann Bürgermeister werden.');
+  if (!general || general.status !== 'idle' || military.researcherGeneralId === general.id || military.missions.some(m => m.generalId === general.id && m.status !== 'completed')) throw new Error('Nur ein eigener freier General kann Bürgermeister werden.');
   const current = military.generals.find(candidate => candidate.id === military.mayorGeneralId);
   if (current && current.id !== general.id) { current.status = 'idle'; current.version += 1; }
   general.status = 'mayor'; general.version += 1; military.mayorGeneralId = general.id;

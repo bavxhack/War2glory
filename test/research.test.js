@@ -105,10 +105,11 @@ test('schema migration preserves existing data and research/return ordering surv
   let now = 0; let storage = await new WorldStorage(directory, 'test', () => now).initialize();
   let { player } = await storage.register('ResearchState', 'long-test-password');
   player.schemaVersion = 8; delete player.city.research; await storage.savePlayer(player);
-  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 9); assert.deepEqual(player.city.research, newResearch());
+  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 12); assert.deepEqual(player.city.research, newResearch());
   player.city = cityAt(); player.city.buildingSlots[3].level = 1;
   player.city = startResearch(player.city, { ...command('logistics'), expectedUniversityLevel: 1 }, 0);
   player.city.resources.food = 2000;
+  player.military.generals[0].status = 'raiding';
   player.military.missions.push({ id: 'return', type: 'raid', status: 'returning', targetId: 'npc-1', generalId: player.military.generals[0].id, generalName: 'General', startedAt: 0, arrivesAt: 1000, returnsAt: 60000, eventSequence: 1, infantry: 1, result: { survivors: 1, loadedFood: 100, generalExperience: 0, combatScore: 0 } });
   await storage.savePlayer(player); now = 60000; storage = await new WorldStorage(directory, 'test', () => now).initialize();
   const done = await storage.loadPlayer(player.playerId); assert.equal(done.city.research.levels.logistics, 1); assert.equal(done.city.resources.food, 2100); assert.equal(done.military.reports[0].storedFood, 100);
