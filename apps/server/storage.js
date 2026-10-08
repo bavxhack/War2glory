@@ -3,12 +3,12 @@ import { copyFile, mkdir, readFile, readdir, rename, unlink, writeFile } from 'n
 import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
 import { allSlots, constructionQuote, newCity, resourceCapacities, RULESET } from '../../packages/game-core/index.js';
-import { generalLevel, newMilitary, normalizeGeneral, resolveNpcCombat } from '../../packages/game-core/military.js';
+import { GENERAL_SKILL_RULES, MILITARY_RULES, generalLevel, newMilitary, normalizeGeneral, resolveMissionCombat, skillSummary } from '../../packages/game-core/military.js';
 import { advanceSupply, settleSupplyAt } from '../../packages/game-core/supply.js';
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 7;
+export const PLAYER_SCHEMA_VERSION = 8;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -107,7 +107,7 @@ export class WorldStorage {
       const player = {
         schemaVersion: PLAYER_SCHEMA_VERSION, ruleset: RULESET, playerId, commanderName: displayName,
         city: { ...newCity(now), name: typeof cityName === 'string' && cityName.trim().length >= 3 && cityName.trim().length <= 32 ? cityName.trim() : `${displayName}s Stadt` },
-        military: newMilitary(playerId), processedCommands: [], createdAt: now,
+        military: newMilitary(playerId), generalSkillRuleset: GENERAL_SKILL_RULES.version, processedCommands: [], createdAt: now,
       };
       const account = { playerId, displayName, normalized, password: credentials, createdAt: now };
       const entity = this.#allocatePlayerCity(player, account);
@@ -204,6 +204,19 @@ export class WorldStorage {
       migrated = true;
       player.military.mayorGeneralId ??= null;
       player.supply = { version: 1, activatedAt: this.world.supplyActivatedAt, updatedAt: Math.max(this.world.supplyActivatedAt, player.city.updatedAt), shortageMs: 0, recoveryStartedAt: null, nextLossAt: null, events: [] };
+      player.schemaVersion = 7;
+    }
+    if (player.schemaVersion === 7) {
+      migrated = true;
+      player.military.generals = player.military.generals.map(general => {
+        const normalized = normalizeGeneral(general);
+        skillSummary(normalized); // Preserve coherent counters; never manufacture spendable XP.
+        return normalized;
+      });
+      for (const mission of player.military.missions) {
+        if (mission.type === 'raid') mission.ruleset ??= MILITARY_RULES.raidRuleset;
+      }
+      player.generalSkillRuleset = GENERAL_SKILL_RULES.version;
       player.schemaVersion = PLAYER_SCHEMA_VERSION;
     }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
@@ -243,7 +256,8 @@ export class WorldStorage {
         const npc = advanceNpc(this.world.map.entities[npcIndex], at);
         if (mission.type === 'raid') {
           const attackers = mission.result?.survivors ?? mission.infantry;
-          const combat = attackers > 0 ? resolveNpcCombat(attackers, npc.garrison.amount) : { victory: false, attackerLosses: 0, defenderLosses: 0, survivors: 0 };
+          const combat = attackers > 0 ? resolveMissionCombat(mission, attackers, npc.garrison.amount) : { victory: false, attackerLosses: 0, defenderLosses: 0, survivors: 0,
+            ...(mission.ruleset === MILITARY_RULES.skillRaidRuleset ? { combatBonuses: mission.combatBonuses } : {}) };
           npc.garrison.amount -= combat.defenderLosses;
           npc.garrison.updatedAt = at;
           const availableFood = Math.floor(npc.resources.food.amount);
@@ -273,6 +287,7 @@ export class WorldStorage {
           player.city.resources.food += storedFood;
           general.experience += result.generalExperience;
           general.level = generalLevel(general.experience); general.leadership = general.level * 20;
+          general.version += 1;
           player.military.combatScore += result.combatScore;
           if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'raid', missionId: mission.id,
             targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, startedAt: mission.startedAt,
@@ -282,6 +297,7 @@ export class WorldStorage {
         } else {
           player.military.units.scout += mission.scouts;
           if (mission.intelligence && !player.military.rewardedNpcIds.includes(mission.targetId)) { player.military.rewardedNpcIds.push(mission.targetId); general.experience += 10; general.level = generalLevel(general.experience); general.leadership = general.level * 20; }
+          general.version += 1;
           if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'scout', missionId: mission.id, targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, coordinates: mission.coordinates, capturedAt: mission.intelligence?.capturedAt, returnedAt: mission.returnsAt, intelligence: mission.intelligence });
         }
       } else continue;

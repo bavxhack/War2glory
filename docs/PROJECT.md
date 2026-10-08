@@ -16,7 +16,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte laut README umgesetzt; Forschung/Kämpfe später |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral/Mehrfachverwaltung umgesetzt; Skillaktivierung im aktuellen Auftrag 10; Forschung weiterhin später |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral/Mehrfachverwaltung umgesetzt; manuelle Skills und begrenzte Wirkungen mit Auftrag 10 implementiert; Forschung weiterhin später |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
@@ -187,9 +187,9 @@ Die folgenden Werte und Detailregeln stammen vom Planungschat. Sie sind keine ei
 - Kein Wiederherstellen des inzwischen entfernten Führungslimits; vorhandene Grenze von insgesamt 10.000 Einheiten je Einsatz bleibt.
 - Bestehendes Transaktionsjournal und globale Ereignisreihenfolge erweitern. Keine rückwirkenden Unterhaltskosten vor dauerhaft festgehaltenem Einführungszeitpunkt.
 
-## Aktueller Auftrag 10 vom 08.10.2026: General-Skills aktivieren
+## Umgesetzter Auftrag 10 vom 08.10.2026: General-Skills aktivieren
 
-Nach Abschluss von Auftrag 9 folgt die Aktivierung der vorhandenen Skillgrundlage. CODEX_PROMPT.md enthält den neuen Arbeitsauftrag. Er ist erteilt, noch nicht als implementiert bestätigt.
+Nach Abschluss von Auftrag 9 folgt die Aktivierung der vorhandenen Skillgrundlage. CODEX_PROMPT.md enthält den neuen Arbeitsauftrag. Implementiert und mit Regel-, Speicher-, WebSocket-Tests und Frontend-Build geprüft. Die unten genannten Balancewerte bleiben vorläufig; Browserprüfung und Grenzen werden im PR ausgewiesen.
 
 ### Umfang
 
@@ -219,7 +219,7 @@ Diese Werte sind neue Arbeitsvorschläge des Planungschats bzw. greifen den best
 
 ### Weitere Reihenfolge
 
-1. Auftrag 10: Skillumrechnung, Verteilung und begrenzte Bürgermeister-/Kampfwirkungen umsetzen und prüfen.
+1. Auftrag 10 ist implementiert; Skillumrechnung, Verteilung und begrenzte Bürgermeister-/Kampfwirkungen bleiben als Prototyp im Review.
 2. Universität und erste Wirtschafts-/Lagerforschung, einschließlich Forschungspunkten.
 3. Forschungsgeneral, weitere Forschungen/Freischaltungen und separate Regeln für zusätzliche Generäle.
 4. LKWs und Ölwirtschaft, zusätzliche Einheiten und Waffensysteme; Forschungsvoraussetzungen separat festlegen.

@@ -136,7 +136,7 @@ function ScoutingDialog({ target, state, transport, onClose }) {
   const general = state.military.generals.find(item => item.id === generalId);
   const missionLimit = state.militaryRules.maxMissionUnits;
   const maxScouts = Math.min(state.military.units.scout, missionLimit);
-  const valid = general && Number.isInteger(scouts) && scouts >= 1 && scouts <= maxScouts;
+  const valid = general?.status === 'idle' && Number.isInteger(scouts) && scouts >= 1 && scouts <= maxScouts;
   const seconds = Math.max(5, Math.ceil(target.distance ?? 0) * 5);
   return <Dialog open title="Stadt ausspähen" kicker="EINSATZ PLANEN" onClose={onClose} actions={<button disabled={!valid} onClick={() => { transport.mutate('scouting.start', { targetId: target.id, generalId, scouts }); transport.setMessage(`${scouts} Aufklärungsflugzeuge wurden entsandt.`); onClose(); }}>Einsatz starten</button>}>
     <GameArt type="scout" label="Aufklärungsflugzeug"/><p>{target.name} · Koordinate {target.x}, {target.y} · Entfernung {target.distance.toFixed(2)}</p>
@@ -154,14 +154,14 @@ function RaidDialog({ target, state, transport, onClose }) {
   const general = state.military.generals.find(item => item.id === generalId);
   const missionLimit = state.militaryRules.maxMissionUnits;
   const maxInfantry = Math.min(state.military.units.infantry, missionLimit);
-  const valid = general && Number.isInteger(infantry) && infantry >= 1 && infantry <= maxInfantry;
+  const valid = general?.status === 'idle' && Number.isInteger(infantry) && infantry >= 1 && infantry <= maxInfantry;
   const seconds = Math.max(5, Math.ceil(target.distance ?? 0) * 5);
   const freeFood = Math.max(0, state.capacities.food - state.city.resources.food);
   return <Dialog open title="NPC-Stadt angreifen" kicker="VORLÄUFIGER FARMZUG" onClose={onClose} actions={<button disabled={!valid} onClick={() => { transport.mutate('raid.start', { targetId: target.id, generalId, infantry }); transport.setMessage(`${infantry} Infanteristen wurden entsandt.`); onClose(); }}>Angriff starten</button>}>
     <GameArt type="infantry" label="Infanterie"/><p>{target.name} · {seconds} s Hinweg · {seconds} s Rückweg</p>
-    <p className="notice">Prototypregel: Infanterie kämpft deterministisch und trägt je Überlebendem 20 Nahrung. Der General überlebt; bei Niederlage fällt die gesamte Angriffstruppe. Gegner und Beute können sich bis zur Ankunft ändern.</p>
+    <p className="notice">Prototypregel: Infanterie kämpft deterministisch und trägt je Überlebendem 20 Nahrung. Der General überlebt. Verteidigung verringert Kampfverluste auch bei Niederlage; Überlebende kehren dann ohne Beute zurück. Gegner und Beute können sich bis zur Ankunft ändern.</p>
     <label>General<select value={generalId} onChange={event => setGeneralId(event.target.value)}>{state.military.generals.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'idle'}>{item.name}{item.status !== 'idle' && ' · gebunden'}</option>)}</select></label>
-    <label>Infanterie<input type="number" min="1" max={maxInfantry} value={infantry} onChange={event => setInfantry(Number(event.target.value))}/></label>
+    <p>Beim Start festgeschrieben: Angriff +{Math.min(50, (general?.skills?.allocations?.attack ?? 0) * 2)} % Vergleichsstärke · Verteidigung −{Math.min(50, (general?.skills?.allocations?.defense ?? 0) * 2)} % eigene Kampfverluste. Grundwerte wirken im Kampf nicht. Sieg nur bei höherer Stärke; Gleichstand ist eine Niederlage.</p><label>Infanterie<input type="number" min="1" max={maxInfantry} value={infantry} onChange={event => setInfantry(Number(event.target.value))}/></label>
     <p className="notice">Pro Einsatz dürfen insgesamt höchstens {missionLimit.toLocaleString('de-DE')} Einheiten entsendet werden. Es gilt derzeit kein Führungslimit; eine spätere Reichweitenbegrenzung durch Nahrung ist noch nicht aktiv.</p>
     <div className="mission-preview"><strong>Maximale Traglast vor Verlusten: {Number.isInteger(infantry) ? infantry * 20 : 0} Nahrung</strong><span>Aktuell freier Lagerplatz: {Math.floor(freeFood)} (bei Rückkehr neu berechnet)</span></div>
   </Dialog>;

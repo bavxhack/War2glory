@@ -6,6 +6,7 @@ export const MILITARY_RULES = Object.freeze({
   firstScoutExperience: 10,
   maxGeneralLevel: 10,
   raidRuleset: 'npc-pve-1-provisional',
+  skillRaidRuleset: 'npc-pve-2-skills-provisional',
   infantryFoodCapacity: 20,
   maxMissionUnits: 10_000,
 });
@@ -16,7 +17,35 @@ export const UNITS = Object.freeze({
 });
 
 export const GENERAL_NAME_MAX_CODE_POINTS = 40;
-export const GENERAL_SKILL_RULES = Object.freeze({ enabled: false, version: null });
+export const GENERAL_SKILL_RULES = Object.freeze({
+  enabled: true, version: 'general-skills-1-provisional', xpPerPointIndex: 10,
+  militaryPercentPerPoint: 2, maxMilitaryPoints: 25, maxEffectiveLeadership: 50,
+});
+
+export function effectiveAttributes(general) {
+  const normalized = normalizeGeneral(general);
+  return Object.fromEntries(Object.entries(normalized.attributes).map(([key, base]) => [key, base + (normalized.skills.allocations[key] ?? 0)]));
+}
+
+export function skillLimits(general) {
+  const normalized = normalizeGeneral(general);
+  return { leadership: Math.max(0, GENERAL_SKILL_RULES.maxEffectiveLeadership - normalized.attributes.leadership),
+    attack: GENERAL_SKILL_RULES.maxMilitaryPoints, defense: GENERAL_SKILL_RULES.maxMilitaryPoints };
+}
+
+export function combatBonuses(general) {
+  const { allocations } = skillSummary(general);
+  return { attackPercent: Math.min(50, allocations.attack * GENERAL_SKILL_RULES.militaryPercentPerPoint),
+    defensePercent: Math.min(50, allocations.defense * GENERAL_SKILL_RULES.militaryPercentPerPoint) };
+}
+
+export function checkedSkillGeneral(military, command) {
+  const general = military.generals.find(item => item.id === command.generalId);
+  if (!general) throw new Error('Eigener General nicht gefunden.');
+  if (command.rulesetVersion !== GENERAL_SKILL_RULES.version) throw new Error('Der Skillregelsatz wurde geändert. Bitte erneut prüfen.');
+  if (!Number.isSafeInteger(command.expectedVersion) || command.expectedVersion !== general.version) throw new Error('Der General wurde inzwischen geändert. Bitte den aktuellen Stand prüfen.');
+  return general;
+}
 
 export function normalizeGeneral(general) {
   const leadership = Number.isInteger(general.leadership) ? general.leadership : generalLevel(general.experience ?? 0) * 20;
@@ -58,12 +87,20 @@ export function renameGeneral(previous, { generalId, name, expectedVersion }) {
 export function skillSummary(general) {
   const normalized = normalizeGeneral(general);
   const allocated = Object.values(normalized.skills.allocations).reduce((sum, value) => sum + value, 0);
-  if (![normalized.experience, normalized.skills.experienceSpent, normalized.skills.totalPoints, allocated].every(value => Number.isSafeInteger(value) && value >= 0) || normalized.skills.experienceSpent > normalized.experience || allocated > normalized.skills.totalPoints) throw new Error('Inkonsistenter Skillfortschritt.');
+  if (![normalized.experience, normalized.skills.experienceSpent, normalized.skills.totalPoints, allocated, ...Object.values(normalized.skills.allocations)].every(value => Number.isSafeInteger(value) && value >= 0) || normalized.skills.experienceSpent > normalized.experience || allocated > normalized.skills.totalPoints) throw new Error('Inkonsistenter Skillfortschritt.');
   return { ...normalized.skills, availableExperience: normalized.experience - normalized.skills.experienceSpent, freePoints: normalized.skills.totalPoints - allocated };
 }
 
-export function previewSkillConversion(general, points, rules) {
+export function previewSkillConversion(general, points, rules = GENERAL_SKILL_RULES) {
   const summary = skillSummary(general);
+  if (rules?.version === GENERAL_SKILL_RULES.version) {
+    if (!Number.isSafeInteger(points) || points < 1) throw new Error('Ungültige Skillpunktzahl.');
+    const m = BigInt(points), k = BigInt(summary.totalPoints);
+    const cost = 5n * m * (2n * k + m + 1n);
+    if (cost > BigInt(Number.MAX_SAFE_INTEGER) || k + m > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Skillkosten überschreiten den sicheren Zahlenbereich.');
+    if (cost > BigInt(summary.availableExperience)) throw new Error('Nicht genügend verfügbare Erfahrung.');
+    return { points, cost: Number(cost), remainingExperience: summary.availableExperience - Number(cost), totalPoints: summary.totalPoints + points };
+  }
   if (!rules || typeof rules.costForPoint !== 'function') throw new Error('Kein Skillregelsatz aktiv.');
   if (!Number.isInteger(points) || points < 0 || points > 10_000) throw new Error('Ungültige Skillpunktzahl.');
   let cost = 0;
@@ -78,7 +115,7 @@ export function previewSkillConversion(general, points, rules) {
   return { points, cost, remainingExperience: summary.availableExperience - cost, totalPoints: summary.totalPoints + points };
 }
 
-export function applySkillConversion(general, points, rules) {
+export function applySkillConversion(general, points, rules = GENERAL_SKILL_RULES) {
   const preview = previewSkillConversion(general, points, rules);
   const next = normalizeGeneral(general);
   next.skills.experienceSpent += preview.cost;
@@ -89,10 +126,13 @@ export function applySkillConversion(general, points, rules) {
 
 export function applySkillDistribution(general, changes) {
   const next = normalizeGeneral(general);
+  if (!changes || typeof changes !== 'object' || Array.isArray(changes)) throw new Error('Ungültige Skillverteilung.');
   for (const [attribute, amount] of Object.entries(changes ?? {})) {
-    if (!Object.hasOwn(next.skills.allocations, attribute) || !Number.isInteger(amount) || amount < 0) throw new Error('Ungültige Skillverteilung.');
+    if (!Object.hasOwn(next.skills.allocations, attribute) || !Number.isSafeInteger(amount) || amount < 0) throw new Error('Ungültige Skillverteilung.');
+    if (amount > 0 && next.skills.allocations[attribute] + amount > skillLimits(next)[attribute]) throw new Error('Die Wirkungsobergrenze dieser Eigenschaft ist erreicht.');
   }
   const total = Object.values(changes ?? {}).reduce((sum, value) => sum + value, 0);
+  if (!Number.isSafeInteger(total) || total < 1) throw new Error('Ungültige Skillverteilung.');
   if (total > skillSummary(next).freePoints) throw new Error('Nicht genügend freie Skillpunkte.');
   for (const [attribute, amount] of Object.entries(changes ?? {})) next.skills.allocations[attribute] += amount;
   next.version += 1;
@@ -183,7 +223,7 @@ export function startScoutMission(previous, command, now, origin, target) {
   if (!target || target.kind !== 'npc') throw new Error('Nur NPC-Städte können aufgeklärt werden.');
   const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
   const travelMs = Math.max(MILITARY_RULES.minimumTravelMs, Math.ceil(distance) * MILITARY_RULES.scoutTravelMsPerField);
-  military.units.scout -= command.scouts; general.status = 'scouting';
+  military.units.scout -= command.scouts; general.status = 'scouting'; general.version += 1;
   military.missions.push({ id: command.id, targetId: target.id, targetName: target.name, coordinates: { x: target.x, y: target.y }, generalId: general.id, generalName: general.name,
     scouts: command.scouts, initialScouts: command.scouts, status: 'outbound', startedAt: now, arrivesAt: now + travelMs, returnsAt: now + 2 * travelMs });
   return military;
@@ -201,6 +241,23 @@ export function resolveNpcCombat(attackers, defenders) {
   return { victory: false, attackerLosses: attackers, defenderLosses, survivors: 0 };
 }
 
+export function resolveMissionCombat(mission, attackers, defenders) {
+  if (!mission.ruleset || mission.ruleset === MILITARY_RULES.raidRuleset) return resolveNpcCombat(attackers, defenders);
+  if (mission.ruleset !== MILITARY_RULES.skillRaidRuleset) throw new Error('Unbekannte Kampfregelversion.');
+  const { attackPercent, defensePercent } = mission.combatBonuses ?? {};
+  if (![attackPercent, defensePercent].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 50)) throw new Error('Ungültige gespeicherte Kampfboni.');
+  if (!Number.isSafeInteger(attackers) || attackers <= 0 || !Number.isSafeInteger(defenders) || defenders < 0) throw new Error('Ungültige Kampftruppen.');
+  const bonus = { attackPercent, defensePercent };
+  if (defenders === 0) return { victory: true, attackerLosses: 0, defenderLosses: 0, survivors: attackers, combatBonuses: bonus };
+  const n = BigInt(attackers), d = BigInt(defenders), strength = n * BigInt(100 + attackPercent);
+  const victory = strength > d * 100n;
+  const numerator = (victory ? d : 2n * n) * BigInt(100 - defensePercent);
+  const losses = (numerator + 199n) / 200n;
+  const attackerLosses = Number(losses < n ? losses : n);
+  const defenderLosses = victory ? defenders : Number(strength / 200n < d ? strength / 200n : d);
+  return { victory, attackerLosses, defenderLosses, survivors: attackers - attackerLosses, combatBonuses: bonus };
+}
+
 export function startRaidMission(previous, command, now, origin, target, eventSequence) {
   const military = structuredClone(previous);
   const general = military.generals.find(item => item.id === command.generalId);
@@ -212,7 +269,8 @@ export function startRaidMission(previous, command, now, origin, target, eventSe
   const travelMs = Math.max(MILITARY_RULES.minimumTravelMs, Math.ceil(distance) * MILITARY_RULES.scoutTravelMsPerField);
   military.units.infantry -= command.infantry;
   general.status = 'raiding';
-  military.missions.push({ id: command.id, type: 'raid', ruleset: MILITARY_RULES.raidRuleset, eventSequence, targetId: target.id,
+  general.version += 1;
+  military.missions.push({ id: command.id, type: 'raid', ruleset: MILITARY_RULES.skillRaidRuleset, combatBonuses: combatBonuses(general), eventSequence, targetId: target.id,
     targetName: target.name, coordinates: { x: target.x, y: target.y }, generalId: general.id, generalName: general.name,
     infantry: command.infantry, initialInfantry: command.infantry, status: 'outbound', startedAt: now, arrivesAt: now + travelMs, returnsAt: now + 2 * travelMs });
   return military;
