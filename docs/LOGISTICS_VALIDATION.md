@@ -64,4 +64,6 @@ Neue Tests in `test/logistics.test.js`, `test/logistics-server.test.js` und `tes
 
 ## Grenzen und Folgearbeit
 
+Die nachträglich ergänzte Bildtafel `logistics-art.png` zeigt Ölraffinerie, Fahrzeugfabrik und LKW im Stil der bestehenden Spielillustrationen. Erneuter Produktionsbuild und alle 127 Tests bestanden. Der vollständige Browserablauf wurde erneut ausgeführt; die Fahrzeugfabrik und LKW-Darstellung wurden bei 1440×1000 und 390×844 geprüft. Die Motive werden lokal über einen von Vite versionierten Import geladen.
+
 Balance/Spieltempo bleiben zu bewerten. Browserablauf wurde mit kontrollierten Vorräten und Uhr ausgeführt; unbeaufsichtigte langfristige Lasttests und vollständige Screenreader-Abnahme sind nicht ausgeführt. Automatische Grenz-/Offline-/Hungerprüfungen ersetzen keine solche Belastungsprüfung. NPCs liefern ausschließlich Nahrung. PvP, Handel, eigenständige Transporte, weitere Kampfeinheiten und aktive Matrix-Föderation bleiben geplant.

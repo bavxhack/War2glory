@@ -18,4 +18,6 @@ Schema 11 ergänzt fehlende Porträts einmalig bei vorhandenen Generälen und ge
 
 ## Auftrag 13
 
-`refinery.svg`, `vehicleFactory.svg` und `truck.svg` sind eigene einfache SVG-Illustrationen der Raffinerie, Fahrzeugfabrik und Transportfahrzeuge. Lokal ausgeliefert; keine Originalgrafiken von War2Glory. Vorhandene Bildsprache und Porträtatlas bleiben erhalten.
+`logistics-art.png` ist eine am 08.10.2026 mit OpenAI Image Generation eigens erstellte Bildtafel im Stil von `game-art.png`: realistische Materialien, warmes Licht und gedeckte Olivfarben. Drei gleich große quadratische Motive stehen nebeneinander: Ölraffinerie, Fahrzeugfabrik und LKW. `GameArt` zeigt den jeweiligen Ausschnitt mit CSS-Hintergrundpositionen und `background-size: 300% 100%`. Vite importiert und versioniert die lokal ausgelieferte Datei mit einem Inhalts-Hash. Keine übernommenen War2Glory-Grafiken oder externen Bildanfragen.
+
+Die bisherigen eigenen SVGs `refinery.svg`, `vehicleFactory.svg` und `truck.svg` bleiben für ältere URLs verfügbar. Die aktuelle Oberfläche verwendet die neue Bildtafel.
