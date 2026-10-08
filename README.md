@@ -57,11 +57,11 @@ Port und Weltname können ohne Änderung der Compose-Datei gesetzt werden:
 PORT=3010 WORLD_NAME=meine-welt docker compose up -d
 ```
 
-Die Portfreigabe bindet standardmäßig nur an `127.0.0.1`. Das ist weiterhin ein lokaler Prototyp ohne Anmeldung und darf nicht unverändert öffentlich ins Internet gestellt werden. Ein Backup entsteht bei gestopptem Server beispielsweise mit `docker run --rm -v war2glory_game-data:/data -v "$PWD":/backup alpine tar czf /backup/war2glory-data.tar.gz -C /data .`.
+Die Portfreigabe bindet standardmäßig nur an `127.0.0.1`. Das ist weiterhin ein lokaler Prototyp mit Anmeldung und getrennten Spielerrechten und darf nicht unverändert öffentlich ins Internet gestellt werden. Ein Backup entsteht bei gestopptem Server beispielsweise mit `docker run --rm -v war2glory_game-data:/data -v "$PWD":/backup alpine tar czf /backup/war2glory-data.tar.gz -C /data .`.
 
 Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft den Container-Build, veröffentlicht aus Sicherheitsgründen aber kein Image aus fremdem Pull-Request-Code. Bei jedem Branch-Push baut der Workflow anschließend ein AMD64-/ARM64-Image und lädt es selbstständig in die GitHub Container Registry hoch. Der Branch `main` erhält dabei `ghcr.io/bavxhack/war2glory:latest`, andere Branches erhalten ein bereinigtes Branch-Tag und jeder veröffentlichte Build zusätzlich ein `sha-…`-Tag. Tags wie `v0.2.0` erzeugen ein gleichnamiges Image-Tag. Der Upload verwendet ausschließlich das von GitHub bereitgestellte `GITHUB_TOKEN`; ein eigenes Registry-Passwort ist nicht nötig. Für öffentliche Images ist kein Registry-Login zum Herunterladen erforderlich. Die erstmalige Sichtbarkeit des Pakets wird in den GitHub-Paketeinstellungen des Repository-Eigentümers festgelegt.
 
-## Implementierter Stand 0.10
+## Implementierter Stand 0.11
 
 - Responsive Stadtlandschaft mit modernen, lokal ausgelieferten Illustrationen für alle Gebäude, Infanterie, Aufklärungsflugzeuge, Generäle und Städte. Die eigene KI-generierte Bildtafel liegt in `apps/client/assets/game-art.png`; Details in `apps/client/assets/README.md`.
 - React-19-Oberfläche mit Vite-Build, zentralem WebSocket-Transport und unverändertem serverseitigem Spielmodell.
@@ -84,6 +84,8 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Gemeinsame NPC-Garnisonen und Nahrung regenerieren zeitbasiert. Ein wiederaufnehmbares Transaktionsjournal schützt Welt-/Spieleränderungen; fällige Einsätze werden auch offline und nach Neustarts stabil geordnet verarbeitet.
 - Laufender Nahrungsunterhalt erfasst stationierte und marschierende Truppen genau einmal. Nach einer Schonfrist verursacht anhaltender Mangel nachvollziehbare Hungerverluste; Ausbildung pausiert dabei, und verringerte Traglast kann Beute auf dem Rückweg kosten.
 - Ein freier General kann serverseitig geprüft als Bürgermeister eingesetzt, gewechselt oder abberufen werden. Seine Führung erhöht ausschließlich die laufende Nahrungsproduktion.
+- Universität auf zivilen Bauplätzen, eine dauerhafte Stadtforschung gleichzeitig, vier Wirtschafts-/Lagertechnologien und abgeleitete Forschungspunkte.
+- Validierte `.env`-/Prozesskonfiguration mit gespeicherter Versorgungsregelhistorie; Bestandskarten bleiben verbindlich, Unterhaltsänderungen gelten erst ab gespeichertem Neustartzeitpunkt.
 - Spielregeln und Serverintegration mit `npm test` prüfen.
 
 Für die Frontend-Entwicklung laufen Spielserver und Vite getrennt: `npm start` stellt den WebSocket auf Port 3000 bereit, `npm run dev` die Oberfläche auf http://localhost:5173. Der Vite-Server leitet `/game` gezielt an den lokalen Spielserver weiter. Der normale Server und das Container-Image verwenden ausschließlich den mit `npm run build` erzeugten Client in `apps/client/dist`; fehlt er, erklärt die Startseite den erforderlichen Build-Schritt.
@@ -117,13 +119,13 @@ Dieser Stand bindet standardmäßig an 127.0.0.1. Konten und getrennte Spielerre
 
 Genau einen Prozess pro Weltverzeichnis starten. Die JSON-Ablage ist für den Prototyp gedacht, nicht für verteilte Serverprozesse. Aufträge werden vor der Erfolgsantwort gespeichert. Produktion wird anhand gespeicherter Zeitstempel nachberechnet. Vor manuellen Änderungen oder Backups den Server stoppen; zum Sichern den jeweiligen `data/<welt>/`-Ordner kopieren. Löschen dieses Ordners setzt die Welt einschließlich Instanz-ID zurück.
 
-Nicht enthalten: Passwortwiederherstellung, Abbruch von Bauaufträgen, Forschung, PvP, Eroberung, weitere Generäle, Bündnisse, Handel oder aktive Föderation. Bei migrierten Altgebäuden ohne Kostennachweis bleibt die frühere Investition ausdrücklich unbekannt und wird nicht aus heutigen Preisen geschätzt. Der Quellcode wird im oben verlinkten Repository entwickelt; es gibt noch keine veröffentlichte Spielinstanz.
+Nicht enthalten: Passwortwiederherstellung, Abbruch von Bau-/Forschungsaufträgen, PvP, Eroberung, weitere Generäle, Bündnisse, Handel oder aktive Föderation. Bei migrierten Altgebäuden ohne Kostennachweis bleibt die frühere Investition ausdrücklich unbekannt und wird nicht aus heutigen Preisen geschätzt. Der Quellcode wird im oben verlinkten Repository entwickelt; es gibt noch keine veröffentlichte Spielinstanz.
 
-Historischer Planungsstand vom 28.09.2026 (durch Aufträge 8–10 erweitert): NPC-Städte zum Farmen von Nahrung und aufwertbare Generäle mit Truppenführung gehören zum Projektziel. Matrix ist der bevorzugte Ansatz für die Föderation. Lagerwirtschaft, Abriss, Aufklärung, erste Truppen und der Startgeneral sind nun als Prototyp implementiert; Kampf, Beute und Föderation bleiben geplant.
+Historischer Planungsstand vom 28.09.2026 (inzwischen durch Aufträge 8–11 umgesetzt oder erweitert): NPC-Städte zum Farmen von Nahrung und aufwertbare Generäle mit Truppenführung gehören zum Projektziel. Matrix ist der bevorzugte Ansatz für die Föderation. Lagerwirtschaft, Abriss, Aufklärung, erste Truppen und der Startgeneral sind nun als Prototyp implementiert; Kampf und Beute sind inzwischen implementiert; aktive Föderation bleibt geplant.
 
 ## Zusammenarbeit
 
-Wir erweitern jeweils einen spielbaren Ablauf, prüfen ihn und dokumentieren die Regeln. Als eigener nächster Auftrag folgen Universität und erste Wirtschafts-/Lagerforschungen; diese sind noch nicht implementiert. Die Reihenfolge kann nach deinen Prioritäten geändert werden.
+Wir erweitern jeweils einen spielbaren Ablauf, prüfen ihn und dokumentieren die Regeln. Universität und erste Wirtschafts-/Lagerforschungen sind mit Auftrag 11 implementiert. Als nächste Etappe folgen Forschungsgeneral, weitere Technologien/Freischaltungen und Regeln für zusätzliche Generäle. Die Reihenfolge kann nach deinen Prioritäten geändert werden.
 
 Der enthaltene eigene Code steht unter MIT. Der Name ist ein vorläufiger Arbeitstitel. Es werden keine Originalgrafiken, Originaltexte oder Originalquellen von War2Glory mitgeliefert. Eine genaue Funktionsliste und gewünschte Ähnlichkeit stimmen wir anhand deiner Beschreibungen und Referenzen ab.
 
@@ -138,3 +140,22 @@ Für neue Farmzüge (`npc-pve-2-skills-provisional`) zählen nur verteilte Angri
 Bei N lebenden Angreifern, D Verteidigern, Angriffsbonus a und Verteidigungsbonus v gilt: Sieg genau bei `N × (1+a) > D`. Bei Sieg fallen D Verteidiger und `min(N, ceil(D/2 × (1-v)))` Angreifer. Bei Niederlage fallen `min(D, floor(N × (1+a)/2))` Verteidiger und `ceil(N × (1-v))` Angreifer: **Überlebende kehren auch bei Niederlage zurück, ohne Beute**. Vergleiche und Rundung werden ganzzahlig gerechnet. Beispiel: 10 gegen 10 mit fünf Angriffspunkten gewinnen mit fünf eigenen Verlusten; 10 gegen 20 mit zehn Verteidigungspunkten verlieren acht und bringen zwei Überlebende heim. Ohne militärische Skills entsprechen Ergebnisse der alten Version.
 
 Neue Einsätze speichern Boni beim Start. Skillkäufe und Verteilung während eines Einsatzes sind möglich, verändern dessen Kampf jedoch nicht. Alte laufende Missionen behalten `npc-pve-1-provisional`; historische Berichte bleiben unverändert. Traglast, Geschwindigkeit, Unterhalt und Hungerregeln bleiben erhalten. Die Zahlen sind eigene Prototypvorschläge aus Auftrag 10, keine War2Glory-Originalregeln.
+
+
+## Konfiguration und Unterhaltsprüfung (Auftrag 11)
+
+Optional `cp .env.example .env`, danach `npm start` oder `node apps/server/index.js`. Die Datei ist keine Voraussetzung. Prozessvariablen haben Vorrang vor `.env`, explizite CLI-Optionen vor beiden. Einzeilige Zuweisungen mit Punkt-Dezimalzahlen verwenden. Ungültige Werte stoppen vor Spielstandänderungen. `WORLD_WIDTH`, `WORLD_HEIGHT`, `WORLD_NPC_COUNT` gelten nur für neue Welten (Standards 24/24/18; geprüft 2–64 Felder je Achse). Bei bestehenden Karten werden abweichende Vorgaben gemeldet, ohne Dimensionen, NPCs oder Stadtpositionen zu verändern.
+
+Unterhalt wird in Nahrung je Einheit/Stunde konfiguriert: Standards `UPKEEP_INFANTRY_PER_HOUR=360`, `UPKEEP_SCOUT_PER_HOUR=180`. Explizites 0 ist erlaubt. Optional 36/18 ist ein milderer Balancevorschlag, kein Fehlerfix. Fristen stehen in Sekunden/Prozent in `.env.example`. Compose reicht alle neun Spielvariablen an den Container weiter; kein Client-Rebuild nötig. Grenzen, Datei-/CLI-Verhalten und Betrieb: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+Die Prüfung bestätigte schrittweitenabhängig verschobene Hungerwellen. Gespeicherte Verlustschwellen ersetzen die fehlerhafte vorzeitige Modulo-Berechnung und Bruchteil-Gleichheitsprüfung. Kosten bleiben unverändert. Der Audit mit Rechnungen und Testbelegen steht in [docs/UPKEEP_AUDIT.md](docs/UPKEEP_AUDIT.md). Neue Raten gelten erst nach Abrechnung alter Offlinezeit. Regelhistorie und aktive Mangelzyklen bleiben gespeichert; bestehende Kampfberichte werden nicht rückwirkend geändert.
+
+## Universität und Forschung (vorläufige Regeln)
+
+Universität über ein freies Stadtgrundstück bauen, dann „Forschung“ öffnen. Sie nutzt die normale Baukosten-/Zeitkurve und erzeugt selbst weder Rohstoffe noch Lagerplatz. Mehrere Universitäten sind erlaubt, aber pro Stadt läuft eine Forschung ohne Warteschlange oder Abbruch. Zielstufe n benötigt eine eigene Universität mindestens Stufe n und die abgeschlossene Vorgängerstufe. Laufende Forschung sperrt den Abriss ihres Gebäudes; Ausbau verändert ihre festgeschriebene Dauer nicht.
+
+Forstwirtschaft, Steinverarbeitung und Landwirtschaft erhöhen jeweils die passende Gebäudeproduktion um 5 % je abgeschlossener Stufe; Lagerlogistik alle aktiven Lagerkapazitäten um 5 %. Maximal Stufe 5. Kosten je Zielstufe n: 100 × n Holz und Stein. Dauer: `ceil(60 × n / (1 + 0,1 × (Universitätsstufe − 1)))` Sekunden. Stufe 2 an Universität 2: 200/200, 110 Sekunden. Das sind neue Prototypvorschläge, keine Originalregeln.
+
+Nahrung = Gebäudegrundproduktion × Landwirtschaftsfaktor × Bürgermeisterfaktor, minus einmaliger laufender Unterhalt. Beispiel: `2 × 1,10 × 1,20 = 2,64/s`; bei 3/s Bedarf netto −0,36/s. Lager = `floor((Grundkapazität + Gebäudebeiträge) × Lagerfaktor)`: 2500 × 1,10 = 2750 Platz, ohne Ressourcen zu erzeugen. Forschung wirkt ab tatsächlichem Abschluss, läuft offline und bei Hunger weiter und bleibt nach Universitätsabriss erhalten. Forschungspunkte = 10 × Summe abgeschlossener Stufen; Gesamtpunkte = Gebäude + Forschung + signierter Kampfbeitrag, nur die Gesamtsumme mindestens null.
+
+Spielerschema 9 ergänzt fehlende Forschung mit Stufe 0. Forschung bleibt privat; Startkosten, Auftrag und Wiederholungsbeleg werden vor Erfolg gespeichert. Wirtschaftsabschlüsse einschließlich Forschung kommen bei gleichem Zeitpunkt vor Missionseinlagerung, Hunger danach. Details in [docs/WEBSOCKET.md](docs/WEBSOCKET.md). Verifikation und Einschränkungen stehen im Audit; Forschungsgeneral, militärische Freischaltungen, Öl/LKWs und Föderation bleiben nächste Etappen.

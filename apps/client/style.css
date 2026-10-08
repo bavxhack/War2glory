@@ -169,3 +169,15 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
   .topbar > div { min-width: 0; }
   .topbar h1 { overflow-wrap: anywhere; }
 }
+
+.research-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1rem; margin-top: 1rem; }
+.research-grid .action { width: 100%; }
+.research-grid h3 { margin-top: .5rem; }
+progress { width: 100%; accent-color: var(--accent, #b6915b); }
+.view-tabs { flex-wrap: wrap; }
+
+@media (max-width: 900px) { .resources { position: static; } }
+.resource small { display: block; }
+
+.research-view label { display: grid; gap: .4rem; }
+.research-view select { width: 100%; padding: .6rem; border: 1px solid #65755d; border-radius: .5rem; background: #111a10; color: #f7f2df; font: inherit; }

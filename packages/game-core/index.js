@@ -1,3 +1,4 @@
+import { newResearch, researchFactor, finishResearch, RESEARCH_RULES } from './research.js';
 export const RULESET = 'prototype-0.5';
 export const RESOURCE_KEYS = Object.freeze(['wood', 'stone', 'food']);
 export const BUILDINGS = Object.freeze({
@@ -5,6 +6,7 @@ export const BUILDINGS = Object.freeze({
   quarry: Object.freeze({ label: 'Steinbruch', resource: 'stone', area: 'civil' }),
   farm: Object.freeze({ label: 'Bauernhof', resource: 'food', area: 'civil' }),
   warehouse: Object.freeze({ label: 'Lagerhaus', resource: null, area: 'civil' }),
+  university: Object.freeze({ label: 'Universität', resource: null, area: 'civil' }),
   barracks: Object.freeze({ label: 'Kaserne', resource: null, area: 'military' }),
 });
 export const STORAGE_RULES = Object.freeze({ baseCapacity: 2000, productionBuildingPerLevelAboveOne: 250, warehousePerLevel: 500, demolitionRefundRate: 0.1 });
@@ -27,7 +29,7 @@ export function newCity(now) {
       investment: index < 3 ? emptyInvestment() : null,
     })),
     militarySlots: Array.from({ length: MILITARY_SLOT_COUNT }, (_, index) => ({ id: `military-plot-${index + 1}`, area: 'military', building: null, level: 0, buildingId: null, investment: null })),
-    constructionQueue: [], updatedAt: now,
+    research: newResearch(), constructionQueue: [], updatedAt: now,
   };
 }
 
@@ -47,13 +49,14 @@ export function resourceCapacities(city) {
     const resource = BUILDINGS[slot.building]?.resource;
     if (resource) capacities[resource] += STORAGE_RULES.productionBuildingPerLevelAboveOne * Math.max(0, slot.level - 1);
   }
+  for (const resource of RESOURCE_KEYS) capacities[resource] = Math.floor(capacities[resource] * researchFactor(city, 'logistics'));
   return capacities;
 }
 
 export function capacityBreakdown(city) {
   const totals = resourceCapacities(city);
   return Object.fromEntries(RESOURCE_KEYS.map(resource => [resource, {
-    total: totals[resource], base: STORAGE_RULES.baseCapacity,
+    total: totals[resource], researchFactor: researchFactor(city, 'logistics'), base: STORAGE_RULES.baseCapacity,
     contributions: allSlots(city).filter(slot => slot.building && (slot.building === 'warehouse' || BUILDINGS[slot.building]?.resource === resource)).map(slot => ({
       slotId: slot.id, building: slot.building, level: slot.level,
       amount: slot.building === 'warehouse' ? STORAGE_RULES.warehousePerLevel * slot.level : STORAGE_RULES.productionBuildingPerLevelAboveOne * Math.max(0, slot.level - 1),
@@ -100,8 +103,12 @@ function finishConstruction(city, job) {
 
 export function advanceCity(previous, now, rateAdjustments = {}) {
   const city = structuredClone(previous); const until = Math.max(now, city.updatedAt);
-  while (city.constructionQueue[0]?.finishesAt <= until) {
-    const job = city.constructionQueue[0]; produce(city, Math.max(city.updatedAt, job.finishesAt), rateAdjustments); finishConstruction(city, job);
+  while (true) {
+    const eventAt = Math.min(city.constructionQueue[0]?.finishesAt ?? Infinity, city.research?.active?.finishesAt ?? Infinity);
+    if (eventAt > until) break;
+    produce(city, Math.max(city.updatedAt, eventAt), rateAdjustments);
+    while (city.constructionQueue[0]?.finishesAt <= eventAt) finishConstruction(city, city.constructionQueue[0]);
+    finishResearch(city, eventAt);
   }
   produce(city, until, rateAdjustments); return city;
 }
@@ -126,9 +133,15 @@ export function enqueueConstruction(previous, command, now) {
   return city;
 }
 
-export function productionRates(city) {
+export function buildingProductionRates(city) {
   const rates = Object.fromEntries(RESOURCE_KEYS.map(resource => [resource, 0]));
   for (const slot of allSlots(city)) if (slot.building && BUILDINGS[slot.building]?.resource) rates[BUILDINGS[slot.building].resource] += slot.level;
+  return rates;
+}
+
+export function productionRates(city) {
+  const rates = buildingProductionRates(city);
+  for (const [resource, technology] of Object.entries({ wood: 'forestry', stone: 'masonry', food: 'agriculture' })) rates[resource] *= researchFactor(city, technology);
   return rates;
 }
 
@@ -139,13 +152,14 @@ function demolitionVersion(slot) {
 export function demolitionPreview(previous, slotId, now) {
   const city = advanceCity(previous, now); const slot = allSlots(city).find(item => item.id === slotId);
   if (!slot?.building) throw new Error('Auf diesem Bauplatz steht kein fertiges Gebäude.');
+  if (city.research?.active?.universityId === slot.buildingId) throw new Error('Diese Universität ist durch laufende Forschung belegt.');
   if (city.constructionQueue.some(job => job.slotId === slot.id)) throw new Error('Das Gebäude besitzt einen laufenden oder wartenden Bauauftrag.');
   const paid = slot.investment?.paid ?? {};
   const refund = Object.fromEntries(RESOURCE_KEYS.map(resource => [resource, Math.floor((paid[resource] ?? 0) * STORAGE_RULES.demolitionRefundRate)]));
   const next = structuredClone(city); const nextSlot = allSlots(next).find(item => item.id === slot.id);
   Object.assign(nextSlot, { building: null, level: 0, buildingId: null, investment: null });
   return { city, preview: { slotId, buildingId: slot.buildingId, building: slot.building, level: slot.level, version: demolitionVersion(slot), refund,
-    investmentComplete: slot.investment?.complete === true, productionLoss: productionRates(city)[BUILDINGS[slot.building].resource] ? { resource: BUILDINGS[slot.building].resource, amount: slot.level } : null,
+    investmentComplete: slot.investment?.complete === true, productionLoss: productionRates(city)[BUILDINGS[slot.building].resource] ? { resource: BUILDINGS[slot.building].resource, amount: productionRates(city)[BUILDINGS[slot.building].resource] - productionRates(next)[BUILDINGS[slot.building].resource] } : null,
     capacityBefore: resourceCapacities(city), capacityAfter: resourceCapacities(next), scoreBefore: commanderScore(city).total, scoreAfter: commanderScore(next).total } };
 }
 
@@ -161,5 +175,6 @@ export function demolishBuilding(previous, command, now) {
 export function allSlots(city) { return [...city.buildingSlots, ...(city.militarySlots ?? [])]; }
 export function commanderScore(city) {
   const buildings = allSlots(city).reduce((score, slot) => score + (slot.building ? slot.level * 10 : 0), 0);
-  return { version: 1, total: Math.max(0, buildings), buildings, research: null, combat: null, defeatInfluence: null };
+  const research = RESEARCH_RULES.pointsPerLevel * Object.values(city.research?.levels ?? {}).reduce((sum, level) => sum + level, 0);
+  return { version: 2, total: Math.max(0, buildings + research), buildings, research, combat: null, defeatInfluence: null };
 }

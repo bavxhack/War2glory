@@ -77,3 +77,54 @@ test('restart preserves offline old rates, cycle rules, history and journal reco
   saved = await storage.loadPlayer(player.playerId); assert.deepEqual(saved.supply.cycleRules, cycle); assert.equal(saved.supply.shortageMs, 6000);
   assert.equal(saved.supply.inShortage, false); now += cycle.recoveryMs; await storage.advanceWorld(now); assert.equal((await storage.loadPlayer(player.playerId)).supply.shortageMs, 0);
 });
+
+test('native server loads dotenv, process precedence and CLI before world mutation', async t => {
+  const { spawn } = await import('node:child_process');
+  const { once } = await import('node:events');
+  const { fileURLToPath } = await import('node:url');
+  const dir = await mkdtemp(join(tmpdir(), 'w2g-native-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  await writeFile(join(dir, '.env'), 'WORLD_WIDTH=9\nWORLD_HEIGHT=4\nWORLD_NPC_COUNT=3\nUPKEEP_INFANTRY_PER_HOUR=0\nUPKEEP_SCOUT_PER_HOUR=18\nWORLD_NAME=dotenv-world\nPORT=3110\n');
+  const entry = fileURLToPath(new URL('../apps/server/index.js', import.meta.url));
+  const { createServer } = await import('node:net');
+  const probe = createServer(); await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
+  const port = probe.address().port; await new Promise(resolve => probe.close(resolve));
+  const child = spawn(process.execPath, [entry, '--world', 'native-test', '--port', String(port)], { cwd: dir, env: { ...process.env, UPKEEP_INFANTRY_PER_HOUR: '36' } });
+  t.after(() => child.kill('SIGTERM'));
+  let output = '';
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Native start timeout')), 5000);
+    child.stdout.on('data', data => { output += data; if (output.includes(`http://localhost:${port}`)) { clearTimeout(timeout); resolve(); } });
+    child.on('exit', code => { if (code) { clearTimeout(timeout); reject(new Error(`Native start failed: ${code}`)); } });
+  });
+  const world = JSON.parse(await readFile(join(dir, 'data/native-test/world.json'), 'utf8'));
+  assert.deepEqual(world.map.config, { width: 9, height: 4, npcCount: 3, maxViewport: 15 });
+  assert.deepEqual(world.supplyRuleHistory.at(-1).rules.upkeepPerSecond, { infantry: 0.01, scout: 0.005 });
+  assert.match(output, /Nahrung\/Einheit\/Sekunde/);
+  const exited = once(child, 'exit'); child.kill('SIGTERM'); await exited;
+});
+
+test('two isolated saved worlds keep different effective rules through advancement', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'w2g-isolated-')); t.after(() => rm(root, { recursive: true, force: true }));
+  let now = 0;
+  const free = await new WorldStorage(join(root, 'free'), 'free', () => now, parseConfiguration({ UPKEEP_INFANTRY_PER_HOUR: '0' })).initialize();
+  const paid = await new WorldStorage(join(root, 'paid'), 'paid', () => now, parseConfiguration({ UPKEEP_INFANTRY_PER_HOUR: '36' })).initialize();
+  const registrations = await Promise.all([free.register('FreeWorld', 'long-test-password'), paid.register('PaidWorld', 'long-test-password')]);
+  for (const [index, storage] of [free, paid].entries()) {
+    const player = registrations[index].player; player.city.buildingSlots[2].level = 0; player.city.resources.food = 1000; player.military.units.infantry = 10;
+    await storage.savePlayer(player);
+  }
+  now = 60000; await Promise.all([free.advanceWorld(now), paid.advanceWorld(now)]);
+  assert.equal((await free.loadPlayer(registrations[0].player.playerId)).city.resources.food, 1000);
+  assert.equal((await paid.loadPlayer(registrations[1].player.playerId)).city.resources.food, 994);
+  assert.equal(free.supplyRules.upkeepPerSecond.infantry, 0); assert.equal(paid.supplyRules.upkeepPerSecond.infantry, 0.01);
+});
+
+test('shortening ENV grace/loss rules cannot accelerate an already running shortage cycle', () => {
+  let p = { city: newCity(0), military: newMilitary('cycle') }; p.city.buildingSlots[2].level = 0; p.city.resources.food = 0; p.military.units.infantry = 100;
+  p = advanceSupply(p, 600000, 0);
+  const changed = parseConfiguration({ SUPPLY_GRACE_SECONDS: '10', SUPPLY_LOSS_INTERVAL_SECONDS: '1', SUPPLY_LOSS_PERCENT: '100' }).supply;
+  p = advanceSupply(p, 601000, 0, { rules: changed }); assert.equal(p.supply.cycleRules.graceMs, 1800000);
+  p = advanceSupply(p, 1800000, 0); assert.equal(p.military.units.infantry, 95); assert.equal(p.supply.events.length, 1);
+  p.city.resources.food = 10000; p = advanceSupply(p, 1860000, 0); assert.equal(p.supply.shortageMs, 0);
+  p.city.resources.food = 0; p = advanceSupply(p, 1870000, 0); assert.equal(p.military.units.infantry, 0); assert.equal(p.supply.events.at(-1).total, 95);
+});

@@ -1,3 +1,4 @@
+import { normalizeResearch } from '../../packages/game-core/research.js';
 import { parseConfiguration } from './config.js';
 import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { copyFile, mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
@@ -9,7 +10,7 @@ import { advanceSupplyHistory, refreshSupplyAt, SUPPLY_RULES, settleSupplyAt } f
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 8;
+export const PLAYER_SCHEMA_VERSION = 9;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -238,8 +239,9 @@ export class WorldStorage {
         if (mission.type === 'raid') mission.ruleset ??= MILITARY_RULES.raidRuleset;
       }
       player.generalSkillRuleset = GENERAL_SKILL_RULES.version;
-      player.schemaVersion = PLAYER_SCHEMA_VERSION;
+      player.schemaVersion = 8;
     }
+    if (player.schemaVersion === 8) { migrated = true; normalizeResearch(player.city); player.schemaVersion = PLAYER_SCHEMA_VERSION; }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
     if (migrated) await this.savePlayer(player);
     return player;
@@ -250,6 +252,7 @@ export class WorldStorage {
   nextEventSequence() { return this.world.nextEventSequence++; }
 
   async advanceWorld(now) {
+    if (this.needsRecovery) { await this.#recoverTransaction(); this.world = await readJson(this.worldFile); this.needsRecovery = false; }
     const files = (await readdir(this.playersDirectory)).filter(file => file.endsWith('.json')).sort();
     const players = new Map();
     for (const file of files) {
@@ -334,10 +337,12 @@ export class WorldStorage {
 
   async #commitTransaction(players, worldChanged) {
     const transaction = { id: randomUUID(), world: worldChanged ? this.world : null, players };
+    try {
     await atomicWrite(this.journalFile, transaction);
     if (transaction.world) await atomicWrite(this.worldFile, transaction.world);
     for (const player of transaction.players) await atomicWrite(this.playerFile(player.playerId), player);
     await unlink(this.journalFile);
+    } catch (error) { this.needsRecovery = true; throw error; }
   }
 
   async #recoverTransaction() {

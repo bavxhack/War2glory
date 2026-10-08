@@ -1,6 +1,6 @@
 import { formatDuration } from './ui.jsx';
 
-const perHour = value => Math.round(value * 3600).toLocaleString('de-DE');
+const perHour = value => (value * 3600).toLocaleString('de-DE', { maximumFractionDigits: 3 });
 
 function timeUntilEmpty(food, netPerSecond) {
   if (netPerSecond >= 0 || food <= 0) return null;
@@ -18,11 +18,13 @@ export function SupplyStatus({ state }) {
     </div>
     <dl className="supply-breakdown">
       <div><dt>Grundproduktion</dt><dd>+{perHour(supply.baseProduction)}/h</dd></div>
+      <div><dt>Forschung</dt><dd>+{perHour(supply.researchProduction)}/h</dd></div>
       <div><dt>Bürgermeister</dt><dd>+{perHour(supply.mayorProduction)}/h</dd></div>
-      <div><dt>Infanterie</dt><dd>−{perHour((state.supplyRules.upkeepPerSecond.infantry ?? 0) * supply.unitCounts.infantry)}/h</dd></div>
-      <div><dt>Späher</dt><dd>−{perHour((state.supplyRules.upkeepPerSecond.scout ?? 0) * supply.unitCounts.scout)}/h</dd></div>
+      <div><dt>{supply.unitCounts.infantry} Infanteristen × {perHour(state.supplyRules.upkeepPerSecond.infantry)} Nahrung/h</dt><dd>−{perHour((state.supplyRules.upkeepPerSecond.infantry ?? 0) * supply.unitCounts.infantry)}/h</dd></div>
+      <div><dt>{supply.unitCounts.scout} Späher × {perHour(state.supplyRules.upkeepPerSecond.scout)} Nahrung/h</dt><dd>−{perHour((state.supplyRules.upkeepPerSecond.scout ?? 0) * supply.unitCounts.scout)}/h</dd></div>
       <div className="supply-total"><dt>Gesamtunterhalt</dt><dd>−{perHour(supply.upkeep)}/h</dd></div>
     </dl>
+    <p>Lebende stationierte und unterwegs befindliche Einheiten zählen; Ausbildung wird erst nach Abschluss versorgt.</p>
     {remaining && <p className="notice">Der Nahrungsvorrat reicht bei unveränderter Bilanz noch etwa {remaining}.</p>}
     {supply.inShortage && <p className="notice">Nahrungsmangel: Ausbildung pausiert. Nächste Hungerwelle in {formatDuration(supply.nextLossAt - state.serverTime)}.</p>}
   </section>;

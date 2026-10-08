@@ -149,3 +149,12 @@ test('Gebrochener Leerstandszeitpunkt: viele Schritte und exakte Verlustgrenze',
   assert.equal(split.supply.events.length, 2);
   for (let i = 0; i < 2; i++) assert.ok(Math.abs(split.supply.events[i].at - direct.supply.events[i].at) < 1e-6);
 });
+
+test('Altstadt vor Aktivierungszeitpunkt erhält keine rückwirkende Unterhaltsrechnung', () => {
+  const player = playerAt(); player.city.buildingSlots[2].level = 0;
+  player.city.resources.food = 1000; player.military.units.infantry = 10;
+  const activated = advanceSupply(player, 120000, 60000);
+  assert.equal(activated.city.resources.food, 940);
+  assert.equal(activated.supply.shortageMs, 0);
+  assert.equal(activated.city.resources.wood, 320, 'Alte Grundproduktion bleibt erhalten');
+});
