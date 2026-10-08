@@ -118,7 +118,9 @@ export function advanceSupply(previous, now, activatedAt = previous.supply?.acti
     boundary = Math.min(boundary, trainingAt);
     const researchAt = player.city.research?.active?.finishesAt;
     if (researchAt > cursor) boundary = Math.min(boundary, researchAt);
-    if (!shortage && summary.net < 0 && player.city.resources.food > 0) boundary = Math.min(boundary, cursor + player.city.resources.food / -summary.net * 1000);
+    const depletionAt = !shortage && summary.net < 0 && player.city.resources.food > 0
+      ? cursor + player.city.resources.food / -summary.net * 1000 : Infinity;
+    boundary = Math.min(boundary, depletionAt);
     if (shortage) {
       if (!supply.cycleRules) { supply.cycleRules = structuredClone(rules); cycleRules = supply.cycleRules; supply.lossThresholdMs = cycleRules.graceMs; }
       supply.recoveryStartedAt = null;
@@ -130,6 +132,10 @@ export function advanceSupply(previous, now, activatedAt = previous.supply?.acti
     const lossBoundary = shortage && boundary === cursor + Math.max(0, supply.lossThresholdMs - supply.shortageMs);
     const elapsed = Math.max(0, boundary - cursor);
     player.city = advanceCity(player.city, boundary, { food: summary.mayorProduction - summary.upkeep });
+    // Absolute epoch timestamps cannot represent every fractional millisecond. At the
+    // calculated depletion event the balance is zero, even when subtraction leaves
+    // a tiny positive remainder whose next timestamp rounds back to the same cursor.
+    if (boundary === depletionAt) player.city.resources.food = 0;
     if (shortage) {
       supply.shortageMs += elapsed;
       for (const job of player.military.trainingQueue) { job.startsAt += elapsed; job.finishesAt += elapsed; job.pausedForSupply = true; }

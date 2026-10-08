@@ -158,3 +158,34 @@ test('Altstadt vor Aktivierungszeitpunkt erhält keine rückwirkende Unterhaltsr
   assert.equal(activated.supply.shortageMs, 0);
   assert.equal(activated.city.resources.wood, 320, 'Alte Grundproduktion bleibt erhalten');
 });
+
+test('Reale Zeitstempel und gebrochene Nahrung verursachen keine endlose Offline-Abrechnung', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const core = new URL('../packages/game-core/index.js', import.meta.url).href;
+  const supply = new URL('../packages/game-core/supply.js', import.meta.url).href;
+  const military = new URL('../packages/game-core/military.js', import.meta.url).href;
+  const script = `
+    import { advanceSupply } from ${JSON.stringify(supply)};
+    import { newCity } from ${JSON.stringify(core)};
+    import { newMilitary } from ${JSON.stringify(military)};
+    import assert from 'node:assert/strict';
+    const at = 1791450000000;
+    for (let i = 1; i < 100; i++) {
+      const player = { city: newCity(at), military: newMilitary('p') };
+      player.city.resources.food = 1000.1234567 + i / 123;
+      player.military.units.infantry = 133 + i;
+      const result = advanceSupply(player, at + 3600000, at);
+      assert.equal(result.supply.updatedAt, at + 3600000);
+      assert.equal(result.city.resources.food, 0);
+      assert.ok(result.supply.events.length > 0);
+      const split = advanceSupply(advanceSupply(player, at + 600000, at), at + 3600000, at);
+      assert.deepEqual(split.military.units, result.military.units);
+      assert.equal(split.supply.events.length, result.supply.events.length);
+      for (let j = 0; j < result.supply.events.length; j++) assert.ok(Math.abs(split.supply.events[j].at - result.supply.events[j].at) <= 0.001);
+    }
+  `;
+  // A subprocess deadline makes the previous infinite loop fail without hanging the suite.
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script], { timeout: 5000, encoding: 'utf8' });
+  assert.equal(result.error, undefined, result.error?.message);
+  assert.equal(result.status, 0, result.stderr);
+});
