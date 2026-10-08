@@ -17,7 +17,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäude-/Kampfwertung umgesetzt; Forschungspunkte mit Auftrag 11 umgesetzt |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills umgesetzt; Universität und vier Stadtforschungen mit Auftrag 11 umgesetzt; Forschungsgeneral später |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills und Universität/vier Stadtforschungen umgesetzt; zusätzliche Generäle und Forschungsleitung mit Auftrag 12 beauftragt |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
@@ -216,11 +216,11 @@ Diese Werte sind neue Arbeitsvorschläge des Planungschats bzw. greifen den best
 - Bürgermeister-Führung wirkt ab Speicherzeitpunkt mit vorheriger korrekter Wirtschaftsabrechnung. Neue militärische Zuweisung wirkt erst auf anschließend gestartete Einsätze.
 - Beispiel: 10 Angreifer gegen 10 Verteidiger verlieren bisher; mit 5 Angriffspunkten beträgt die Vergleichsstärke 11 und sie gewinnen mit 5 eigenen Verlusten.
 - Beispiel: 10 Angreifer gegen 20 Verteidiger verlieren weiterhin; mit 10 Verteidigungspunkten gehen 8 statt 10 Angreifer verloren, 2 kehren ohne Beute zurück.
-- Die konkreten Formeln, Rundungen, Migrationsregeln und Tests stehen in CODEX_PROMPT.md und werden im PR zur Prüfung dokumentiert.
+- Die konkreten Formeln, Rundungen, Migrationsregeln und Tests stehen im früheren Auftrag 10 im Git-Verlauf von CODEX_PROMPT.md sowie in der Implementierungsdokumentation.
 
 ## Umgesetzter Auftrag 11 vom 08.10.2026: Unterhaltsprüfung, ENV-Konfiguration und Forschung
 
-Der Nutzer beauftragt Universität/erste Forschungen gemeinsam mit konfigurierbarer Weltgröße und Truppenunterhalt und bittet um Prüfung möglicherweise zu hoher oder falsch berechneter Unterhaltskosten. CODEX_PROMPT.md enthält den ausführbaren Auftrag. Als Prototyp implementiert; vorläufige Balancewerte bleiben zur Prüfung.
+Der Nutzer bestätigt Auftrag 11 am 08.10.2026 als fertig. Universität/erste Forschungen, konfigurierbare Weltgröße und Truppenunterhalt sowie die Unterhaltsprüfung sind laut Repository als Prototyp implementiert. Der frühere Auftrag 11 bleibt im Git-Verlauf von CODEX_PROMPT.md erhalten. Vorläufige Balancewerte bleiben zur Prüfung; der Planungschat hat keine eigenen Anwendungstests durchgeführt.
 
 ### Priorität und vorläufige Codeprüfung
 
@@ -263,14 +263,68 @@ Die folgenden Forschungswerte sind Vorschläge des Planungschats für den Review
 
 ### Weitere Reihenfolge
 
-1. Auftrag 11 ist implementiert: Unterhaltsprüfung/Fixes, ENV-Konfiguration und Universität/Wirtschaftsforschung. Testergebnisse und Grenzen stehen in docs/UPKEEP_AUDIT.md.
-2. Forschungsgeneral, zusätzliche Forschungszweige/Freischaltungen und Regeln zur Rekrutierung weiterer Generäle.
-3. LKWs, Ölwirtschaft und weitere Einheiten/Waffensysteme.
-4. Bündnisse, Handel, Unterstützung, PvP und aktive Föderation gemäß bisherigen Zielen.
+1. Auftrag 11 ist vom Nutzer als fertig bestätigt. Unterhaltsprüfung und Implementierungsgrenzen sind in docs/UPKEEP_AUDIT.md dokumentiert.
+2. Auftrag 12: zusätzliche Generäle rekrutieren und Forschungsleitung spielbar machen, einschließlich ENV-Parametern.
+3. Anschließend neue Forschungsfreischaltungen mit Ölraffinerien, Fahrzeugproduktion und LKW-Transport verbinden; konkrete Kosten, Ölverbrauch, Traglast und Kampfregeln vorher spezifizieren.
+4. Danach weitere Einheiten/Waffensysteme, Bündnisse, Handel, Unterstützung und PvP.
+5. Matrix-Anbindung und aktives Spielen zwischen Servern mit eigenen Identitäts-, Ereignis- und Vertrauensregeln; weiterhin Kernziel des Projekts.
+
+## Beauftragter Auftrag 12 vom 08.10.2026: Weitere Generäle und Forschungsleitung
+
+Status: Anweisungen erstellt, noch nicht als implementiert bestätigt. Der vollständige ausführbare Auftrag steht in CODEX_PROMPT.md. Der Nutzer beauftragt nach Abschluss von Auftrag 11 den nächsten Schritt; die folgenden konkreten Regeln sind vorläufige Vorschläge des Planungschats, keine Originalwerte oder einzeln bestätigten Balanceentscheidungen.
+
+### Spielbarer Ablauf
+
+Zwei weitere Generäle rekrutieren → einen als Bürgermeister einsetzen → einen als Forschungsleiter einsetzen → mit dem dritten einen NPC-Einsatz führen → Forschung beschleunigt abschließen → Forschungsleiter bei Bedarf abberufen und für Einsätze nutzen.
+
+### Rekrutierung
+
+- Kostenloser Startgeneral bleibt unverändert. Standardlimit insgesamt drei Generäle pro Spieler/Welt; alle Rollen und Einsätze zählen mit.
+- Eine eigene fertige Kaserne ist Voraussetzung. Keine neue Gebäudeart oder Forschungssperre.
+- Bewusste sofortige Rekrutierung nach serverseitiger Vorschau und Namenseingabe, ohne Warteschlange.
+- Bei k vorhandenen Generälen Kosten k × 500 Holz und k × 500 Stein: zweiter 500/500, dritter 1000/1000.
+- Neue Generäle beginnen mit Level 1, XP 0, Führung 20, Angriff/Verteidigung 0 und leeren Skillzählern; stabile serverseitige IDs.
+- Keine automatische Gratisvergabe, Zufallswerte, Entlassung oder neuen laufenden Unterhaltskosten. Rekrutierung erzeugt keine Kommandantenpunkte/XP.
+- Bestehende Aufklärungs-/Kampferfahrungsregeln erhalten, keine erneute Erstzielbelohnung je neuem General.
+
+### Forschungsleitung
+
+- Ein freier eigener General kann bei vorhandener fertiger Universität stadtbezogener Forschungsleiter werden.
+- Rollen schließen sich aus: Bürgermeister, Forschungsleiter und Mission können nicht denselben General gleichzeitig verwenden.
+- Genau ein Leiter je Stadt; ohne Leiter weiterhin Forschung möglich. Er bleibt nach Abschluss im Amt.
+- Während aktiver Forschung sind Ernennung, Wechsel und Abberufung gesperrt, auch bei ohne General gestarteten Aufträgen.
+- Zwischen Projekten Wechsel/Abberufung möglich; kein stiller Wechsel aus Bürgermeister- oder Missionsrolle.
+- Bonus auf Geschwindigkeit aus effektiver Führung, standardmäßig 1 Prozent pro Punkt, höchstens 50 Prozent.
+- Dauer in Sekunden = max(1, ceil(60 × Zielstufe / ((1 + 0,1 × (Universitätsstufe − 1)) × (1 + Bonus / 100)))).
+- Beispiel Zielstufe 2, Universität 2, Führung 20: ceil(120 / (1,1 × 1,2)) = 91 Sekunden; ohne General 110 Sekunden.
+- Nur Dauer ändert sich. Kosten, Forschungseffekte, Voraussetzungen und Punkte bleiben gleich.
+- General/Bonus und Endzeit beim Start festschreiben; spätere Skilländerung, Umbenennung, Ausbau oder Neustart beschleunigt laufende Forschung nicht.
+- Letzte Universität ohne aktive Forschung abreißen gibt Forschungsleiter atomar frei. Bei weiterer Universität bleibt Rolle; Auftragsgebäude bleibt gegen Abriss geschützt.
+- Keine Forschungs-XP oder passive XP durch Amtszeit. Vorhandene Skillregeln bleiben unverändert.
+
+### ENV und Bestandsschutz
+
+- GENERAL_MAX_COUNT=3, GENERAL_RECRUIT_WOOD=500, GENERAL_RECRUIT_STONE=500, RESEARCH_LEADERSHIP_PERCENT=1 und RESEARCH_BONUS_CAP_PERCENT=50 im vorhandenen Konfigurationseinstieg.
+- Validierung, native Starts, Prozessvorrang, Compose-Weitergabe und .env.example gemeinsam erweitern. Kein Client-Neubuild.
+- Neue Preise/Boni gelten ab Neustart nur für neue Aktionen; bestehende Aufträge behalten ihre gespeicherten Werte.
+- Nach Senken des General-Limits keine Bestandslöschung: weitere Rekrutierung blockiert, vorhandene Generäle bleiben nutzbar.
+- Unterhalts-Regelhistorie, Kartenwerte und Versorgungsfristen aus Auftrag 11 unverändert erhalten.
+
+### Technische Abnahme
+
+- WebSocket-Ereignisse, serverseitige Angebote, Eigentum, Rollenbindung, Vorschauversionen und requestId-Deduplizierung.
+- Erwerbskosten, neuer General und Wiederholungsbeleg gemeinsam speichern; Rollenwechsel und Forschungsbindung atomar.
+- Schema 9 auf nächste Version migrieren; ältere Migrationskette ausdrücklich über Schema 9 führen.
+- Alte laufende research-1-provisional-Aufträge normal zum gespeicherten Termin abschließen, ohne nachträglichen Generalbonus.
+- Mehrere Tabs, konkurrierende Rollen/Missionen, Schreibfehler, Neustart, Offlineabschluss, Gebäuderückbau und ENV-Wechsel prüfen.
+- React-Generalverwaltung, Modal und Forschung erweitern; alle eigenen Generäle auswählbar und Rollen verständlich sichtbar.
+- Codex liefert Tests, Frontend-Build, dokumentierten manuellen Ablauf und PR. Der Planungschat aktualisiert nur Anweisungen.
+
+Neue Technologien, Öl/LKWs, Forschungswarteschlange, Generalentlassung, Respec, PvP und Föderation folgen separat.
 
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 
-Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung und Skillgrundlage sind mit Auftrag 7 laut Nutzer und Repository-Dokumentation umgesetzt; die Aktivierung als vorläufiger Regelsatz ist jetzt Gegenstand des eigenen Auftrags 10. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
+Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung und Skillgrundlage sind mit Auftrag 7 laut Nutzer und Repository-Dokumentation umgesetzt; die Aktivierung wurde mit Auftrag 10 umgesetzt. Rekrutierung und Forschungsleitung sind Gegenstand des beauftragten Auftrags 12. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
 
 ### Bestätigte Anforderungen
 
@@ -283,7 +337,9 @@ Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht autom
 - Führung, Angriff und Verteidigung sind als Eigenschaften bestätigt. Ihre konkreten Bonuswirkungen sind noch offen.
 - Als spätere Einsatzrollen sind Truppengeneral, Bürgermeister in einer Stadt und Forschungsgeneral vorgesehen. Die Generalverwaltung soll diese unterschiedlichen Aufgaben ermöglichen.
 
-### Ausführbarer nächster Schritt
+### Historischer Arbeitsumfang der Aufträge 7–10
+
+Die folgende Liste hält die frühere Reihenfolge fest. Für neue Rekrutierung und Forschungsleitung gilt jetzt Auftrag 12; frühere Zurückstellungen dieser Funktionen sind dadurch überholt.
 
 - Bestehende Generäle verlustfrei als Sammlung mit stabilen IDs verwalten, im Militärbereich anzeigen und für Einsätze auswählen.
 - Namen bearbeiten und ein Modal mit Fortschritt, Eigenschaften und vorgesehener Punkteverteilung ergänzen.
@@ -456,7 +512,7 @@ Auftrag 5 konkretisiert die Ausbauetappe mit ausdrücklich vorläufigen Arbeitsv
 
 Der nach Auftrag 7 dokumentierte Vorschlag einer manuellen Umrechnung mit 10 × n XP wird in Auftrag 10 als vorläufiger Regelsatz aufgegriffen. Führung wirkt bereits seit Auftrag 9 beim Bürgermeister; Auftrag 10 ergänzt den Beitrag zugewiesener Punkte und begrenzte militärische Boni.
 
-Noch offen bleiben endgültige Balance, Rücksetzung/Umverteilung, Rekrutierung zusätzlicher Generäle und Wirkungen zukünftiger Forschungs-/Waffensysteme. Das aufgehobene militärische Führungslimit wird nicht wiederhergestellt. Die ursprüngliche Vorschlagsfassung bleibt im Git-Verlauf erhalten.
+Noch offen bleiben endgültige Balance, Rücksetzung/Umverteilung und Wirkungen zukünftiger Forschungs-/Waffensysteme. Rekrutierung zusätzlicher Generäle und Forschungsleitung sind mit vorläufigen Regeln in Auftrag 12 beauftragt. Das aufgehobene militärische Führungslimit wird nicht wiederhergestellt. Die ursprüngliche Vorschlagsfassung bleibt im Git-Verlauf erhalten.
 
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
@@ -494,7 +550,7 @@ Die ersten Wirtschafts-/Lagerforschungen und der Gebäudetyp Universität sind m
 
 ## Kommandanten-Punktesystem: hohe Priorität
 
-Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden. Sein Gebäude-Grundsystem wurde in Auftrag 4 eingeführt und wird in der README als implementiert beschrieben; Kampfbeiträge sind mit den Farmzügen eingeführt; Forschungspunkte folgen in Auftrag 11.
+Anforderung vom 27.09.2026: Für jeden Kommandanten soll eine Punktezahl berechnet werden. Gebäude, Forschung, Kämpfe und Niederlagen beeinflussen diesen Wert. Das System soll zeitnah eingeführt werden. Sein Gebäude-Grundsystem wurde in Auftrag 4 eingeführt und wird in der README als implementiert beschrieben; Kampfbeiträge sind mit den Farmzügen eingeführt; Forschungspunkte sind mit Auftrag 11 umgesetzt.
 
 ### Umfang und schrittweise Einführung
 
@@ -530,7 +586,7 @@ Als Diskussionsgrundlage, noch nicht beschlossen: Gesamtpunkte setzen sich aus G
 
 **NPC-Städte:** Gemeinsame Nutzung und allmähliche Ressourcenregeneration nach dem Farmen sind bestätigt. Stufen, Garnisonen, konkrete Vorratsgrößen und Regenerationsraten bleiben auszugestalten. Farmzüge brauchen Marschzeit, Kampfauswertung, Traglast und Rückkehr. Nahrung wird erst nach erfolgreicher Rückkehr gutgeschrieben. Gleichzeitige Angriffe dürfen denselben Vorrat nicht mehrfach plündern. Weitere Rohstoffe als Beute bleiben eine offene Entscheidung.
 
-**Generäle:** Rekrutierung, Name, Erfahrungspunkte, Level, Attribute und Zuweisung zu einer Armee. Bestätigte Attribute: Führung, Angriff und Verteidigung; deren konkrete Bonusformeln bleiben offen. Bestätigte spätere Einsatzrollen: Truppengeneral, Bürgermeister und Forschungsgeneral. Eine vorgeschlagene Führungskapazität begrenzt die befehligten Truppen. Ein General kann nur einen aktiven Marsch gleichzeitig befehligen. Erfahrungsbelohnungen werden aus bestätigten Gefechten abgeleitet und nur einmal vergeben. Levelkurve, Obergrenze, Attributpunkte, Verwundung und Niederlagenfolgen sind offen; keine Originalwerte werden behauptet.
+**Generäle:** Rekrutierung, Name, Erfahrungspunkte, Level, Attribute und Zuweisung zu einer Armee. Bestätigte Attribute: Führung, Angriff und Verteidigung; deren konkrete Bonusformeln bleiben offen. Bestätigte spätere Einsatzrollen: Truppengeneral, Bürgermeister und Forschungsgeneral. Ein früher vorgeschlagenes militärisches Führungslimit wurde aufgehoben und wird durch Auftrag 12 nicht wieder eingeführt. Ein General kann nur einen aktiven Marsch gleichzeitig befehligen. Erfahrungsbelohnungen werden aus bestätigten Gefechten abgeleitet und nur einmal vergeben. Levelkurve, Obergrenze, Attributpunkte, Verwundung und Niederlagenfolgen sind offen; keine Originalwerte werden behauptet.
 
 **Erster vollständiger PvE-Ablauf:** General zuweisen → Truppen wählen → NPC-Stadt angreifen → Kampfbericht erhalten → mit Nahrung zurückkehren → Erfahrung und möglichen Levelaufstieg anzeigen.
 
