@@ -1,156 +1,145 @@
-# Codex-Auftrag 9: Nahrungsunterhalt, Hungerverluste und Bürgermeister
+# Codex-Auftrag 10: General-Skills aktivieren und wirksam einsetzen
 
-## Ausgangspunkt und Auftrag
+## Ausgangspunkt und Ziel
 
-Der Nutzer meldet einen erfolgreichen ersten Farmzug und bestätigt am 29.09.2026 zwei neue Regeln: Nach einer Schonfrist gehen unversorgte Truppen verloren; Generäle können als Bürgermeister eingesetzt werden und erhöhen anhand ihrer Eigenschaft Führung die Nahrungsproduktion.
+Der Nutzer bestätigt am 08.10.2026 Auftrag 9 als abgeschlossen. README und Protokolldokumentation beschreiben Versorgung, Hungerverluste und Bürgermeister als implementiert. Die General-Skillgrundlage existiert bereits, XP-Umrechnung und Verteilung sind bislang deaktiviert. Prüfe den tatsächlichen Code; der Planungschat hat keine eigenen Laufzeittests durchgeführt.
 
-README und Protokolldokumentation beschreiben Farmzüge, NPC-Regeneration und das wiederaufnehmbare JSON-Transaktionsjournal als implementiert. Dies ist keine zusätzliche Laufzeitprüfung durch den Planungschat. Prüfe den Code und bewahre vorhandene Funktionen und fremde Änderungen.
+Arbeite vom aktuellen main in bavxhack/War2glory. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md. Prüfe offene PRs und vorhandene Änderungen, bewahre fremde Arbeit. Dieser Auftrag ersetzt Auftrag 9 als aktuellen Arbeitsauftrag.
 
-Arbeite im Repository bavxhack/War2glory vom aktuellen main aus. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md. Prüfe offene PRs. Dieser Auftrag ersetzt Auftrag 8 als aktuellen Arbeitsauftrag. Der Planungschat erstellt nur Anweisungen; du implementierst, testest und lieferst einen Pull Request ohne eigenständiges Mergen oder Deployment.
+Der Planungschat schreibt ausschließlich Anweisungen. Du implementierst und prüfst Auftrag 10 und lieferst einen Pull Request ohne eigenständiges Merge oder Deployment.
 
-Ziel: Nahrungsertrag und Unterhalt sehen → General als Bürgermeister ernennen → Führungsbonus wirkt → bei Defizit Vorräte aufbrauchen → Schonfrist und Ausbildungsunterbrechung anzeigen → nach anhaltendem Hunger Einheiten verlieren → durch Produktion oder zurückgekehrte Beute Versorgung wiederherstellen.
+Ziel: Erfahrung aus vorhandenen Einsätzen erhalten → im Generalmodal gezielt Skillpunkte kaufen → auf Führung, Angriff und Verteidigung verteilen → tatsächliche Wirkung verstehen → verbesserten Bürgermeister oder General einsetzen → Fortschritt nach Neustart wiederfinden.
 
-## 1. Bestätigte Anforderungen und Grenzen
+Die konkreten Kosten- und Kampfformeln unten sind Vorschläge des Planungschats für einen spielbaren, reviewbaren Prototyp. Keine einzeln bestätigten Nutzerwerte und keine Originalregeln behaupten. Als zentralen, versionierten Regelsatz implementieren und im PR sichtbar zur Prüfung aufführen. Dieser eigene Aktivierungsauftrag ersetzt für seinen Umfang frühere Anweisungen, Skills lediglich als deaktivierte Grundlage vorzuhalten.
 
-Bestätigt sind unterschiedlicher laufender Nahrungsbedarf je Truppentyp, Defizitversorgung durch Plünderungen, tatsächliche Truppenverluste nach Schonfrist und ein führungsabhängiger Nahrungsbonus des Bürgermeisters.
+## A. Umfang und Erhaltung des Bestands
 
-Die folgenden konkreten Zahlen und Detailregeln sind vorläufige Vorschläge des Planungschats für einen reviewbaren Prototyp. Zentral konfigurieren, versionieren und im PR sichtbar ausweisen. Nicht als endgültige Nutzerentscheidungen oder War2Glory-Originalregeln darstellen.
+- Vorhandene reine Skillfunktionen, Generaldaten, React-Modal, zentralen WebSocket-Transport und JSON-Journal weiterverwenden. Keine parallele zweite Skillverwaltung.
+- Manuelle XP-Umrechnung und Verteilung jetzt als echte Spielaktionen aktivieren.
+- Führung verstärkt den bestehenden Bürgermeisterbonus. Angriff und Verteidigung erhalten begrenzte Wirkungen im bestehenden NPC-Infanteriekampf.
+- Kein militärisches Führungslimit wieder einführen. Das bestehende Gesamtmaximum von 10.000 Einheiten je Einsatz bleibt, ebenso die Exklusivität Bürgermeister/Missionsführer.
+- Rekrutierung weiterer Generäle, kostenlose Zusatzgeneräle, Respec/Rückerstattung verteilter Skills, Universität, Forschungsgeneral, Öl/LKWs und PvP bleiben spätere Aufgaben.
+- Bestehende XP-Quellen, Levelkurve, Ernährungswerte, Hungerverluste, NPC-Regeneration und Bau-/Lagerregeln nicht neu ausbalancieren.
+- Erhalte neue Illustrationen und bestehende mobile Gestaltung.
 
-- React/Vite, zentrale WebSocket-Kommunikation, serverseitige Regeln und JSON-Journal erhalten.
-- Laut aktuellem Repository besteht KEIN Führungslimit für Aufklärung/Farmzüge; es gilt eine Obergrenze von insgesamt 10.000 Einheiten je Einsatz. Nicht versehentlich das frühere Limit 20 × Level wieder einführen.
-- Bürgermeisterbonus ist eine gezielt neue Wirkung von Führung. XP-Umrechnung, Skillverteilung, militärische Skillboni und Forschungsgeneral bleiben deaktiviert bzw. später.
-- Keine neue Rekrutierung, Gratisgeneräle, Universität, Ölpflicht, LKWs, PvP oder zusätzliche Marsch-Reichweitenregel. Nahrungsunterhalt ist keine automatische Bestätigung der separat erwähnten Reichweitenbegrenzung.
-- Bestehende Kampf- und Aufklärungsregeln nur dort erweitern, wo Hungerverluste sie ausdrücklich betreffen.
+## B. Manuelle XP-Umrechnung
 
-## 2. Laufender Nahrungsbedarf und Wirtschaftsrechnung
+Vorläufiger Regelsatz:
+- Der n-te insgesamt erworbene Skillpunkt eines Generals kostet 10 × n XP; n beginnt bei 1.
+- Kostenbasis ist die Gesamtzahl jemals erworbener Skillpunkte dieses Generals, einschließlich bereits verteilter. Punkte verteilen macht den nächsten Punkt nicht günstiger.
+- Kosten für m neue Punkte bei bereits k erworbenen Punkten: 10 × Summe der Zahlen von k+1 bis k+m, gleich 5 × m × (2k+m+1).
+- Beispiel: erste drei Punkte kosten 10 + 20 + 30 = 60 XP. Bei 75 verfügbaren XP bleiben danach 15; der vierte Punkt kostet 40.
+- Bei bereits drei erworbenen Punkten kosten die nächsten zwei 40 + 50 = 90 XP.
+- Umrechnung nur nach bewusster Bestätigung. Kein automatischer XP-Verbrauch bei Login, Erfahrungsgewinn oder Levelaufstieg.
+- Vor Umrechnung Anzahl, Einzelpreis des nächsten Punktes, Gesamtkosten und verbleibende XP anzeigen. Optional „maximal bezahlbar“ serverseitig berechnen.
+- Insgesamt verdiente XP bleiben unverändert. Nur bereits verwendete XP erhöhen und freie Skillpunkte gutschreiben. Generallevel weiter aus der bisherigen Gesamt-XP-Regel ableiten, kein Levelverlust durch Ausgaben.
+- Prüfe positive ganze Anzahl, sichere numerische Grenzen und vorhandene XP. Kein negativer Rest, keine Teilbuchung und kein unbeschränktes Durchlaufen großer Clientzahlen.
+- Vorhandene Skillzähler berücksichtigen; keine doppelte Berechnung aus alten XP und bereits erworbenen Punkten.
+- Freie Skillpunkte dürfen zunächst aufgehoben werden. Keine Verfallsfrist und kein automatisches Verteilen.
 
-Vorläufige Verbrauchswerte:
-- Infanterie: 0,10 Nahrung je Einheit und Sekunde.
-- Späher/Aufklärungsflugzeuge: 0,05 Nahrung je Einheit und Sekunde.
-- Generäle selbst haben in diesem Prototyp keinen zusätzlichen Nahrungsunterhalt.
-- Noch nicht fertig ausgebildete Einheiten zählen nicht; sie werden ab dem tatsächlichen Abschluss versorgt.
-- Alle lebenden eigenen Einheiten werden genau einmal von ihrer Heimatstadt versorgt, sowohl stationierte als auch solche auf Hin-/Rückmarsch. Reservierung und Marsch erzeugen weder Doppelverbrauch noch eine Ausnahme.
-- Tatsächliche Kampf-/Hungerverluste reduzieren den Verbrauch ab ihrem Ereigniszeitpunkt. Auf Rückkehr keine zweite Kopie bereits gebundener Einheiten hinzuzählen.
+## C. Verteilung und Grenzen
 
-Rechnung:
-- U = Summe aus lebender Einheitenanzahl je Typ × dessen Verbrauchsrate.
-- P = Nahrungsproduktion der fertigen Gebäude einschließlich des aktiven Bürgermeisterbonus.
-- Netto = P − U. Verbrauch nicht zusätzlich noch einmal abbuchen.
-- Beispiel: 2 Nahrung/Sekunde Gebäudeertrag, 10 Prozent Bürgermeisterbonus und 30 Infanteristen ergeben P = 2,2; U = 3; Netto = −0,8 Nahrung/Sekunde. 480 Vorrat reichen bei unveränderten Raten 480 / 0,8 = 600 Sekunden, also 10 Minuten.
-- Nutze präzise zeitbasierte Verrechnung mit erhaltenen Resten; Frontend-Rundung verändert keine Bestände.
-- Obergrenze/Überbestand korrekt behandeln: Bei S = Kapazität gilt für eine positive Nettobilanz keine weitere Einlagerung; eine negative Nettobilanz senkt den Bestand. Verfügbare Produktion darf am vollen Lager gleichzeitig laufenden Verbrauch decken.
-- Bei bestehendem Überbestand aus Abriss gilt dieselbe Nettorechnung: vorhandene Vorräte nicht pauschal kürzen; positiven Nettozuwachs blockieren, negative Bilanz abbuchen. Dies präzisiert die frühere Produktionspause um den jetzt aktiven direkten Verbrauch.
-- Kein negativer Nahrungsbestand und keine Nahrungsschuld. Sobald Nahrung auf null sinkt, nur den tatsächlich ungedeckten Zustand als Mangel behandeln.
-- Mangelbedingung: Vorrat S = 0 UND U > P. Ein leeres Lager bei U <= P löst keine Hungerstrafe aus.
-- Bauernhofausbau/Abriss, Bürgermeisterwechsel, Ausbildung, Verluste, Ausgaben und zurückkehrende Nahrung sind zeitliche Grenzen der Rechnung. Keine rückwirkende Anwendung neuer Raten.
-- Missionen verbrauchen unterwegs keine geladenen Beutevorräte direkt. Beute wird weiterhin erst bei Rückkehr in der Heimat verfügbar; ein anderes Feldversorgungssystem bleibt später.
+- Ein freier Skillpunkt erhöht genau eine gewählte Eigenschaft um einen Punkt.
+- Grundwerte, verteilte Punkte und effektive Werte getrennt halten. Effektiver Eigenschaftswert = vorhandener Grundwert + entsprechende bestätigte Skillzuweisung; verifiziere die tatsächlichen bestehenden Felder.
+- Führung für den Bürgermeister nutzt diesen effektiven Führungswert. Verwende nicht das historische, deaktivierte Truppenführungslimit als Ersatz.
+- Für die neuen Kampfboni zählt ausschließlich der neu aktivierte verteilte Skillanteil bei Angriff/Verteidigung. Bestehende bisher wirkungslose Grundwerte werden nicht ungefragt zu einem zusätzlichen Kampfbonus. Diese Übergangsregel klar erklären.
+- Invariante: insgesamt erworbene Punkte = freie Punkte + Summe aller verteilten Punkte. Erhaltene Altbestände anhand ihrer vorhandenen Daten konsistent migrieren.
+- UI-Plus/Minus verändert zunächst nur einen lokalen Entwurf. Minus darf nur ungespeicherte Zuweisungen zurücknehmen. Speichern bestätigt alle Änderungen zusammen, Abbrechen verändert nichts.
+- Keine kostenlose Rücksetzung bereits gespeicherter Punkte, kein XP-Transfer zwischen Generälen und keine künstliche Kommandantenpunktebelohnung für Umrechnung oder Verteilung.
+- Wirkungsobergrenzen vor Bestätigung zeigen. Neue Zuweisungen, die eine unten festgelegte Obergrenze überschreiten, serverseitig ablehnen; bestehende überhöhte Altgrundwerte weder kürzen noch rückwirkend bestrafen.
+- Vorläufig maximal 25 verteilte Angriffspunkte und 25 verteilte Verteidigungspunkte, entsprechend jeweils 50 Prozent maximaler Wirkung. Führung nur soweit weiter steigerbar, wie ihr effektiver Wert unter der bestehenden Bürgermeister-Wirkungsgrenze 50 liegt.
+- Falls durch bestehende Daten eine Wirkungsgrenze bereits erreicht ist, diese Eigenschaft als ausgeschöpft anzeigen. Aufgehobene Skillpunkte bleiben erhalten; Käufer auf vollständig ausgeschöpfte Eigenschaften hinweisen.
+- Begrenzungen sind Prototypwerte, keine endgültige Vorgabe für das spätere Forschungs-/Waffensystem.
 
-## 3. Schonfrist, Erholung und Truppenverluste
+## D. Führungswirkung auf Bürgermeister und Versorgung
 
-Vorläufige Regeln:
-- 30 Minuten tatsächlich unversorgte Zeit als Schonfrist je Stadt.
-- Erster Verlust am Ende dieser 30 Minuten, sofern dann Mangel besteht. Danach alle weiteren 5 Minuten unversorgter Zeit eine Verlustwelle.
-- Bei zwischenzeitlicher Versorgung pausiert die Mangeldauer. Nach 60 Sekunden ununterbrochener Versorgung wird der Mangelzyklus beendet; ein späterer neuer Mangel beginnt mit voller Schonfrist.
-- Eine kleine Nahrungsgutschrift setzt nicht sofort die gesamte Schonfrist zurück. Bis zur vollständigen Erholung bleiben akkumulierte Mangelzeit und nächster Verlusttermin erhalten.
-- Versorgung liegt vor, solange S > 0 oder U <= P. Die 60-Sekunden-Erholungsphase beginnt beim tatsächlichen Ende des Mangels, nicht beim nächsten Login.
-- Ohne eigene versorgungspflichtige Einheiten Mangelzustand beenden. Keine leeren Verlustereignisse erzeugen.
+- Bestehende Bonusregel erhalten: b = min(0,50; max(0, effektive Führung) × 0,01). Nahrungsproduktion = landwirtschaftliche Grundproduktion × (1 + b).
+- Beispiel: Führung 10 → 12 durch zwei Skillpunkte erhöht den Bonus von 10 auf 12 Prozent. Bei 2 Nahrung/Sekunde Grundproduktion steigt der Ertrag von 2,20 auf 2,24. Dies sind zwei zusätzliche Prozentpunkte des Grundbonus, nicht 2 Prozent auf den bereits erhöhten Ertrag.
+- Skillverteilung bei einem amtierenden Bürgermeister ist zulässig. Vor Buchung alle fälligen Wirtschafts-/Versorgungsereignisse bis zum wirksamen Zeitpunkt mit dem alten Bonus verarbeiten.
+- Den neuen Ertrag erst ab diesem Zeitpunkt verwenden, Hunger-/Erholungszustand neu prüfen und gegebenenfalls pausierte Ausbildung nach den bestehenden Regeln fortsetzen.
+- Keine rückwirkend erzeugte Nahrung, kein Neustart der Schonfrist allein wegen einer Skillbuchung. Tatsächliche Versorgung entscheidet.
+- Skillverteilung bei einem nicht als Bürgermeister eingesetzten General verändert keine Stadtproduktion.
+- Bonus betrifft weder Lagerkapazität, Holz/Stein, Beutemenge noch NPC-Regeneration. Wiederholte Snapshots dürfen den Bonus nicht nochmals aufaddieren.
 
-Verlustwelle:
-- N = alle zum Verlustzeitpunkt lebenden eigenen versorgungspflichtigen Einheiten, einschließlich marschierender Einheiten.
-- Verlustzahl L = min(N, max(1, ceil(0,05 × N))) bei N > 0 und bestehendem Mangel.
-- Beispiel: 100 Einheiten verlieren 5; bei unverändert fortdauerndem Hunger verliert die nächste Welle bei 95 Einheiten wieder ceil(4,75) = 5.
-- Verteile L proportional auf Bestände je Einheitentyp und Aufenthaltsgruppe (stationiert oder konkrete Mission): zunächst Abrunden der proportionalen Anteile, verbleibende Verluste nach größten Resten; Gleichstände stabil nach Typ-/Gruppen-ID auflösen.
-- Dadurch bleibt die Gesamtverlustzahl bei Aufteilen einer Armee gleich. Nicht je kleine Gruppe separat aufrunden.
-- Keine Zufallsverluste und keine bevorzugte Bestrafung nur stationierter Truppen. Entsenden darf keine Hungerimmunität geben.
-- Nach Verlusten U sofort neu berechnen. Wenn die reduzierte Armee wieder versorgt werden kann, dürfen keine weiteren vorgeplanten Wellen blind ausgeführt werden.
-- Generäle sterben in diesem Auftrag nicht an Hunger. Hungerverluste vergeben niemandem Kampf-XP oder Kampf-/Niederlagenpunkte; die bisherigen Kampfregeln bleiben davon getrennt.
-- Speichere private, nachvollziehbare Versorgungsereignisse mit Zeitpunkt und Verlusten, begrenze und paginiere die Anzeige sinnvoll. Keine stillen Truppenänderungen.
+## E. Vorläufige Kampfboni für neue Farmmissionen
 
-Ausbildung:
-- Während Mangel alle laufenden Ausbildungsgruppen pausieren und neue Ausbildungsbefehle ablehnen. Restdauer, Reihenfolge und bezahlte Kosten erhalten; keine zweite Zahlung beim Fortsetzen.
-- Bereits fällige Abschlüsse vor Mangelausbruch zuerst verarbeiten. Bei gleichem Zeitpunkt verbindlich festlegen und testen: wenn Nahrung bis dahin vorhanden war, Abschluss verarbeiten und den neuen Verbrauch anschließend berücksichtigen.
-- Sobald Versorgung wieder besteht, pausierte Ausbildung ohne erneute Bezahlung fortsetzen. Dafür nicht erst das Ende der 60-Sekunden-Erholungsphase abwarten.
-- Bau, Nahrungsproduktion und Farmzüge bleiben möglich; bestehende Ressourcen- und Besitzprüfungen gelten weiterhin.
+Kapsle den erweiterten Kampf als neue Regelversion. Für einen neuen Einsatz werden zum Start die Skillboni des gewählten Generals festgeschrieben.
 
-## 4. Auswirkungen auf laufende Missionen
+Definitionen:
+- N = bei Kampfbeginn tatsächlich noch lebende angreifende Infanterie, nach bisherigen Hungerverlusten.
+- D = bei Kampfbeginn tatsächlich vorhandene NPC-Verteidiger.
+- a = min(0,50; 0,02 × verteilte Angriffspunkte).
+- v = min(0,50; 0,02 × verteilte Verteidigungspunkte).
+- Angriffsstärke S = N × (1 + a). Bonusstärke ist keine zusätzliche Einheit und erzeugt weder Traglast noch Unterhalt.
+- Verwende ganzzahlige Prozentrechnung bzw. exakte rationale Vergleiche, damit Rundungsfehler keine Siegschwellen verschieben.
 
-- Vor einem Kampf zählen nur die nach eventuellen Hungerwellen noch lebenden entsandten Einheiten. Ausgangstruppen, Hungerverluste und eigentliche Kampfverluste getrennt protokollieren.
-- Ist bei einer Farmankunft keine Infanterie mehr vorhanden, findet kein Kampf und keine Plünderung statt. General tritt den regulären Rückweg an; keine XP/Kampfpunkte erfinden.
-- Ist bei einer Aufklärungsankunft kein Späher mehr vorhanden, entsteht kein neuer Aufklärungssnapshot und keine Erstzielbelohnung. General kehrt zurück. Eine bereits erfolgreich erfolgte Aufklärung kann der General trotz späterer Späherverluste als historischen Bericht zurückbringen.
-- Bei Hunger auf dem Rückweg die verbleibende Traglast neu berechnen. Übersteigt Ladung diese Kapazität, überschüssige Nahrung als unterwegs verloren kennzeichnen und genau einmal aus der Mission entfernen. Nicht zum NPC zurückbuchen.
-- Sind alle Rückkehrtruppen verloren, bleibt General bis zur vorgesehenen Rückkehr gebunden; keine Teleportation und keine Wiederherstellung aus der ursprünglichen Reservierung.
-- Endberichte getrennt zeigen: Kampfverluste, Hungerverluste, ursprünglich geladene Beute, unterwegs verlorene Ladung, eingelagerte Menge und Heimatlager-Überlauf.
-- Bereits erzielte Kampfergebnisse und deren Belohnungen nicht rückwirkend verändern. Hunger erzeugt keine zusätzlichen Kampfverluste in der Punkteformel.
-- Eigene Versorgungswarnungen und Hungerereignisse dürfen sofort sichtbar sein. Öffentliche NPC-Daten und noch nicht freigegebene Feindberichte bleiben geschützt. Tatsächliche eigene Verbrauchsänderungen können Rückschlüsse auf Verluste erlauben; keine vollständige Geheimhaltung behaupten, wenn diese Bilanz solche Rückschlüsse zulässt.
+Ausgang:
+- N = 0: bestehende Regel ohne Kampf/Beute anwenden.
+- D = 0 bei N > 0: bestehender unverteidigter Farmzug, keine Verluste oder Kampfbelohnung.
+- Bei D > 0 gewinnt der Angreifer genau dann, wenn S > D; Gleichstand bleibt Verteidigersieg.
 
-## 5. General als Bürgermeister und Führungsbonus
+Verluste:
+- Bei Sieg: alle D Verteidiger fallen. Eigene Verluste = min(N, ceil((D / 2) × (1 − v))).
+- Bei Niederlage: NPC-Verluste = min(D, floor(S / 2)); eigene Verluste = min(N, ceil(N × (1 − v))).
+- Damit senkt Verteidigung eigene Kampfverluste auch bei Niederlage. Diese Änderung gegenüber dem bisherigen vollständigen Angreiferverlust ausdrücklich im PR und im Spielregeltext nennen.
+- Niederlage bleibt Niederlage: Überlebende kehren ohne neue Beute zurück. General überlebt entsprechend der bisherigen Regel.
+- Ohne verteilte Angriff-/Verteidigungspunkte muss das Modell für jeden Fall identische Ergebnisse wie die bisherige Kampfversion liefern.
+- Verteidigung reduziert ausschließlich Kampfverluste, nicht Hunger. Angriff steigert weder XP pro getötetem Gegner noch Geschwindigkeit oder Transportkapazität.
 
-- Pro Stadt ein Bürgermeister, optional unbesetzt. Ernennung aus eigenen freien Generälen; keine zusätzlichen Generäle erzeugen.
-- Generalrolle und militärischer Einsatz sind gegenseitig exklusiv. Ein Bürgermeister kann keine Aufklärung/Farmmission führen. Ein unterwegs gebundener General kann nicht Bürgermeister werden.
-- Ernennen, Abberufen und Wechseln sind serverseitig geprüfte, persistente Aktionen. Wechsel zwischen zwei freien eigenen Generälen erfolgt atomar; kein Zwischenzustand mit doppeltem Bonus.
-- Abberufung ohne zusätzliche Kosten oder Wartezeit als Prototypregel. Der Nutzer kann seinen einzigen Startgeneral somit abberufen und wieder auf Farmzug schicken.
-- Vor einem Rollenwechsel den Zustand bis zum Änderungszeitpunkt mit dem bisherigen Bonus abrechnen. Der neue Bonus gilt erst ab diesem Zeitpunkt und auch während Abwesenheit.
-- Keine Bürgermeister-XP über verstrichene Zeit und keine kostenlose Skillvergabe erfinden.
+Abnahmerechnungen:
+- N = 10, D = 10, 0 Angriff/0 Verteidigung: bisherige Niederlage, 10 eigene Verluste und 5 NPC-Verluste.
+- N = 10, D = 10, 5 Angriffspunkte/0 Verteidigung: a = 10 Prozent, S = 11; Sieg, 5 eigene Verluste, 10 NPC-Verluste und 5 Überlebende.
+- N = 30, D = 20, 0 Angriff/10 Verteidigungspunkte: v = 20 Prozent; Sieg mit ceil(10 × 0,8) = 8 eigenen Verlusten statt 10.
+- N = 10, D = 20, 0 Angriff/10 Verteidigungspunkte: Niederlage, 8 eigene und 5 NPC-Verluste; 2 Überlebende kehren ohne Beute zurück.
+- Anschließende Traglast, Unterhalt, Hunger, XP und Kampfbeiträge anhand tatsächlicher Überlebender/Verluste nach ihren bestehenden Regeln berechnen.
 
-Vorläufige Bonusformel:
-- F = bestehender serverseitiger Eigenschaftswert „Führung“ des Generals. Prüfe im tatsächlichen Datenmodell, welches Feld diese Eigenschaft abbildet, und dokumentiere die Zuordnung.
-- Verwende nicht versehentlich den früheren, derzeit deaktivierten Grenzwert für befehligte Truppenzahl als Eigenschaft. Bestehende Grundwerte und gespeicherte Eigenschaften nicht ungefragt neu skalieren.
-- Bonusanteil b = min(0,50; max(0, F) × 0,01), also ein Prozent je Führungspunkt, vorläufig höchstens 50 Prozent.
-- P = fertiger landwirtschaftlicher Grundproduktionsertrag × (1 + b).
-- Rechenbeispiel, keine Behauptung über Startwerte: F = 10 ergibt +10 Prozent. Bei 2 Nahrung/Sekunde Grundproduktion ergibt das 2,2 Nahrung/Sekunde.
-- Ohne Bürgermeister b = 0. Führung 0 ergibt keinen Bonus; dies darf nicht als mehr Produktion dargestellt werden. Kein pauschaler Sockelbonus ohne Dokumentation.
-- Bonus erhöht nur laufende Nahrungsproduktion, nicht Lagerkapazität, aktuelle Vorräte, Beute, NPC-Regeneration oder andere Rohstoffe.
-- Wiederholte Zustandsberechnung darf den Bonus nicht immer erneut multiplizieren. Grundproduktion und Bürgermeisterbeitrag getrennt ableiten.
-- Änderung eines künftig aktivierten Führungswertes muss später eine neue Produktionsphase beginnen. Jetzt keine XP-Umrechnung oder allgemeinen Skillboni aktivieren.
-- Bürgermeister als konkrete Ausnahme zu bisherigen Aussagen „alle Generalboni inaktiv“ dokumentieren. Angriff/Verteidigung und Forschungsgeneral bleiben unverändert.
+## F. Laufende Missionen und Migration
 
-## 6. Oberfläche und Warnungen
+- Generäle dürfen während eines Einsatzes XP umwandeln und Punkte verteilen; Wirkung auf militärische Einsätze jedoch erst ab dem nächsten Start.
+- Speichere für neue Missionen eine unveränderliche Aufnahme der wirksamen Kampfboni und Kampfregelversion. Nicht beim späteren Kampf aus dem dann aktuellen General neu ableiten.
+- Vor Aktivierung gestartete Farmmissionen behalten ihre bisherige Kampfversion ohne neue Boni, auch wenn der General vor Ankunft verbessert wird. Kein rückwirkender Vorteil oder Nachteil.
+- Bereits gespeicherte Kampfresultate und historische Berichte bleiben unverändert. Bei fehlender alter Versionskennung ausdrücklich der bisherigen Version zuordnen, nicht dem neuesten Standard.
+- Vorhandenes Journal muss auch ältere noch offene Transaktionen vor neuen Aktionen korrekt wiederherstellen können.
+- Migration erhält alle Generäle, Rollen, XP, freien/verteilten Punkte, aktive Einsätze, Ressourcen und Mangelzeitpunkte. Keine automatische Skillverteilung und kein Bonusgeschenk bei Anmeldung.
+- Regelsatz-/Datenversion dauerhaft speichern; Neustart und erneute Migration dürfen weder XP erneut freigeben noch Punkte duplizieren.
+- Kampfberichte der neuen Version zeigen tatsächlich angewandte Angriffs-/Verteidigungsboni und Verluste; alte Berichte dürfen keine nachträgliche neue Bonusdarstellung bekommen.
 
-- React: Nahrungsanzeige mit Grundproduktion, Bürgermeisterbonus, Bruttoertrag, Unterhalt und Nettobilanz. Einheit (z.B. pro Stunde) einheitlich anzeigen; intern vereinbarte Sekundenraten korrekt umrechnen.
-- Zeige bei negativer Bilanz die voraussichtliche Zeit bis Lagerleerstand bei unveränderten Raten. Bei U <= P keine unsinnige negative/ungeendliche Restzeit.
-- Mangelstatus sichtbar: Schonfrist, bereits verstrichene Mangelzeit, nächste Verlustwelle und gegebenenfalls Erholungsphase.
-- Ausbildung mit Begründung „wegen Nahrungsmangel pausiert“ und erhaltener Restdauer anzeigen.
-- Bürgermeister in Stadtübersicht und Generalmodal anzeigen; Führung und tatsächliche Mehrproduktion offenlegen. Ernennung/Wechsel/Abberufung mit Auswirkung auf die aktuelle Bilanz vorschauen.
-- Bei einem aktiven Bürgermeister im Missionsdialog auf erforderliche Abberufung hinweisen; nicht heimlich beim Absenden abberufen.
-- Hungerwarnungen dürfen nach erneutem Login erscheinen, aber keine doppelte Verlustbuchung auslösen. Ernste Folgen bei bestätigter riskanter Aktion verständlich anzeigen; keine erfundene garantierte Beute als sichere Versorgung vorhersagen.
-- Mobile und Tastaturbedienung, Fokusführung, Abbrechen und serverseitige Fehlermeldungen erhalten.
+## G. WebSocket, Vorschau und React-Modal
 
-## 7. Zeitverarbeitung, Aktivierung und Persistenz
+- Aktiviere/ergänze Skillbefehle gemäß bestehender Protokollkonvention. Vorher die schon vorhandenen Spielkernfunktionen und deaktivierten Befehle prüfen.
+- Ein authentifizierter Befehl identifiziert General, gewünschte Menge bzw. Zuweisungsdeltas, erwartete Generalversion und Regelsatzversion. Kosten, Eigenschaften, XP und Besitzer bestimmt der Server.
+- Vorschau und Bestätigung gegen veraltete General-/Regelstände prüfen. Konkurrierende Änderungen dürfen keine Punkte mehrfach ausgeben; bei Konflikt aktuellen Zustand liefern und erneute bewusste Bestätigung ermöglichen.
+- XP-Umrechnung und Eigenschaftsverteilung sind zwei klar getrennte Schritte. Ihre jeweiligen Abbuchungen und Gutschriften intern atomar speichern.
+- Deduplizierung beibehalten: gleiche requestId und gleicher Inhalt erzeugen keine weitere Wirkung, widersprüchlicher Inhalt wird abgewiesen.
+- Vor Erfolg dauerhaft konsistent speichern. Speicherfehler, Absturz oder verlorene Antwort dürfen keine verlorene XP-Buchung oder doppelte Skillpunkte verursachen.
+- Eigentumsprüfung, private Snapshots und Kontowechselabsicherung erhalten. Keine neue WebSocket-Verbindung je Modal und kein HTTP-Spielpolling.
+- Modal zeigt Gesamt-XP/Level, verfügbare/verwendete XP, erworbene/freie Punkte, Preis des nächsten Punktes, Grundwerte und zugewiesene Skillanteile.
+- Vorschau zeigt pro Eigenschaft ihre tatsächliche Wirkung und Obergrenze. Erkläre, dass kleine Änderungen durch Rundung nicht in jedem Kampf sofort eine weitere Einheit retten.
+- Keine Siegchance aus geheimen aktuellen NPC-Daten berechnen. Beispielrechnungen oder zeitgestempelte eigene Aufklärungsberichte dürfen als solche erkennbar verwendet werden.
+- Während Einsatz im Modal erklären: neu verteilte Kampfpunkte gelten ab nächster Entsendung. Bürgermeisteränderung wirkt ab erfolgreicher Speicherung.
+- Mobile/Tastaturbedienung, Fokusführung, verständliche Fehler- und Ladezustände erhalten. Entwürfe nicht bei jedem Push ungefragt überschreiben.
 
-- Erweitere den bestehenden weltweiten chronologischen Ereignisablauf und das Transaktionsjournal. Kein zweiter unabhängiger Timer, der zufällig vor oder nach Kämpfen abbucht.
-- Berechne Leerstand, Ende der Schonfrist, Verlustwellen, Versorgungsbeginn/-erholung und Änderungen von Ausbildungszeiten anhand ihrer tatsächlichen Zeitpunkte.
-- Gleiche Zeitpunkte deterministisch behandeln: Wirtschaftsabrechnung bis T, bestehende Spielereignisse bei T gemäß stabiler Ereignisreihenfolge, dann fällige Hungerwelle nach erneuter Mangelprüfung. Rechtzeitig bei T zurückgekehrte Nahrung kann eine Hungerwelle verhindern.
-- Vermeide implizite Änderungen der bestehenden Kampf-Reihenfolge zwischen verschiedenen Spielern. Dokumentiere die Ergänzung der Hungerereignisse und prüfe Aufklärung/Kampf/Rückkehr am selben Zeitpunkt.
-- Nach langem Offlinebetrieb müssen alle relevanten Phasen nachgeholt werden. Eine später eintreffende Beute darf frühere Hungerwellen nicht rückwirkend aufheben.
-- Die Versorgung einer Mission, ihr Truppenbestand und ihre Ladung müssen zusammenhängend gespeichert werden. Vor jeder Erfolgsantwort muss Wiederherstellung nach Absturz gewährleistet sein.
-- requestId-Deduplizierung, Besitzerprüfungen und General-/Stadtversionen verwenden. Gleichzeitiges Ernennen/Entsenden oder mehrfaches Wiederholen darf weder Doppelrolle noch doppelte Gutschrift/Verluste erzeugen.
-- Migration versioniert und idempotent. Bestehende Bürgermeisterzuordnung erhalten, falls bereits vorhanden, andernfalls unbesetzt. Keine automatische Ernennung ohne Nutzeraktion.
-- Weltweit einen dauerhaften Einführungszeitpunkt des Unterhaltssystems festhalten. Vor diesem Zeitpunkt bestehende Vorgänge nach alten Regeln abschließen; ab ihm tatsächlichen Unterhalt verrechnen, auch für schon unterwegs befindliche lebende Truppen.
-- Keine rückwirkende Nahrungsschuld oder Verluste für Zeit vor Aktivierung. Nach Aktivierung gelten Offline-Verbrauch und Schonfrist normal, auch ohne Login.
-- Reconnect/Neustart darf Einführung, Mangelzeit, nächste Verlustwelle oder Erholung nicht zurücksetzen.
-- Kapazitätsgrenzen/Überbestand und Präzision so behandeln, dass viele kleine Abrechnungsschritte dasselbe Ergebnis liefern wie ein großer mit denselben Ereignissen.
+## H. Prüfung und Lieferung
 
-## 8. Tests und Lieferung
+Führe bestehende Tests und Frontend-Build aus; ergänze gezielte Prüfungen:
 
-Führe bestehende Tests, Frontend-Build und gezielte neue Prüfungen aus:
+1. XP-Kosten aller genannten Beispiele, Rest-XP, Mehrfachkauf, bereits ausgegebene Punkte und numerische Grenzen.
+2. Manuelle Bestätigung, kein automatischer Kauf durch Login/XP-Ereignis; Gesamt-XP und Level bleiben bei Umrechnung erhalten.
+3. Verteilungsinvariante, kostenlose Rücksetzung ausgeschlossen, Effektschranken und unveränderte Altgrundwerte.
+4. Bürgermeister-Führung vor/nach Buchung bei laufender Produktion, Hunger/Erholung und pausierter Ausbildung.
+5. Exakte Kampfbeispiele, Siegschwellen/Gleichstand, leeres Ziel, vollständiger vorheriger Hungerabgang und identische alte Ergebnisse bei null Skills.
+6. Höherer Angriff darf unter sonst gleichen Bedingungen keine schlechtere Erfolgsbewertung, höhere Verteidigung keine höheren eigenen Kampfverluste bewirken.
+7. Keine Wirkung auf Traglast pro Einheit, Marschzeit, Nahrungsbedarf pro Einheit, Hungerverlustrate oder militärisches Führungslimit.
+8. Alte Missionen bleiben in alter Regelversion; neue Missionen verwenden den beim Start gespeicherten Bonus trotz späterer Verteilung.
+9. Rückkehr mit Überlebenden nach Niederlage, korrekte XP/Punkte aus echten Verlusten und keine Beute bei Niederlage.
+10. Doppelte/gleichzeitige Befehle, fremde General-ID, veraltete Vorschau, Speicherfehler und Neustart ohne doppelte XP-/Punktebuchung.
+11. Migration mit laufendem Einsatz, amtierendem Bürgermeister, vorhandenen Skillzählern und offenem Journal.
+12. Regression von Generalrollen, Farmzügen/Aufklärung, Ernährung/Hunger und Lager/Abriss.
 
-1. Verbrauch mehrerer Typen, Produktion mit Bürgermeister, positive/null/negative Bilanz und korrekt umgerechnete Zeiteinheiten.
-2. Volle Lager, Überbestand, gleichzeitiger Verbrauch/Produktion, exakter Leerstand und keine negative Nahrung.
-3. Schonfrist, Verlustwellen, proportionale Verteilung, kleinste Armeen und keine Mehrverluste durch Aufteilen.
-4. Kurze Zwischenversorgung pausiert den Hungerzähler; stabile Versorgung setzt ihn erst nach Erholungsdauer zurück.
-5. Ausbildung pausiert/fortgesetzt mit korrekter Restdauer, Kosten und Abschlussreihenfolge.
-6. Einheiten stationiert/unterwegs genau einmal zählen; Kampfverluste und Rückkehr ändern Verbrauch korrekt.
-7. Hunger vor Kampf/Aufklärung, vollständig verlorene Armee, Generalrückkehr, Ladungsverlust und richtige Berichte/Belohnungen.
-8. Bürgermeisterwechsel, unzulässige fremde/gebundene Generäle, parallele Mission/Ernennung und kein mehrfach aufaddierter Bonus.
-9. Bürgermeisterbonus wirkt auf Nahrungsertrag, nicht Beute/Lager/andere Ressourcen; Skillaktionen bleiben deaktiviert.
-10. Gleichzeitige Beuterückkehr und Hungerwelle, Offline-Verarbeitung, Bürgermeisterwechsel nach langer Abwesenheit.
-11. Fehler zwischen Journal und Dateien, Neustart, verlorene Bestätigung und Wiederholung ohne doppelte Verluste/Bonuswirkung.
-12. Migration ohne rückwirkende Kosten, dauerhaftem Einführungszeitpunkt und unveränderten bisherigen Spielständen.
-13. Regression bestehender Farm-, Aufklärungs-, Lager-/Abriss-, Punkte- und Generalfunktionen.
+Browserprüfung mit zwei Konten, Desktop und Mobilansicht: Erfahrung anzeigen → Punkte kaufen → Entwurf abbrechen/speichern → Bürgermeisterertrag prüfen → neuen Farmzug starten → Bonus im privaten Bericht prüfen → erneut anmelden. Isolierte Testwelten für Kampfvergleiche nutzen; produktive Spielstände nicht verändern.
 
-- Simuliere lange Zeiträume in Tests mit kontrollierter Uhr statt realer Wartezeit. Auch die ungünstige Kombination einer großen Armee ohne Versorgung prüfen; Offline-Nachberechnung darf den Server nicht unbegrenzt blockieren.
-- Browserprüfung mit zwei Konten, Desktop/Mobilansicht: Bürgermeister ernennen/abberufen, Bilanz prüfen, Warnung, pausierte Ausbildung, Verluste und Versorgung durch Rückkehr. Verwende isolierte Testwelten.
-- Liefere nachvollziehbare Commits und einen vollständigen Pull Request. Kein eigenständiges Merge/Deployment.
-- Aktualisiere README, docs/PROJECT.md und Protokoll-/Speicherdokumentation; markiere implementierte Funktionen und vorläufige Regeln getrennt.
-- Im PR insbesondere 30 Minuten Schonfrist, 5-Minuten-Verlustabstand, 5-Prozent-Verluste, 60 Sekunden Erholung, Verbrauchswerte, Führungspunkt-Bonus und Obergrenze zur Prüfung nennen. Bestätigte Nutzeranforderungen nicht mit diesen Vorschlägen gleichsetzen.
-- Nicht ausgeführte Prüfungen und verbleibende Einschränkungen auf Deutsch benennen. Danach Skillregeln bzw. Forschung gemäß Projektplan ausarbeiten, nicht automatisch starten.
+- Liefere nachvollziehbare Teilcommits und einen vollständigen Pull Request; nicht selbst mergen/deployen.
+- Aktualisiere README, docs/PROJECT.md und Protokoll-/Speicherdokumentation. Veraltete Aussagen „alle Skillfunktionen deaktiviert“ und „Niederlage vernichtet immer alle Angreifer“ für den neuen Regelsatz korrigieren, historische Regeln als solche erhalten.
+- Dokumentiere Rechenbeispiele und alle vorläufigen Werte: 10 × n XP, manuelle Umrechnung, ein Eigenschaftspunkt je Skillpunkt, 2 Prozent je militärischem Skillpunkt, 50-Prozent-Wirkungsgrenzen und Überlebende bei Niederlage.
+- Trenne umgesetzt/getestet/offen. Nicht ausführbare Prüfungen und reale Einschränkungen ausdrücklich benennen.
+- Danach Universität und erste Wirtschafts-/Lagerforschungen als eigener Auftrag. Forschungsgeneral und weitere Generalrekrutierung benötigen eigene Regeln; nicht automatisch implementieren.
