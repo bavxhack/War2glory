@@ -1,214 +1,224 @@
-# Codex-Auftrag 12: Offiziersbewerber, steigende Rekrutierungskosten und Forschungsleitung
+# Codex-Auftrag 13: Forschungsfreischaltungen, Ölwirtschaft und LKW-Farmzüge
 
-## Auftrag und Ausgangspunkt
+## Auftrag und Arbeitsweise
 
-Der Nutzer bestätigt Auftrag 11 am 08.10.2026 als fertig und beauftragt den nächsten Schritt. Ergänzung vom selben Tag: Er bestätigt die Bewerberauswahl mit unterschiedlichen Anfangsstärken und verlangt, dass jeder weitere General teurer wird. Diese Fassung ersetzt die direkte Rekrutierung identischer Generäle aus der vorherigen Fassung von Auftrag 12. Falls deren Umsetzung bereits begonnen hat, bestehende Arbeit gezielt anpassen und Daten erhalten. Implementiere den Ablauf: zusätzliche Generäle rekrutieren, einen General als Forschungsleiter einsetzen und schneller forschen, während andere Generäle Bürgermeister bleiben oder NPC-Einsätze führen.
+Der Nutzer bestätigt Auftrag 12 am 08.10.2026 als abgeschlossen und beauftragt den nächsten Schritt. Implementiere einen vollständigen Ablauf: Ölverarbeitung erforschen → zivile Ölraffinerie bauen → Motorisierung erforschen → Fahrzeugfabrik auf Militärbauplatz bauen → LKWs herstellen → Infanterie und LKWs gemeinsam zum NPC schicken → begrenzte Nahrung erbeuten und zurückbringen.
 
-Der Planungschat erstellt ausschließlich Anweisungen. Du implementierst und prüfst sie in bavxhack/War2glory. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md. Arbeite vom aktuellen main auf einem eigenen Branch, beachte offene PRs und fremde Änderungen. Liefere einen getesteten Pull Request ohne selbstständiges Merge/Deployment.
+Der Planungschat aktualisiert ausschließlich Anweisungen. Du implementierst auf Basis des aktuellen main in bavxhack/War2glory, liest AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md, beachtest offene PRs/fremde Änderungen und lieferst einen getesteten PR ohne selbstständiges Merge/Deployment. Vorläufige neue Zahlen sind eigene Balancevorschläge, keine War2Glory-Originalwerte.
 
-Alle neu vorgeschlagenen Preise, Grenzen und Bonusformeln sind vorläufige eigene Prototypwerte für den Review, keine Originalwerte von War2Glory oder einzeln bestätigten Nutzerentscheidungen. Bestehende Skills, Bürgermeister, Forschung, Versorgung, ENV-Regelhistorie, Farmzüge und Bildsprache erhalten.
+Auftrag 12 sowie die danach ergänzten individuellen Porträts und die Postbox erhalten. Im gelesenen Stand ist Spielerschema 12 aktiv, nicht mehr 9 oder 10. Der Planungschat hat Code gelesen, keine Anwendungstests ausgeführt.
 
-## 1. Vorprüfung
+Reihenfolge als nachvollziehbare Teilcommits:
+1. Neue Ressource, zwei Forschungsfreischaltungen und Gebäude.
+2. Fahrzeugherstellung und typabhängige Einsatzvorschau einschließlich Öl.
+3. Gemischte Farmzüge, Transportverluste, Versorgung und Berichte.
+4. Migration/Integration prüfen und Dokumentation vervollständigen.
 
-Der Planungschat hat Quellcode und Dokumentation gelesen, keine Anwendungstests ausgeführt. Prüfe diese Ansatzpunkte gegen den tatsächlichen Arbeitsstand:
-- packages/game-core/military.js besitzt ein generals-Array, einen Startgeneral, Skills und Statusprüfungen. Rekrutierung fehlt im gelesenen Stand.
-- packages/game-core/supply.js verwendet military.mayorGeneralId und effektive Führung. Bürgermeister sind bereits eine exklusive Rolle.
-- packages/game-core/research.js bietet vier Technologien und einen aktiven Auftrag je Stadt; dessen Dauer wird beim Start gespeichert.
-- apps/server/storage.js verwendet Spielerschema 9. Migration aus Schema 8 setzt derzeit direkt auf PLAYER_SCHEMA_VERSION. Bei Erhöhung der Version diese Kette ausdrücklich über Schema 9 fortsetzen, damit die neue Migration nicht übersprungen wird.
-- finishResearch vergleicht derzeit mit der aktuellen RESEARCH_RULES.version. Beim Ergänzen neuer Regeln alte laufende Forschungsaufträge gezielt weiter unterstützen; weder ablehnen noch rückwirkend beschleunigen.
-- effectiveAttributes ist die Quelle für Eigenschaften. Das historische general.leadership nicht mit attributes.leadership plus zugewiesenen Skillpunkten verwechseln.
+## 1. Konkrete Ansatzpunkte
 
-Bestehende Funktionen erweitern, keine zweite Generalverwaltung oder Forschungszeitrechnung einführen.
+Gegen tatsächlichen Arbeitsstand verifizieren:
+- packages/game-core/index.js: RESOURCE_KEYS enthält wood/stone/food; Bauangebote, Ressourceninitialisierung, Kapazitäten, Investitionen, Produktion und Rückerstattung auf Öl erweitern.
+- packages/game-core/research.js: derzeit ein globales maxLevel und einheitliche Kosten/Dauer. Technologien benötigen eigene Voraussetzungen, Maximalstufe und Grundkosten/-dauer, ohne alte Technologien zu verändern.
+- packages/game-core/military.js: Einheiten scout/infantry, Ausbildung bislang kasernengebunden; startRaidMission und Missionsdaten nutzen einzelne Infanteriefelder.
+- packages/game-core/supply.js: livingUnitGroups, Hungerverluste und Rückwegtraglast sind teilweise explizit an Infanterie bzw. Späher gebunden.
+- apps/server/storage.js: Kampfauswertung, Beute und Rückkehr rechnen derzeit mit survivors × 20 sowie Infanterie. Diese Stellen gemeinsam generalisieren; nicht nur UI-Eingabe für LKWs ergänzen.
+- Auftrag 12 verwendet npc-pve-3-general-bases-provisional, Grundwerte plus Skills und beim Start gespeicherte Boni. Alte Kampfversionen weiter unterstützen.
+- Storage enthält Schema 12, Porträtmigrationen, Nachrichten und Lesestatus. Nächste Migration daran anschließen; kein Überspringen alter Migrationen.
+- Postbox statt paralleler neuer Berichtsliste verwenden; vorhandene Nachrichtenfunktion nicht verändern.
 
-## 2. Offiziersbewerber statt identischer Direktrekrutierung
+Für neue Missionen ein verbindliches Mengenmodell je Einheitentyp verwenden. Alte skalare Missionsfelder können über einen klaren versionsbezogenen Adapter gelesen werden; niemals beide Darstellungen als zwei Bestände zählen.
 
-### Zugang und Auswahlzyklus
+## 2. Öl als vierte Ressource
 
-- Kostenloser Startgeneral bleibt unverändert. Standardlimit weiterhin insgesamt drei Generäle je Spieler/Welt; alle Rollen und Einsätze zählen mit. Das Limit bleibt per ENV einstellbar.
-- Eine eigene fertige Kaserne auf einem Militärbauplatz schaltet die Offizierssuche frei. Keine neue Gebäudeart oder Forschung nötig.
-- Drei private Bewerber mit Namen, Profil, vollständigen Grundwerten und Rekrutierungsvorschau anbieten. Genau einen davon verpflichten; anschließend verfällt die restliche Auswahl.
-- Erste Auswahl bei erstmalig erfüllter Kasernenvoraussetzung serverseitig erzeugen und speichern. Danach standardmäßig alle 24 Stunden neue Auswahl. Sofortige Einstellung nach Bestätigung, aber keine weitere Auswahl bis zum nächsten Wechseltermin.
-- Pool speichert stabile ID/Version, Kandidaten-IDs, Generierungsregelsatz, vollständige Werte, createdAt, expiresAt und Zustand offen/verbraucht. Kandidaten sind noch keine Generäle, haben keine Rollen und zählen nicht gegen deren Limit.
-- Intervall an gespeicherten Terminen verankern, nicht an Browseraufrufen. Neuladen, mehrere Tabs, Login, Prozessneustart, Abriss/Neubau der Kaserne oder Erreichen des Limits erzeugen keinen Neuwurf und setzen den Termin nicht zurück.
-- Auch ohne Kauf läuft das Angebot am festen Termin ab. Ab exakt expiresAt ist der alte Pool ungültig. Ein vor Ablauf gesendeter, aber erst danach serverseitig bearbeiteter Kauf wird abgewiesen.
-- Nach langer Abwesenheit höchstens die Auswahl des aktuellen Zeitfensters erzeugen, keine verpassten Pools oder Ansprüche ansammeln. Sprung zum aktuellen Zeitfenster arithmetisch bestimmen, ohne alle verpassten Intervalle zu simulieren.
-- Zufall ausschließlich serverseitig; einmal erzeugte Werte vor Auslieferung persistieren. Keine neue Würfelung bei Vorschau/Kauf, ungültigem Befehl oder fehlenden Ressourcen. Testbarer Generator mit injizierter Zufallsquelle, keine Clientseeds.
-- Ohne Kaserne oder bei erreichtem Limit nicht rekrutierbar; Wiedererfüllung setzt weder Zyklus noch verbrauchten Pool zurück.
-- Keine bezahlte Sofortauffrischung, Kandidatenreservierung, Gratisneuwürfe, Entlassung oder Verkauf.
+- Neue Ressource oil mit deutscher Anzeige „Öl“. Neue und migrierte Städte beginnen mit 0 Öl; Holz/Stein/Nahrung erhalten.
+- Ölraffinerie ist ein ziviles Ressourcenproduktionsgebäude, niemals auf Militärbauplätzen.
+- Freischaltung über abgeschlossene Ölverarbeitung (siehe Abschnitt 3). Erste Forschung, Raffinerie und Fahrzeugfabrik benötigen kein Öl, damit kein unerreichbarer Kreislauf entsteht.
+- Raffinerie ausbaubar bis bestehender Gebäudehöchststufe. Vorläufig dieselbe Baukosten-/Zeitkurve wie andere zivile Gebäude: Zielstufe n kostet 40n Holz/30n Stein, dauert 5n Sekunden. Bestehende gemeinsame Bauwarteschlange verwenden.
+- Produktion vorläufig 1 Öl pro Sekunde je fertiger Raffineriestufe. Keine zusätzliche Rohöl-Ressource, Verarbeitungskette oder Bürgermeisterwirkung auf Öl.
+- Ölkapazität vorläufig 2000 Grundkapazität + 250 je Raffineriestufe oberhalb 1 + 500 je Lagerhausstufe; Lagerlogistik multipliziert wie bei anderen Ressourcen, abschließend abrunden.
+- Beispiel Raffinerie 2 + Lagerhaus 1 + Lagerlogistik 2: floor((2000 + 250 + 500) × 1,10) = 3025 Ölkapazität. Der Ausbau erzeugt keinen Ölvorrat.
+- Produktion erst ab tatsächlicher Fertigstellung, Lager- und Offlineabrechnung wie vorhandene Ressourcen. Bestehende positive Überbestände bei Kapazitätsverlust erhalten.
+- Abriss mit vorhandener Vorschau und nachgewiesener Teilrückerstattung, Produktions-/Kapazitätsverlust und Bauplatzfreigabe. Keine Investitionen aus heutigen Preisen erfinden.
+- Öl in Ressourcenanzeige, Kosten-/Kapazitätsansichten, privatem Snapshot, Lagerhausvorschau, Bau/Abriss und persistiertem Modell ergänzen. Allgemeine Helfer dürfen nicht still nur drei Ressourcen behandeln.
+- NPCs bleiben in dieser Etappe reine Nahrungsziele; Öl wird dort nicht als neue Beute oder Vorrat hinzugefügt.
 
-### Grundfähigkeiten und Entwicklung
+## 3. Zwei Forschungsfreischaltungen
 
-Vorläufiges Budget je Bewerber: insgesamt 30 unverteilbare Grundwertpunkte in Führung, Angriff und Verteidigung. Alle Bewerber besitzen dasselbe Budget; Verteilung und Namen variieren. Gleiche Summe garantiert wegen unterschiedlicher Wirkungen keine gleiche Spielstärke; Profile als Balancevorschläge testen.
+Vier bestehende Wirtschafts-/Lagertechnologien bleiben unverändert. Zwei neue Technologien mit jeweils genau einer abschließbaren Stufe:
 
-| Profil | Führung | Angriff | Verteidigung |
-| --- | --- | --- | --- |
-| Organisator | 20 | 5 | 5 |
-| Angreifer | 10 | 15 | 5 |
-| Verteidiger | 10 | 5 | 15 |
-| Allrounder | 10 | 10 | 10 |
+| Technologie | Voraussetzungen | Kosten | Grunddauer vor Universitäts-/Generalbonus | Schaltet frei |
+| --- | --- | --- | --- | --- |
+| Ölverarbeitung | Eigene fertige Universität mindestens Stufe 1 | 300 Holz, 300 Stein | 120 Sekunden | Ölraffinerie |
+| Motorisierung | Universität mindestens Stufe 2, Ölverarbeitung 1, Lagerlogistik 1 | 500 Holz, 500 Stein | 240 Sekunden | Fahrzeugfabrik und LKW-Herstellung dort |
 
-- Pro Pool drei unterschiedliche Profile aus diesen vier wählen. Kleine Variation optional innerhalb dieser klaren Regel: bis zu zwei Punkte insgesamt zwischen Eigenschaften übertragen, Summe immer 30, keine negativen Werte, Abstand jedes Werts zur Vorlage höchstens zwei. Spezialisten behalten damit ihren Schwerpunkt.
-- Profile sind Beschreibung, keine Klassen- oder Rollensperre. Jeder General darf jede zulässige Rolle übernehmen und später vorhandene Skillpunkte frei nach Regeln verteilen.
-- Grundwerte dauerhaft getrennt von erworbenen Skillpunkten speichern. Grundwertbudget gibt weder freie Skills noch verbrauchte XP und verteuert den ersten gekauften Skillpunkt nicht.
-- Eingestellter Kandidat beginnt mit Level 1, Erfahrung 0, leeren Skillzählern und exakt seinen angezeigten Grundwerten. Kein Rücksetzen auf Führung 20/Angriff 0/Verteidigung 0 beim Normalisieren oder Levelaufstieg.
-- Server vergibt stabile General-ID und ownerId; Erwerbsnachweis enthält Kandidaten-/Pool-ID, Profil, ursprüngliche Grundwerte, Erwerbszeit, Preisstufe, Regelkennung und bezahlte Kosten.
-- Bewerbername darf bei Verpflichtung geändert werden. Bestehende Namensvalidierung verwenden (getrimmt 1–40 Unicode-Codepunkte, keine Steuerzeichen, gleiche Namen erlaubt); danach bestehendes Modal.
-- Altgeneräle einschließlich Startgeneral behalten vollständig ihre bisherigen Grundwerte, XP und Skills. Keine automatische Aufwertung auf 30 oder nachträgliche Kosten.
-- Rekrutierung gibt keine Kommandantenpunkte/XP. Aufklärungs-Erstzielbelohnung bleibt je Kommandant/NPC, nicht je neuem General.
-- Kein laufender General-Unterhalt. Kasernenabriss löscht keine Generäle.
+- Diese Technologien erhöhen nicht automatisch Produktion/Traglast oder Forschungsfaktoren. Es sind Freischaltungen, keine weiteren 5-Prozent-Boni.
+- Forschungsdefinitionen enthalten Typ, individuelle Maximalstufe, Voraussetzungen, Kosten, Grunddauer und freigeschaltete Inhalte.
+- Dauer = max(1, ceil(Grunddauer / (Universitätsfaktor × Forschungsleiterfaktor))) Sekunden, wie bisher einmal runden.
+- Beispiel Motorisierung an Universität 2 mit Führungsbonus 20 Prozent: ceil(240 / (1,1 × 1,2)) = 182 Sekunden.
+- Weiter eine aktive Forschung je Stadt, keine Warteschlange/Abbruchfunktion. Forschungsleiterbindung, versionierte Vorschau und gespeicherte Dauer erhalten.
+- Freischaltung erst ab tatsächlichem Abschluss. Server prüft Voraussetzungen bei Vorschau UND Aktion; CSS-Sperren genügen nicht.
+- Abgeschlossenes Wissen bleibt nach Universitätsabriss erhalten; bestehende Gebäude/Einheiten werden dadurch nicht gesperrt oder vernichtet.
+- Je neue abgeschlossene Stufe 10 Forschungspunkte nach bestehender abgeleiteter Regel, kein zusätzlicher Ereignisbonus.
+- Alte research-1- und research-2-Aufträge mit ursprünglicher Dauer/Kosten korrekt fertigstellen. Neue Technologiekenntnisse bei Migration 0; keine kostenlosen Freischaltungen.
+- UI zeigt erreichbare Abhängigkeiten und verständliche Sperrgründe. Kein umfangreicher leerer Technologiebaum.
 
-### Jeder weitere General wird teurer
+## 4. Fahrzeugfabrik und LKW-Herstellung
 
-Verwende einen dauerhaft gespeicherten, monotonen Erwerbszähler k für bereits erhaltene Generäle einschließlich Startgeneral. Einmal gesetzte Werte niemals wegen Rollenwechsel, Mission, zukünftigem Verlust/Entlassen oder Migration verringern.
+- Neue ausbaubare Fahrzeugfabrik gehört ausschließlich auf Militärbauplätze. Ressourcengebäude bleiben dort verboten.
+- Freischaltung durch Motorisierung; vorläufig bestehende Baukosten/-dauer und Gebäudehöchststufe übernehmen. Gemeinsame Bauwarteschlange und vorhandene Gebäudepunkte.
+- Fahrzeugfabrik produziert keine Ressourcen und vergrößert kein Lager.
+- LKWs ausschließlich dort herstellen, Infanterie/Späher weiterhin in Kasernen. Eine Fahrzeugfabrik erfüllt nicht die Kasernenvoraussetzung für Offiziersbewerber.
+- Herstellung nach vorhandenem Ausbildungsmodell: drei sequenzielle Gruppen je Fabrik, andere Gebäude parallel; höchstens 1000 Einheiten pro Auftrag.
+- Vorläufig pro LKW 100 Holz und 100 Stein, kein Öl und keine Nahrung als einmalige Herstellungskosten. Öl ist Mobilmachungskosten, laufender Nahrungsunterhalt wird gesondert abgerechnet.
+- Grunddauer 10 Sekunden je LKW, geteilt durch Fabrikstufe nach bestehender Gruppen-Rundungsregel. Kosten und Stufe/Dauer beim Einreihen festhalten.
+- Erst fertige Gruppe wird verfügbar und unterhaltspflichtig. Hungrige Stadt pausiert Fahrzeugherstellung wie bisher Kasernenausbildung; später fortsetzen ohne erneute Zahlung.
+- Herstellung während Fabrikausbau gemäß bisheriger Kasernenregel sperren. Fabrikabriss bei laufender/wartender Herstellung blockieren; vorhandene fertige LKWs nach Abriss erhalten.
+- Gemeinsam genutzte Ausbildungshelfer gebäudetypabhängig erweitern. Alte barracksSlotId-Aufträge sicher lesen/migrieren; niemals einem falschen Gebäude zuordnen.
+- Keine parallele zweite Queue-/Zeitimplementierung.
 
-- Für neue Konten k=1. Bei Altbeständen einmalig mindestens die tatsächlich vorhandene Generalzahl übernehmen; größere vorhandene konsistente Erwerbszähler erhalten. Fehlende historische Verluste/Zahlungen nicht erfinden.
-- Kosten pro Ressource = Basispreis × k hoch Kostenexponent.
-- Vorläufige Standards: Basispreis jeweils 500 Holz und 500 Stein, Exponent 2.
-- Zweiter General (k=1): 500 × 1² = 500 Holz und 500 Stein.
-- Dritter (k=2): 500 × 2² = 2000 je Ressource.
-- Vierter (k=3): 4500 je Ressource; fünfter (k=4): 8000 je Ressource. Diese letzten Beispiele gelten nur bei entsprechend erhöhtem General-Limit.
-- Alle Kandidaten desselben Erwerbsschritts kosten gleich viel. Teurer wird die Zahl dauerhaft erworbener Generäle, nicht die Häufigkeit von Vorschauen/Poolwechseln.
-- Zähler nur bei erfolgreicher Verpflichtung genau einmal erhöhen. Kein Kostenanstieg nach fehlgeschlagenem Kauf und kein Zurücksetzen beim Poolwechsel.
-- Preise ausschließlich positive Ganzzahlen, Exponent mindestens 1: damit wird jeder weitere Erwerb unter unveränderten Betreiberregeln strikt teurer. Sichere Ganzzahlarithmetik und Überlaufprüfung vor jeder Buchung.
-- Keine Nahrung oder XP als Rekrutierungskosten. Höhere Preise dürfen Lagerausbau voraussetzen; nicht automatisch an vorhandene Kapazität rabattieren.
-- Vorschau zeigt aktuelle Preisstufe, Kosten und nächste Preisstufe; bei erreichtem Limit zusätzlich die Sperre.
-- Betreiber können Preise bewusst ändern. Geänderte Regeln machen alte Kaufvorschauen ungültig; bereits gezahlte Kosten bleiben bestehen. Strenge Preissteigerung gilt innerhalb desselben Regelsatzes.
+## 5. Einheitenwerte und Öl für Mobilmachung
 
-### Anfangswerte müssen tatsächlich wirken
+Vorläufige Werte:
 
-Im bisher gelesenen Code berücksichtigen militärische Boni nur verteilte Skillpunkte. Passe dies gezielt an, damit ein Angreiferprofil tatsächlich einen Anfangsvorteil besitzt:
+| Typ | Kampfwirkung | Nahrungstraglast | Nahrung pro Stunde | Öl je Einheit/Feld/einfache Strecke |
+| --- | --- | --- | --- | --- |
+| Infanterie | Bestehende Kampfformel | 20 | Bestehende ENV, Standard 360 | 0 |
+| Späher | Bisherige Aufklärung, nicht in Farmzügen | 0 | Bestehende ENV, Standard 180 | 0 |
+| LKW | 0 Angriff, keine zusätzliche Kampfstärke/Schutzwirkung | 200 | 180 | 1 |
 
-- Für NEU gestartete Farmzüge effektiver Angriff/Verteidigung = jeweiliger Grundwert plus zugewiesene Skillpunkte.
-- Vorläufige militärische Boni weiter 2 Prozent pro effektivem Punkt, maximal 50 Prozent. Führung weiterhin für Bürgermeister/Forschung nach deren Regeln.
-- Neue Missionsregelversion einführen, beispielsweise npc-pve-3-general-bases-provisional. Kampfentscheidung, Verluste, Beute und Versorgung ansonsten unverändert.
-- Bei Missionsstart effektive Werte und Bonus festschreiben. Alte laufende Missionen und historische Berichte der Versionen 1/2 exakt nach deren Regeln behandeln.
-- Neue Missionen vorhandener Generäle verwenden ebenfalls die wirksamen Grundwerte. Falls Altgeneräle von null abweichende Angriffs-/Verteidigungsgrundwerte haben, diesen bewussten Effekt für neue Einsätze dokumentieren; keine alten Ergebnisse umschreiben.
-- Obergrenzen für neue Skillzuweisungen berücksichtigen bereits vorhandene Grundwerte: Angriff/Verteidigung maximal effektive 25, Führung nach bestehender wirksamer Grenze. Altbestände oberhalb Grenzen nicht kürzen; nur zusätzliche wirkungslose Zuweisungen verhindern.
-- Bereits vorhandene überzählige Zuweisungen nicht entfernen/erstatten; Bonus bleibt begrenzt. Gekaufte freie Punkte können weiterhin auf andere ausbaufähige Eigenschaften verteilt werden.
-- Skillkosten richten sich weiter nur nach insgesamt erworbenen Skillpunkten. Grundwerte nicht doppelt als Skillzuweisung oder Bonus einrechnen.
-- Beispiel Angreifer mit Grundangriff 15 und zwei zugewiesenen Punkten: effektiver Angriff 17, Bonus 34 Prozent. Ohne Zuweisung bereits 30 Prozent. Neues Skillbudget im Angriff dann höchstens weitere acht Punkte bis 25.
+- LKW ist transportfähig, nicht unverwundbar. Keine Erhöhung der Infanteriestärke, Siegchance oder Verringerung ihrer Verluste allein durch mehr LKWs.
+- Die Ölstandards 0 für bestehende Einheiten vermeiden eine neue zwingende Ölhürde für bisherige reine Infanterie-/Spähereinsätze. Betreiber können typabhängige Raten ändern.
+- Fahrgeschwindigkeit zunächst wie vorhandene Farmzüge: pro Richtung max(5 Sekunden, ceil(Luftlinienentfernung) × 5 Sekunden). Keine neue Wegfindung, Geländekosten oder Geschwindigkeitsboni.
+- Für neue Missionen Distanzfelder d = max(1, ceil(Luftlinienentfernung)).
+- Gesamtöl = ceil(2 × d × Summe(entsendete Anzahl je Typ × Ölrate je Typ)). Faktor 2 umfasst Hin- und Rückweg; nur Gesamtsumme einmal aufrunden.
+- Beispiel 20 Infanteristen und 4 LKWs bei Distanz 5: ceil(2 × 5 × (20 × 0 + 4 × 1)) = 40 Öl.
+- Gesamtes Öl beim erfolgreichen Start aus der Heimatstadt einmalig abbuchen, zusammen mit Truppenreservierung, Generalbindung, Missionssnapshot und Wiederholungsbeleg.
+- Fehlendes Öl verhindert Start ohne Teilbuchung. Keine spätere Rückwegabbuchung, kein zusätzliches Öl pro Tick und kein automatisches Auffüllen.
+- Verluste oder ausgefallener Angriff erstatten keinen bereits bezahlten Kraftstoff. Keine neue Abbruchaktion in diesem Auftrag.
+- Eingesetzte Infanterie/Späher werden nur dann ölpflichtig, wenn der Betreiber ausdrücklich ihre Raten erhöht. Auch neue Aufklärungsstarts benötigen dann die serverseitige Ölvorschau/-prüfung.
+- Alte bereits laufende Missionen behalten 0 neu fällige Ölkosten; niemals rückwirkend belasten.
+- Neue Mission speichert Entfernungsgrundlage, Hin-/Rückwegkosten, Einheitensnapshot, Preisregelversion, bezahltes Gesamtöl und Traglastwerte. Künftige Konfigurationswechsel verändern diese Werte nicht.
+- Ölverbrauch und Kapazität anhand tatsächlich gestarteter Truppen; Client kann weder Preise noch Distanzen festlegen.
 
-## 3. Exklusive Forschungsleitung
+## 6. Gemischter Farmzug und klare Verlustregeln
 
-Forschungsleiter ist eine wechselbare Rolle eines normalen Generals, kein permanenter Generaltyp.
+Start:
+- Spieler wählt freien eigenen General, positive Infanteriezahl und optional nicht negative LKW-Zahl. Späher bleiben für Farmzüge gesperrt.
+- Reine LKW-Farmzüge ablehnen, auch bei zuletzt unverteidigtem Ziel. Mindestens ein Infanterist beim Start erforderlich.
+- Vorhandene 10.000-Einheiten-Grenze umfasst Summe aller entsendeten Typen. Kein militärisches Führungslimit wieder einführen.
+- Alle Mengen sichere Ganzzahlen, unbekannte Typen ablehnen; stationierte verfügbare Bestände prüfen und gemeinsam reservieren.
+- Vorschau zeigt Truppen, Reisefristen, Öl, Nahrung pro Stunde und maximale Starttraglast. Keine ungeklärten aktuellen NPC-Vorräte/Garnisonen oder garantierte Beute offenlegen. Alte Aufklärung bleibt datierter Bericht.
 
-- Voraussetzung: mindestens eine eigene fertige Universität. Ein eigener freier General kann als Forschungsleiter eingesetzt werden.
-- Genau eine Forschungsleitung je Stadt. Mehrere Universitäten vervielfachen weder Rollen noch parallele Forschung.
-- Ohne General bleibt Forschung möglich.
-- Frei, Bürgermeister, Forschungsleitung und Einsatz sind gegenseitig ausschließende Zustände. Ein General darf nie zwei Aufgaben gleichzeitig übernehmen.
-- Drei unterschiedliche Generäle dürfen gleichzeitig Bürgermeister, Forschungsleiter und Einsatzgeneral sein.
-- Forschungsleiter bleibt zwischen Projekten im Amt, bis er abberufen/gewechselt wird. Abschluss macht ihn nicht automatisch frei.
-- Ohne aktive Forschung Wechsel/Abberufung erlauben; alten General freigeben und neuen binden in derselben atomaren Änderung.
-- Während aktiver Forschung Ernennung, Wechsel und Abberufung ablehnen, auch wenn der Auftrag ohne General begann. Keine nachträgliche Bonusvergabe.
-- Forschung bindet beim Start den eingesetzten Leiter an genau diesen Auftrag bis zum tatsächlichen Abschluss.
-- Kein stiller Rollenwechsel: Bürgermeister vorher ausdrücklich abberufen, danach als Forschungsleiter einsetzen und umgekehrt. Missionsgebundene Generäle bleiben bis Rückkehr gesperrt.
-- Wiederholte identische Zuweisung darf keine zusätzliche Wirkung haben; veraltete Befehle dürfen neuere Rollen nicht überschreiben.
-- Eigentum und Bindung aus verbindlichen Referenzen prüfen, nicht nur anhand eines Statusstrings. Rollenreferenzen, Generalstatus und Konfliktversionen konsistent halten.
-- Letzte Universität ohne aktive Forschung abreißen: Forschungsleiter in derselben Transaktion abberufen und freigeben. Bei weiterer Universität bleibt die stadtbezogene Rolle erhalten.
-- Abrisssperre der Universität mit aktivem Forschungsauftrag erhalten.
-- Forschung läuft bei Nahrungsmangel weiter. Keine passive XP-Erzeugung durch Amtszeit oder Forschung, kein zusätzlicher General-Nahrungsverbrauch.
-- Umbenennen, XP-Umwandlung und Skillverteilung gemäß bisherigen Regeln weiterhin möglich; Änderungen wirken nicht auf den gespeicherten Bonus eines laufenden Auftrags.
+Kampf:
+- Neue gemischte Missionsregelversion, beispielsweise npc-pve-4-logistics-provisional. Infanteriekampf unverändert nach der Grundwert-/Skillregel aus Auftrag 12 rechnen.
+- Kampfwerte ausschließlich aus beim Start gespeicherten Generalboni und bei Ankunft noch lebender Infanterie. LKWs zählen nicht zu Angreiferstärke und verursachen keine Verteidigerverluste.
+- Sei I die bei Kampfbeginn lebende Infanterie, T die dann lebenden LKWs und L die durch diesen Kampf verlorene Infanterie. LKW-Kampfverluste = min(T, ceil(T × L / I)), wenn I > 0. Bei L = 0 keine LKW-Verluste. Ganzzahlig sicher berechnen.
+- Das gilt bei Sieg und Niederlage. Überlebende beider Typen kehren zurück; Niederlage bringt keine Beute. Keine Erbeutung oder Reparatur beschädigter Fahrzeuge.
+- Sonderfall I = 0 bei Ankunft durch Hunger: Angriff fällt aus, keine Verteidigerverluste, keine Beute/XP/Kampfpunkte; verbliebene LKWs treten den planmäßigen Rückweg an. Kein Teilen durch null. Hunger bleibt aktiv.
+- Bei unverteidigtem Ziel und I > 0 Sieg ohne Kampfverluste, aber weiterhin ohne künstliche Kampf-XP oder Punkte.
+- General überlebt gemäß bisherigen Regeln und bleibt bis zur Rückkehr gebunden.
 
-## 4. Forschungsbonus und verbindliche Vorschau
+Beute:
+- Erst NACH Kampfverlustrunden: Kapazität = überlebende Infanterie × 20 + überlebende LKWs × gespeicherte LKW-Kapazität.
+- Geladene Nahrung bei Sieg = min(floor(tatsächlich verfügbarer NPC-Nahrung), Kapazität). Keine Beute bei Niederlage/ausgefallenem Angriff.
+- NPC-Abzug und Missionsladung atomar im Weltjournal, weiter für alle Spieler gemeinsame NPC-Bestände und geordnete gleichzeitige Ankünfte.
+- Beispiel ohne Generalboni: 20 Infanteristen + 4 LKWs gegen 10 Verteidiger. Infanterieverlust 5, LKW-Verlust ceil(4 × 5 / 20) = 1. Es bleiben 15 Infanteristen und 3 LKWs, Kapazität 15 × 20 + 3 × 200 = 900. Bei 1000 NPC-Nahrung werden 900 geladen, bei 500 nur 500.
+- Allgemeine Traglastfunktion verwenden, dieselbe in Vorschau, Kampf, Hunger und Rückkehr; Ressourcen später nicht jeweils mit voller identischer Kapazität beladen.
+- In dieser Etappe ausschließlich Nahrung als Beute. Kein Handel, selbstständiger Transportauftrag oder PvP.
 
-Bestehende Eigenschaft Führung verwenden; kein neues Intelligenz-/Wissenschaftsattribut und keine weitere Skillwährung.
+## 7. Unterhalt, Hungerverluste, Rückkehr und Punkte
 
-Vorläufige Formel:
-- Effektive Führung F = attributes.leadership + skills.allocations.leadership über die zentrale Funktion.
-- Bonus B = min(50, max(0, F) × 1) Prozent auf Forschungsgeschwindigkeit; ohne General B = 0.
-- Für Zielstufe n und Universitätsstufe U:
-  Dauer in Sekunden = max(1, ceil(60 × n / ((1 + 0,1 × (U − 1)) × (1 + B / 100)))).
-- Erst nach beiden Faktoren einmal auf ganze Sekunden aufrunden, nicht die bereits gerundete bisherige Dauer erneut teilen.
-- Beispiel n=2, U=2, F=20: ceil(120 / (1,1 × 1,2)) = 91 Sekunden; ohne General ceil(120 / 1,1) = 110 Sekunden.
-- 50 Prozent höhere Geschwindigkeit bedeutet Division durch 1,5, nicht Halbierung der Zeit. In UI korrekt benennen.
-- Bonus verändert ausschließlich Dauer, keine Kosten, Voraussetzungen, Technologieeffekte, Obergrenzen oder Forschungspunkte.
-- Angriff/Verteidigung verwenden für neue Farmzüge die in Abschnitt 2 definierte Grundwert-plus-Skill-Regel. Bürgermeisterbonus gilt nur bei tatsächlicher Bürgermeisterrolle.
-- Weiter genau ein aktiver Forschungsauftrag je Stadt, keine Warteschlange oder Abbruchfunktion.
+- Jeder lebende LKW benötigt Nahrung gemäß ENV, stationiert und unterwegs genau einmal. In Produktion befindliche LKWs noch nicht zählen.
+- Beispiel Standardwerte: 20 Infanteristen und 4 LKWs = 20 × 360 + 4 × 180 = 7920 Nahrung/Stunde = 2,2/Sekunde.
+- Rückkehrende Mission zählt aktuelle Überlebende pro Typ, nicht ursprünglichen Bestand zusätzlich. Abgeschlossene Missionen zählen nicht.
+- Bestehende Schonfrist, proportional/deterministisch verteilte Hungerwellen und Erholungsregeln auf LKW-Gruppen erweitern. Auch LKWs können bei Hunger dauerhaft ausfallen.
+- Null-Unterhaltswerte bleiben gültig; solche Einheiten weiterhin anzeigen, nicht in hungerpflichtige Verlustgruppen nehmen. Gemischte Einheiten mit unterschiedlichen Kosten korrekt erfassen.
+- Nach Hungerwelle aktuelle Gesamttraglast berechnen und überschüssige Ladung dauerhaft entfernen. In Berichten separat ausweisen, nicht wieder beim NPC gutschreiben.
+- Beispiel mit 15 Infanteristen, 3 LKWs und 900 geladener Nahrung: Ein LKW fällt auf Rückweg aus → Kapazität 700, 200 Nahrung gehen verloren.
+- Wenn alle Infanteristen auf Rückweg sterben, dürfen überlebende LKWs weiter vorhandene Beute transportieren; Begleitpflicht gilt für Angriff, nicht als zusätzliche automatische Vernichtung auf Rückweg.
+- Alle Truppen tot: Ladung vollständig verloren, General kommt zum bestehenden Rückkehrtermin zurück; keine zweite Rückkehrbelohnung.
+- Bei Rückkehr alle noch lebenden Typen stationär hinzufügen, Nahrung bis zur dann freien Lagerkapazität einlagern; Überlauf verfällt nach bestehender Regel.
+- Kampfverluste, spätere Hungerverluste, geladene Nahrung, unterwegs verlorene Nahrung, eingelagerte Nahrung und Lagerüberlauf getrennt speichern, nicht rückwirkend Kampfergebnis überschreiben.
+- General-XP weiterhin 2 je getötetem NPC-Verteidiger. Keine XP für LKWs, Transportmenge oder Verluste.
+- Vorläufiger Kampfbeitrag neuer Missionen: getötete NPC-Verteidiger minus eigene im Kampf verlorene Infanteristen minus eigene im Kampf verlorene LKWs, je Einheit ein Punkt. Hunger weiter ohne zusätzlichen Kampfpunktabzug.
+- Beispiel oben: 10 − 5 − 1 = +4 Kampfpunkte und 20 General-XP. Nur einmal bei bisherigem Belohnungszeitpunkt buchen. Alte Missionen/Berichte behalten alte Wertung.
+- Forschungspunkte bleiben abgeleitet; keine doppelte Gutschrift über neue Freischaltungsereignisse.
 
-Vorschau und Speicherung:
-- Server liefert Technologie/Zielstufe, eigene Universität/Stufe, Kosten, Dauer ohne General, General-ID/Name, effektive Führung, Bonus und tatsächliche Dauer.
-- Vorschau an Forschungsstand, Universitätsstufe, Rolle einschließlich null, General-ID/Version und wirksame Regelkennung binden.
-- Forschungsstart prüft diese Bindung erneut. Geänderte Führung, Rolle, Universität oder Regeln verlangen eine neue Vorschau, statt heimlich andere Zeiten zu buchen.
-- Auftrag speichert General-ID, damaligen Namen, Führung, Bonus, Universitätsfaktor, Regelkennung, bezahlte Kosten und feste Start-/Endzeit.
-- Skilländerung, Umbenennen, Universitätsausbau und Neustart verändern laufende Dauer nicht. UI trennt Bonus des laufenden Auftrags von künftiger Vorschau.
-- Alte Aufträge aus Auftrag 11 behalten exakt Kosten und Endzeit, erhalten keinen Generalbonus und schließen normal ab.
+## 8. ENV und Regelwechsel
 
-## 5. Neue Balancewerte per ENV
+Bestehenden zentralen Konfigurationseinstieg verwenden; reine Spiellogik erhält Konfiguration explizit.
 
-Konfiguration aus Auftrag 11 erweitern, keine verstreuten process.env-Zugriffe, VITE_-Regeln oder globalen veränderlichen Spielregeln.
-
-| Variable | Standard | Bedeutung |
+| Variable | Standard | Einheit |
 | --- | --- | --- |
-| GENERAL_MAX_COUNT | 3 | Maximale Generalzahl je Spieler |
-| GENERAL_RECRUIT_WOOD | 500 | Basis-Holzpreis für Basis × Erwerbszähler^Exponent |
-| GENERAL_RECRUIT_STONE | 500 | Basis-Steinpreis für Basis × Erwerbszähler^Exponent |
-| GENERAL_RECRUIT_COST_EXPONENT | 2 | Exponent der steigenden Preisstaffel |
-| GENERAL_CANDIDATE_REFRESH_HOURS | 24 | Dauer eines Bewerberzeitfensters |
-| RESEARCH_LEADERSHIP_PERCENT | 1 | Geschwindigkeitsbonus je effektivem Führungspunkt in Prozent |
-| RESEARCH_BONUS_CAP_PERCENT | 50 | Obergrenze des Geschwindigkeitsbonus in Prozent |
+| UPKEEP_TRUCK_PER_HOUR | 180 | Nahrung je lebendem LKW/Stunde |
+| OIL_INFANTRY_PER_FIELD | 0 | Öl je Infanterist/Feld/einfache Strecke |
+| OIL_SCOUT_PER_FIELD | 0 | Öl je Späher/Feld/einfache Strecke |
+| OIL_TRUCK_PER_FIELD | 1 | Öl je LKW/Feld/einfache Strecke |
+| TRUCK_CARGO_CAPACITY | 200 | Nahrungstraglast je LKW |
 
-- Generalzahl als Ganzzahl 1–100, Basispreise als Ganzzahlen 1–1.000.000, Kostenexponent als Ganzzahl 1–3, Bewerberintervall als endliche Dezimalzahl 1/60 bis 8760 Stunden validieren; einmal in ganze Millisekunden umrechnen. Prozent je Führungspunkt 0–10 und Bonusobergrenze 0–100. Sichere Kostenrechnung trotz großer gespeicherter Erwerbszähler prüfen.
-- Explizites 0 nur bei Forschungsboni erlauben. Basispreis, Exponent und Bewerberintervall müssen positiv sein, damit Rekrutierungen strikt teurer werden. Fehlende Werte nutzen Standards; leere/ungültige Werte vor Spielstandänderungen abweisen.
-- .env.example, natives Laden, Prozessvorrang, Compose-Weitergabe und Dokumentation ergänzen. Nur freigegebene effektive Regeln zum Client übertragen; kein Frontend-Neubuild.
-- Spielkern erhält wirksame Konfiguration pro Welt/Server explizit. Stabile Regelkennung für Angebote und Auftragssnapshots verwenden.
-- Nach Neustart gelten neue Preise/Boni für neue Kaufvorschauen und neue Forschung. Alte Erwerbskosten, Skillpunkte, Bewerberwerte und laufende Aufträge unverändert erhalten. Ein bestehender Bewerberpool behält seinen gespeicherten Wechseltermin; neuer Intervallwert gilt ab dem ersten Wechsel nach Konfigurationsaktivierung. Den Wechselzeitpunkt/Intervallregelsatz dauerhaft festhalten, damit Offlineberechnung keine vergangenen Intervalle umdeutet.
-- Nach Senken des Limits überzählige Altgeneräle behalten und weiter verwenden lassen; nur weitere Rekrutierung sperren.
-- Alte Forschungssnapshots müssen ohne alte ENV-Dateien abschließbar bleiben. Unterhalts-/Kartenregeln und deren Historie aus Auftrag 11 erhalten; die neuen Parameter lösen keinen rückwirkenden Wirtschaftswechsel aus.
+- Unterhalt wie vorhandene Unterhaltsvariablen validieren, inklusive 0. Ölraten 0–100.000 mit maximal drei Nachkommastellen; einmal auf feste ganzzahlige Tausendstelbasis bringen, damit Aufrundung nicht durch binäre Rundungsfehler zusätzlichen Treibstoff verlangt.
+- Kapazität Ganzzahl 1–1.000.000. Ungültig/leer/negativ/NaN/Infinity/Überlauf vor Spielstandänderung ablehnen; fehlend nutzt Standard, explizit 0 bei Unterhalt/Öl nicht ersetzen.
+- Preise, Forschungs-/Bau-/Produktionswerte und Herstellungsdauer zentral in versionierten Definitionen halten; dafür in diesem Auftrag keine zusätzlichen ENV-Schalter nötig.
+- .env.example, native Starts, Prozessvorrang, Compose-Weitergabe und zulässige Snapshotwerte ergänzen. Keine ganze ENV an Client, kein Frontend-Rebuild nötig.
+- Unterhaltsänderung über vorhandene gespeicherte Versorgungsregelhistorie: alte Offlinezeit mit alten Werten, neue Werte erst ab gespeichertem Wechsel. Historische Regeln ohne truck entsprechen für diesen Typ 0, keine nachträgliche Historienmutation.
+- Aktive Hungerzyklen bewahren ihre bisherigen Frist-/Verlustregeln. Änderungen dürfen keinen Reset verschenken.
+- Neue Ölraten/Traglast gelten nur für neu gestartete Einsätze. Bereits bezahlte Missionen verwenden gespeicherte Werte auch nach Neustart.
+- Versionierte Vorschau erkennt Konfigurationsänderung und verlangt neue Prüfung, keine heimliche Nachberechnung beim Start.
+- Zwei Weltinstanzen mit verschiedenen Einstellungen dürfen sich nicht beeinflussen.
 
-## 6. WebSocket, Atomarität und Migration
+## 9. Zeit, Speicherung, Migration und WebSocket
 
-- Privates Spiel ausschließlich über bestehenden WebSocket/Transport. Bewerberpool und Termine im privaten Snapshot; optional general.candidates.sync, außerdem general.recruit.preview, general.recruit, general.researcher und erweiterte research.preview/start. Kein Befehl zum freien Neuwürfeln.
-- Client setzt niemals Preise, Grundwerte, XP, Besitzer, neue General-IDs, Dauer oder Bonus.
-- Rekrutierungsvorschau an Pool-ID/Version, Kandidaten-ID, Ablaufzeit, Erwerbszähler, Roster-Version und Regeln binden. Kauf prüft aktuellen Besitz/Limit, Kaserne und Ressourcen. Abgelaufene, verbrauchte oder fremde Kandidaten abweisen. Zwei Kandidaten desselben Pools dürfen auch bei parallelen Befehlen nicht beide rekrutiert werden.
-- Bestehende requestId-/Payload-Deduplizierung verwenden: gleicher Inhalt wirkt einmal, widersprüchlicher Inhalt wird abgelehnt.
-- Zahlung, neuer General mit Kandidatenwerten, Erwerbsnachweis, erhöhter Erwerbszähler, verbrauchter Pool und Deduplizierungsbeleg gemeinsam vor Erfolgsantwort speichern. Schreibfehler darf weder Ressourcenverlust noch Neuwurf, halben Zähleranstieg oder nur im Arbeitsspeicher vorhandenen General hinterlassen. Erfolgreiche Wiederholung zuerst am gespeicherten Beleg erkennen, auch wenn der alte Pool inzwischen abgelaufen ist.
-- Rollenwechsel speichert alte/neue Status, Referenz, Konfliktversionen und Wiederholungsbeleg gemeinsam.
-- Gleichzeitige Befehle aus mehreren Tabs müssen dieselben verbindlichen Generalbindungen beachten. Relevant sind auch konkurrierende unterschiedliche Befehle, etwa Missionsstart gegen Ernennung.
-- Vor Befehlen fällige Wirtschafts-/Forschungs-/Versorgungs- und Missionsereignisse bis Serverzeit abrechnen. Ist Forschung exakt jetzt fertig, wird sie vor Rollenwechsel abgeschlossen.
-- Forschungsabschluss lässt General in seiner Forschungsrolle. Missionsrückkehr darf nicht die Rolle eines anderen Generals verändern.
-- Chronologische Verarbeitung und Journal weiterverwenden; kein zweiter autoritativer Timer.
-- Schema 9 ausdrücklich auf nächste Version migrieren, ältere Ketten vollständig über 9 führen. Journal zuerst wiederherstellen.
-- Altgeneräle, Namen, IDs, Rollen, XP, Skills, Missionen, bezahlte Forschung, Ressourcen, Kartenpositionen und Versorgung erhalten. Fehlende Forschungsleitung als null ergänzen, Erwerbszähler konservativ initialisieren, Pool bei erster Berechtigung anlegen; keine neuen Generäle automatisch erzeugen. Auch eventuell bereits implementierte Direktrekrutierungen aus der ersten Fassung von Auftrag 12 verlustfrei übernehmen; Schema nach tatsächlichem Stand wählen.
-- Bestände oberhalb Limit erhalten. Inkonsistente Referenzen oder unbekannte Versionen konkret melden, nicht still Daten zurücksetzen.
-- Keine privaten General-/Forschungsdaten anderer Spieler auf öffentlicher Karte offenlegen. Namen als Text rendern.
+- Neue Aktionen/Angebote/Push-Zustände ausschließlich über vorhandenen WebSocket. Bestehende Ausbildungs-/Bau-/Forschungsbefehle gezielt erweitern, Missionen um serverseitige Vorschau ergänzen.
+- Vorschau bindet eigene Truppenmengen, General-ID/Version, Ziel-ID, relevante Regeln und Voraussetzungen. Start prüft aktuellen Bestand, Öl, Rolle und Eigentum erneut. Ein zwischenzeitlich veränderter sichtbarer Vorschauwert erfordert erneute Bestätigung.
+- Keine private HTTP-Spiel-API, Client-Timer oder zweite Tickautorität. Fällige Ereignisse vor Befehlsprüfung bis Serverzeit verarbeiten.
+- Bei gleichem Zeitstempel bisherige Ordnung erhalten: Wirtschafts-/Forschungsabschlüsse, geordnete Missionsereignisse einschließlich Einlagerung, dann verbleibende Hungerwelle.
+- Forschung/Bauproduktion ab tatsächlichem Abschluss; Herstellung, Ölverbrauch, Kampf und Hunger zeitlich konsistent auch bei langen Offlineintervallen.
+- Zahlung + Herstellung/Start + Reservierung + Generalbindung + Deduplizierungsbeleg vor Erfolgsantwort konsistent speichern. Gleiche requestId/Payload nur einmal, abweichender Payload abweisen. Fehler darf keinen nur teilweise geänderten Arbeitsspeicher hinterlassen.
+- Welt-/Spieleränderungen weiter über Journal; Ausfall zwischen NPC-Abzug und Spielerspeicherung wiederaufnehmbar.
+- Versionierte Migration ab aktuellem Schema 12 auf nächste freie Version. Ältere Ketten vollständig ausführen; vorher Journal wiederherstellen.
+- oil=0, truck=0 und neue Forschungsstufen=0 ergänzen; vorhandene Ressourcen, Gebäude, Investitionen, Forschung, Missionen, Generalprofile, Erwerbszähler, Bewerbertermine, Porträts, Nachrichten und Lesestatus bewahren.
+- Neue Städte ebenfalls Öl 0. Keine rückwirkende Ölproduktion ohne Raffinerie, keine kostenlosen LKWs oder Freischaltungen.
+- Alte Missionsversionen 1–3 anhand alter Felder/Regeln auf beiden Reisephasen korrekt fertigstellen. Keine neuen Truckverluste/Ölrechnungen und keine geänderten historischen Berichte.
+- Ressourcenschlüssel in alten Investitionsobjekten vorsichtig erweitern; fehlendes Öl ist 0, unbekannte alte Holz-/Steinkosten bleiben unbekannt.
+- Unbekannte/inkonsistente Schemas konkret melden, nie automatisch zurücksetzen. Keine Umplatzierung oder Vermehrung von Bauplätzen.
 
-## 7. React-Oberfläche
+## 10. Oberfläche und Postbox
 
-- Bestehende Generalverwaltung/Modal erweitern. Alle Generäle mit Name, Level, verfügbaren XP/Skillpunkten und Rolle zeigen.
-- Rekrutierung zeigt drei Kandidaten mit Profil, Grundwerten, daraus folgenden Boni, Bestand/Limit, Kaserne, Preisstufe, Kosten, Name und Bestätigung. Poolwechsel als Countdown mit Server-Endzeit; verbrauchter Pool zeigt Wartezeit. Grundwerte, zugewiesene Skillpunkte und effektive Werte im Modal getrennt anzeigen. Höhere nächste Kosten erklären; keine versteckten Werte oder Neuwurf-Schaltfläche.
-- Nach Kauf neuen General sichtbar auswählen; bestehendes Namens-/Skillmodal verwenden.
-- Forschungsansicht zeigt Leiter, Führung, Geschwindigkeit, Einsetzen/Wechseln/Abberufen und Sperre während laufender Forschung.
-- Generalmodal und Auswahl für Bürgermeister, Forschung und Einsätze verwenden den gesamten passenden Bestand, nicht generals[0].
-- Lokale Skillentwürfe nicht durch Push unbemerkt verwerfen. Bei Konflikt aktuelle Daten und neue bewusste Bestätigung anbieten.
-- Laufendes Projekt zeigt gespeicherten Bonus und Bindung; nach Abschluss bleibt Forschungsleiter sichtbar.
-- Bestehende Illustrationen erhalten; Desktop und schmale Bildschirme prüfen, Modale per Tastatur und mit korrektem Fokus bedienen.
+- Forschung zeigt zwei neue Freischaltungen mit Bedingungen und Wirkung.
+- Stadt bietet freigeschaltete Ölraffinerie; Militär Fahrzeugfabrik und LKW-Produktion. Gesperrte Angebote nennen fehlende Forschung.
+- Öl in Sidebar/Lageraufschlüsselung; Nahrung weiter mit Brutto, Bürgermeister, Forschung, typabhängigem Unterhalt und Netto.
+- Militärübersicht zeigt LKW-Bestand, stationiert, unterwegs und in Herstellung getrennt.
+- Einsatzdialog zeigt wählbare Infanterie/LKWs, Traglast, Öl für Hin/Rückweg, Reisezeit, stündlichen Nahrungsbedarf und Bestätigung. Klar erklären: mehr LKWs ist keine höhere Kampfkraft, Starttraglast ist keine garantierte Beute.
+- Bestehende private Aufklärungsinformationen mit Datum verwenden, keine Live-NPC-Geheimnisse in Vorschau.
+- Neue gemischte Angriffsberichte in vorhandener Postbox: Startmengen, Kampf-/Hunger-/Rückkehrmengen je Typ, Kraftstoff, Boni, Traglast, Beuteverlust und Einlagerung. Alte Berichte weiterhin korrekt anzeigen, fehlende alte Ölwerte als nicht erhoben/alte Version statt erfundene Zahlung.
+- Neue Berichte und Ungelesenzähler/Animation genau einmal auslösen. Bereits gelesene Berichte und private Nachrichten erhalten.
+- Illustrationen/Porträts erhalten; für Raffinerie, Fabrik und LKW passende eigene lokal ausgelieferte Darstellung erstellen, keine Originalgrafiken des Vorbilds übernehmen.
+- Schmale Bildschirme und Tastaturbedienung überprüfen. Keine nur scheinbar bedienbaren Platzhalter.
 
-## 8. Verbindliche Abnahme
+## 11. Abnahme und Tests
 
-Kritische Übergänge mit unabhängigen Erwartungswerten prüfen:
+Mit unabhängigen Erwartungen prüfen:
+1. Technologieabhängigkeiten, individuelle Maximalstufe 1, alter Maximalwert 5, echter serverseitiger Bauschutz und erreichbarer Start ohne Öl. Motorisierung mit Universität 2/Führung 20 dauert 182 Sekunden.
+2. Ölressource mit 0, Produktion ab Fertigstellung, Beispielkapazität 3025, Lagerhaus-/Lagerlogistikwirkung, Offlineproduktion und Abriss/Überbestand.
+3. Raffinerie nur zivil, Fabrik nur militärisch; LKW nur Fabrik, andere Einheiten nur Kaserne. Bauplätze und alte Queues unverändert.
+4. Gruppenherstellung: einmalige Kosten, Fertigstellung, mehrere Fabriken, Hungerpause/Fortsetzung, Ausbau-/Abrisssperre und Neustart.
+5. Distanz-5-Beispiel mit 20 Infanteristen/4 LKWs kostet 40 Öl. Fehlendes Öl keine Teilbuchung. Ölraten 0 gültig; konfigurierter Späherbedarf auch beim Aufklärungsstart geprüft. Rundung einmal über gesamte Hin-/Rückstrecke.
+6. Maximalmenge typübergreifend, unbekannte Typen, negative/gebrochene Mengen, reine LKW-Mission und fremde Generäle/Bauten/Truppen abgewiesen.
+7. Kampfbeispiel 20 Infanterie/4 LKW gegen 10 ohne Boni: 5 Infanterie- und 1 LKW-Verlust, Kapazität 900, XP 20, Kampfbeitrag +4. Dieselbe Infanterie ohne LKW erzeugt dieselben Verteidiger-/Infanterieverluste.
+8. Niederlage mit Überlebenden, vollständiger Kampfverlust, unverteidigtes Ziel und Infanterie bereits vor Ankunft durch Hunger verloren. Keine LKW-Kampfkraft oder Teilung durch null.
+9. Gemeinsamer NPC mit knapper Nahrung und konkurrierenden Angriffen: Summe Beute nie größer als tatsächlicher Bestand plus korrekte Regeneration.
+10. Unterhalt 20 Infanteristen/4 LKW = 7920 pro Stunde. Stationierung → Hinweg → Kampf → Rückweg → Rückkehr ohne Doppelzählung; Null-Unterhalt, Ausbildung und hungerbedingte Verluste pro Typ.
+11. Rückwegbeispiel 900 Nahrung/15 Infanterie/3 LKW: Verlust eines LKW reduziert Ladung auf 700; Rückkehrlager mit nur 600 frei lagert 600 ein und verliert weitere 100 als Überlauf. Getrennte Verlustgründe, keine Neugutschrift beim NPC.
+12. Große Offlineabrechnung und viele kleine Schritte ergeben denselben Bestand, Termine und Berichte, einschließlich Forschung/Bau/Produktion, Hunger und Rückkehr auf gleicher Zeitgrenze.
+13. Neustart vor/nach Ölbuchung, Kampfauswertung und Rückkehr sowie Schreibfehler/Journalwiederherstellung. Request-Wiederholung/mehrere Tabs dürfen weder Öl noch Beute/Truppen/XP/Punkte duplizieren.
+14. Migration ab Schema 12 und älterer Kette; Missionen 1–3 auf Hin-/Rückweg, laufende Forschung, Ausbildung, Postboxlesestatus und Porträts erhalten. Wiederholung der Migration ohne Zusatzbestände.
+15. ENV native/Compose, ungültige Werte, isolierte Welten, historische Unterhaltswechsel und eingefrorene Öl-/Traglastwerte. Aktive Mangelzyklen nicht zurücksetzen.
+16. Postbox zeigt neue und historische Berichte korrekt, keine privaten Leaks oder doppelten Ungelesenmeldungen. Bestehende Bewerber/Forschungsleiter/Messaging-Funktionen regressionsfrei.
 
-1. Startgeneral bleibt genau einmal erhalten. Zweiter kostet 500/500, dritter 2000/2000; vierter bei Standardlimit gesperrt. Mit erhöhtem Limit vierter 4500/4500, fünfter 8000/8000. Formel unabhängig prüfen: Erwerbszähler 1/2/3/4, Exponent 2. Erfolgreicher Kauf erhöht Zähler einmal, fehlgeschlagener gar nicht.
-2. Wiederholung, verlorene Antwort, zwei Tabs mit derselben Vorschau, requestId-Payload-Konflikt und Schreibfehler erzeugen keine Doppelzahlung oder Teilbuchung.
-3. Fremde General-/Gebäude-IDs, fehlende Kaserne, ungültige Namen/Werte und manipulierte Preise/XP scheitern ohne Teiländerung.
-4. A als Bürgermeister, B als Forschungsleiter, C auf Farmzug erlaubt; doppelte Belegung abgewiesen. Bei gleichzeitigem Ernennen und Missionsstart desselben freien Generals nur eine erfolgreiche Bindung.
-5. n=2/U=2/F=20: 91 Sekunden; ohne General: 110. Bonuscap bei Führung 50 oder höher, Bonus 0 und echte effektive Führung statt Legacy-Feld prüfen.
-6. Zwischen Vorschau und Start geänderte Rolle, Führung, Universitätsstufe oder Konfiguration erkannt. Während Forschung keine Ernennung/Abberufung, kein Bonus nachträglich.
-7. Skilländerung, Umbenennen, Universitätsausbau und Neustart verändern laufende Endzeit nicht; nächste Vorschau darf neue Werte verwenden.
-8. Offlineabschluss zum richtigen Zeitpunkt, Leiter bleibt im Amt. Wiederholte Abrechnung erzeugt keine doppelte Forschungsstufe, Punkte oder XP.
-9. Direkte Migration ab 9 und ältere Kette über 8 → 9 → neue Version. Laufende research-1-provisional-Aufträge unverändert fertigstellen; erneute Migration ohne doppelte Generäle/Kosten.
-10. Letzte Universität ohne aktive Forschung abreißen gibt Leiter frei, andere verbleibende Universität erhält Rolle; aktive Abrisssperre und vorhandene Generäle nach Kasernenabriss bewahrt.
-11. ENV: Standards, erlaubte Null-Boni, verbotene Null-Preise/Intervalle, Exponentgrenzen, Überlauf, isolierte Serverkonfigurationen und native/Compose-Weitergabe. Limit senken bewahrt Bestand; geänderte Preise entwerten Kaufvorschauen, Bewerberwerte und laufende Forschung bleiben erhalten. Intervallwechsel respektiert gespeicherten Pooltermin.
-12. Bürgermeister-Nahrungsproduktion, Forschungseffekte, Hungerfristen, Punkte, Beute und Erstaufklärungsbelohnung regressionsfrei. Keine neue passive XP-Quelle und kein militärisches Führungslimit.
+npm test und npm run build sowie betroffene Container-/Startprüfung ausführen. Manuellen kompletten Durchlauf mit neuen Gebäuden und gemischtem Farmzug dokumentieren, einschließlich Wiederanmeldung und Neustart. In docs/LOGISTICS_VALIDATION.md ausgeführte Prüfungen, Balancebeispiele und tatsächlich offene Einschränkungen festhalten; keine ungetesteten Behauptungen.
 
-13. Drei verschiedene Profile, gleiche Grundwertsumme 30, zulässige Variation; Grundwerte unverändert bei Vorschau, Kauf, Umbenennen, Levelaufstieg und Neustart. Skillkosten beginnen ungeachtet Grundwertbudget bei vorhandenem ersten Skillpreis.
-14. Poolverbrauch erlaubt genau einen Kauf, auch bei zwei verschiedenen Kandidaten/Request-IDs gleichzeitig. Neuladen, Rekonnektion, mehrere Tabs und Kasernenabriss/-neubau würfeln nicht neu. Fehlgeschlagene Zahlungen verbrauchen keinen Kandidaten.
-15. Vor Ablauf alter Pool gültig, exakt am Ablauf ungültig. Viele Offlineintervalle erzeugen nur aktuellen Pool, keine Ansammlung. Dieselbe gespeicherte Auswahl bei wiederholter Abfrage im selben Fenster. Verschiedene Spieler können keine Kandidaten des anderen kaufen.
-16. Neue Farmmission mit Grundangriff 15 plus 2 Skills speichert 34 Prozent, ohne Skills 30. Grenze und Verteilung berücksichtigen Grundwerte ohne Doppelzählung; Altgeneräle und überzählige alte Skills erhalten. Version-1/2-Missionen und Berichte bleiben unverändert, Version 3 nutzt neue Grundwerte. XP- und Punktebelohnungen nicht doppelt vergeben.
+## 12. Lieferung und Folgeplanung
 
-npm test und npm run build ausführen; betroffene Start-/Containerprüfung gemäß CI durchführen. Manuellen Ablauf dokumentieren: aus zwei aufeinanderfolgenden Bewerberpools je einen General rekrutieren (Testuhr oder temporär verkürztes dokumentiertes Testintervall, keine produktiven Gratisneuwürfe) → A Bürgermeister → B Forschungsleiter → C Farmzug → Forschung starten → Login/Neustart → Forschung endet, B bleibt Leiter → B abberufen → B kann einen Einsatz führen. Tatsächlich ausgeführte Tests und nicht prüfbare Fälle klar unterscheiden.
+Ein reviewbarer PR mit nachvollziehbaren Teilcommits, Umsetzung, Migration, Tests und aktualisierten README, Projektplan, WebSocket-/Entwicklungsdokumentation und .env.example. Bestehende Historie und Dateien erhalten; Implementiert/Geplant klar trennen.
 
-## 9. Lieferung und nächste Etappen
-
-Liefere Umsetzung, Tests, Migration und aktualisierte README, docs/WEBSOCKET.md, docs/PROJECT.md, docs/DEVELOPMENT.md und .env.example. Im PR Verhalten, provisorische Balance, Datenmigration und Testergebnisse knapp erklären; nachvollziehbare Teilcommits.
-
-Noch nicht Teil dieses Auftrags: zusätzliche Technologien, Forschungs-XP, Respec, Generalentlassung/-tod, Forschungswarteschlange, LKWs, Öl, PvP, Bündnisse oder aktive Matrix-Föderation. Nach dieser Etappe Forschungsfreischaltungen gezielt mit Ölraffinerie, Fahrzeugproduktion und Transport verbinden.
+Nicht Teil dieses Auftrags: andere Beuteressourcen, PvP, Spielerhandel, unabhängige Transportmissionen, neue Kampfeinheiten/Waffen, weitere Öltechnologien, Gebäudeflächenvergrößerung oder aktive Matrix-Föderation. Nach dem Logistikkreislauf Balance/Spieltempo prüfen und dann Unterstützung/Handel beziehungsweise zusätzliche militärische Technologien getrennt spezifizieren. Föderation bleibt Kernziel, benötigt später eigene Identitäts- und Vertrauensregeln.
