@@ -42,9 +42,9 @@ function validRequest(message) {
     /^[a-zA-Z0-9_-]{8,100}$/.test(message.requestId) && message.payload && typeof message.payload === 'object';
 }
 
-export function createGameServer({ dataFile, worldDir, worldName = 'alpha', clock = Date.now, allowedOrigins = [] }) {
+export function createGameServer({ dataFile, worldDir, worldName = 'alpha', clock = Date.now, allowedOrigins = [], config }) {
   const directory = resolve(worldDir ?? dirname(dataFile));
-  const storage = new WorldStorage(directory, worldName, clock);
+  const storage = new WorldStorage(directory, worldName, clock, config);
   const ready = storage.initialize();
   const connections = new Set();
   const playerConnections = new Map();
@@ -55,7 +55,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
   const errorResponse = (peer, requestId, error) => response(peer, 'command.error', requestId, { message: error.message });
   const snapshot = (player, account) => {
     const now = clock();
-    const current = advanceSupply(player, now, storage.world.supplyActivatedAt);
+    const current = storage.advanceSupply(player, now);
     const city = current.city;
     const military = current.military;
     return {
@@ -64,7 +64,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       military, score: { ...commanderScore(city), combat: military.combatScore ?? 0, total: Math.max(0, commanderScore(city).buildings + (military.combatScore ?? 0)) }, buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
       capacityBreakdown: capacityBreakdown(city), productionRates: productionRates(city), storageRules: STORAGE_RULES,
       maxLevel: MAX_LEVEL, maxQueueLength: MAX_QUEUE_LENGTH,
-      units: UNITS, militaryRules: MILITARY_RULES, generalSkillRules: GENERAL_SKILL_RULES, supply: { ...current.supply, ...supplySummary(current) }, supplyRules: SUPPLY_RULES,
+      units: UNITS, militaryRules: MILITARY_RULES, generalSkillRules: GENERAL_SKILL_RULES, supply: { ...current.supply, ...supplySummary(current) }, supplyRules: storage.supplyRules,
     };
   };
   const broadcast = (playerId, type, payloadFactory) => {
@@ -313,7 +313,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           await storage.advanceWorld(clock());
           const player = await storage.loadPlayer(playerId);
           const previousJobs = new Set(player.city.constructionQueue.map(job => job.id));
-          const current = advanceSupply(player, clock(), storage.world.supplyActivatedAt);
+          const current = storage.advanceSupply(player, clock());
           const nextCity = current.city;
           const nextMilitary = current.military;
           const completed = [...previousJobs].filter(id => !nextCity.constructionQueue.some(job => job.id === id));

@@ -1,10 +1,11 @@
+import { parseConfiguration } from './config.js';
 import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { copyFile, mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
 import { allSlots, constructionQuote, newCity, resourceCapacities, RULESET } from '../../packages/game-core/index.js';
 import { GENERAL_SKILL_RULES, MILITARY_RULES, generalLevel, newMilitary, normalizeGeneral, resolveMissionCombat, skillSummary } from '../../packages/game-core/military.js';
-import { advanceSupply, settleSupplyAt } from '../../packages/game-core/supply.js';
+import { advanceSupplyHistory, refreshSupplyAt, SUPPLY_RULES, settleSupplyAt } from '../../packages/game-core/supply.js';
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
@@ -43,7 +44,7 @@ async function passwordHash(password, salt = randomBytes(16).toString('base64url
 
 export class WorldStorage {
   #queue = Promise.resolve();
-  constructor(worldDir, worldName, clock = Date.now) {
+  constructor(worldDir, worldName, clock = Date.now, config = parseConfiguration(), logger = console) {
     this.directory = resolve(worldDir);
     this.playersDirectory = join(this.directory, 'players');
     this.accountsFile = join(this.directory, 'accounts.json');
@@ -51,6 +52,7 @@ export class WorldStorage {
     this.journalFile = join(this.directory, 'transaction.json');
     this.worldName = worldName;
     this.clock = clock;
+    this.config = config; this.logger = logger;
   }
 
   async initialize() {
@@ -59,7 +61,7 @@ export class WorldStorage {
     this.accounts = await readJson(this.accountsFile, { schemaVersion: 1, accounts: [], sessions: [] });
     this.world = await readJson(this.worldFile, null);
     if (!this.world) {
-      this.world = createWorld(this.worldName, this.clock());
+      this.world = createWorld(this.worldName, this.clock(), this.config.map);
       await atomicWrite(this.worldFile, this.world);
     } else if (this.world.schemaVersion === 1) {
       await copyFile(this.worldFile, `${this.worldFile}.schema-1.backup`);
@@ -83,12 +85,31 @@ export class WorldStorage {
       this.world.supplyActivatedAt = this.clock();
       await atomicWrite(this.worldFile, this.world);
     }
+    if (!this.world.supplyRuleHistory) {
+      this.world.supplyRuleHistory = [{ effectiveAt: this.world.supplyActivatedAt, rules: structuredClone(SUPPLY_RULES) }];
+      await atomicWrite(this.worldFile, this.world);
+    }
+    if (['width', 'height', 'npcCount'].some(key => this.world.map.config[key] !== this.config.map[key])) {
+      this.logger.warn('ENV-Kartenerzeugungswerte nicht angewandt: gespeicherte Karte bleibt verbindlich.', this.world.map.config);
+    }
     await this.#assignMissingLocations();
-    await this.advanceWorld(this.clock());
+    const transitionAt = this.clock();
+    const players = await this.advanceWorld(transitionAt);
+    if (JSON.stringify(this.supplyRules) !== JSON.stringify(this.config.supply)) {
+      this.world.supplyRuleHistory.push({ effectiveAt: transitionAt, rules: structuredClone(this.config.supply) });
+      for (const player of players.values()) {
+        player.supply.rules = structuredClone(this.config.supply);
+        Object.assign(player, refreshSupplyAt(player, transitionAt));
+      }
+      await this.#commitTransaction([...players.values()], true);
+    }
     this.#expireSessions();
     await atomicWrite(this.accountsFile, this.accounts);
     return this;
   }
+
+  get supplyRules() { return this.world.supplyRuleHistory.at(-1).rules; }
+  advanceSupply(player, at, options = {}) { return advanceSupplyHistory(player, at, this.world.supplyActivatedAt, this.world.supplyRuleHistory, options); }
 
   exclusive(operation) {
     const result = this.#queue.then(operation, operation);
@@ -245,7 +266,7 @@ export class WorldStorage {
     const changed = new Set();
     for (const [eventIndex, event] of events.entries()) {
       const { player, mission: scheduledMission, at } = event;
-      Object.assign(player, advanceSupply(player, at, this.world.supplyActivatedAt, { deferLossAtEnd: true }));
+      Object.assign(player, this.advanceSupply(player, at, { deferLossAtEnd: true }));
       const mission = player.military.missions.find(candidate => candidate.id === scheduledMission.id);
       if (event.phase === 'arrival' && mission.status === 'outbound') {
         const npcIndex = this.world.map.entities.findIndex(entity => entity.id === mission.targetId && entity.kind === 'npc');
@@ -304,7 +325,7 @@ export class WorldStorage {
     }
     for (const player of players.values()) {
       const before = JSON.stringify([player.city, player.military, player.supply]);
-      Object.assign(player, advanceSupply(player, now, this.world.supplyActivatedAt));
+      Object.assign(player, this.advanceSupply(player, now));
       if (before !== JSON.stringify([player.city, player.military, player.supply])) changed.add(player.playerId);
     }
     if (worldChanged || changed.size) await this.#commitTransaction([...changed].map(id => players.get(id)), worldChanged);
@@ -371,9 +392,12 @@ function createTokenHash(token) {
 
 function numericSeed(value) { return [...value].reduce((seed, character) => Math.imul(seed ^ character.charCodeAt(0), 16777619) >>> 0, 2166136261); }
 
-function createMap(instanceId, activatedAt = Date.now()) {
+function createMap(instanceId, activatedAt = Date.now(), requested = WORLD_CONFIG) {
   const seed = numericSeed(instanceId);
-  const config = { ...WORLD_CONFIG };
+  const config = { ...requested };
+  let buildable = 0;
+  for (let y = 0; y < config.height; y++) for (let x = 0; x < config.width; x++) if (terrainAt(x, y, seed) !== 'water') buildable++;
+  if (config.npcCount >= buildable) throw new Error('WORLD_NPC_COUNT: Zu wenige bebaubare Felder für NPCs und mindestens einen Spieler.');
   const entities = [];
   for (let index = 0; index < config.npcCount; index += 1) {
     let position = (seed + index * 97) % (config.width * config.height);
@@ -386,4 +410,4 @@ function createMap(instanceId, activatedAt = Date.now()) {
   return { seed, revision: 1, config, entities };
 }
 
-function createWorld(worldName, activatedAt) { const instanceId = randomUUID(); return { schemaVersion: WORLD_SCHEMA_VERSION, instanceId, worldName, nextEventSequence: 1, map: createMap(instanceId, activatedAt) }; }
+function createWorld(worldName, activatedAt, config) { const instanceId = randomUUID(); return { schemaVersion: WORLD_SCHEMA_VERSION, instanceId, worldName, nextEventSequence: 1, map: createMap(instanceId, activatedAt, config) }; }
