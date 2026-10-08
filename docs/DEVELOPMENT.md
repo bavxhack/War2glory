@@ -42,3 +42,15 @@ Spielerschema 10 ergänzt Rollen-/Roster-Konfliktversion, Forschungsleiterrefere
 ## Postbox
 
 Schema 12 ergänzt `mailbox` nach der bestehenden Schema-11-Porträtmigration. Nachrichten bleiben in Sender-/Empfängerspielerdateien, Lesestatus für Berichte in `readReportIds`. Backups brauchen weiterhin das vollständige Weltverzeichnis einschließlich Transaktionsjournal. Kein neuer Dienst und keine neuen ENV-Parameter. `packages/game-core/mailbox.js` definiert Validierung, Lesestatus und vorläufige Nachrichtenlimits; `WorldStorage.sendMail` übernimmt geprüfte Identitäten und journalbasierte Zweispieler-Zustellung unter der vorhandenen exklusiven Warteschlange. Neue Rückkehrberichte benötigen keine Kopie: fehlende ID in `readReportIds` bedeutet ungelesen.
+
+## Logistikregeln und Migration (Auftrag 13)
+
+Die fünf neuen ENV-Werte werden durch denselben Konfigurationseinstieg geprüft und in Compose weitergegeben: `UPKEEP_TRUCK_PER_HOUR=180`, `OIL_INFANTRY_PER_FIELD=0`, `OIL_SCOUT_PER_FIELD=0`, `OIL_TRUCK_PER_FIELD=1`, `TRUCK_CARGO_CAPACITY=200`. Unterhalt erlaubt 0–3600000 Nahrung/Stunde. Öl erlaubt 0–100000 je Feld/einfache Strecke mit höchstens drei Nachkommastellen; die Konfiguration speichert ganzzahlige Tausendstel. Kapazität ist eine Ganzzahl 1–1000000. Leere/negative/ungültige/überlaufende Werte stoppen vor Spielstandänderungen. Prozess-ENV überschreibt `.env`; kein Frontend-Rebuild für Regeln.
+
+`config.logistics` ist eine instanzbezogene Aufnahme mit stabiler Regelkennung, `oilMilliPerField` und `cargoPerUnit`. Neue Vorschau/Starts erhalten sie explizit. Hin- und Rückweg werden gemeinsam einmal aufgerundet und bezahlt. Laufende Missionen verwenden nur ihre gespeicherten Werte. Neue Startbelege bleiben auch nach dem Ablauf der allgemeinen Request-Historie an der Mission erhalten.
+
+Unterhalt für LKWs folgt der vorhandenen Welt-Regelhistorie. Historische Aufnahmen ohne `truck` gelten für diesen Typ als 0 und bleiben unverändert. Laufende Mangelzyklen erhalten ihre Fristen. Öl und Traglast ändern keine vergangenen Einsätze. Startjournal enthält Weltsequenz, Ölzahlung, General/Truppenbindung und Request-Beleg; Journalwiederherstellung erfolgt vor Migration/weiterer Abrechnung.
+
+Schema 12 → 13 ergänzt Öl/LKW/neue Forschungsstufen mit 0 und erweitert nachgewiesene Investitionsobjekte um Öl 0. Alte Queueplätze werden über `trainingSlotId ?? barracksSlotId` gelesen; neue Aufträge bewahren auch den kompatiblen alten Alias. Keine neuen Bauplätze. Alte Missionen 1–3 bleiben skalar, neue Missionen besitzen ein einziges verbindliches `units`-Objekt. Bestand/Unterhalt/Traglast verwenden den zentralen Adapter; beide Darstellungen werden niemals addiert.
+
+Tests, Build, reproduzierte Fehlerfälle, Browser- und Containerprüfung: [LOGISTICS_VALIDATION.md](LOGISTICS_VALIDATION.md). Arbeitsdateien und Testwelten gehören unter `work/` bzw. temporäre Verzeichnisse, nicht in produktive `data/`-Bestände.

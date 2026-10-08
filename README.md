@@ -6,6 +6,16 @@ Repository: https://github.com/bavxhack/War2glory
 
 **Weiterentwicklung mit Codex:** Der Startauftrag steht in [CODEX_PROMPT.md](CODEX_PROMPT.md). Projektregeln stehen in [AGENTS.md](AGENTS.md).
 
+## Ölwirtschaft und LKW-Farmzüge (Auftrag 13)
+
+Implementiert mit vorläufigen eigenen Balancewerten: Universität 2 und Forschungsleitung → Ölverarbeitung → zivile Ölraffinerie → Lagerlogistik 1 und Motorisierung → militärische Fahrzeugfabrik → LKW-Herstellung → gemischter NPC-Farmzug → Nahrung und Bericht in der Postbox. Der [vollständige geprüfte Spielablauf](docs/LOGISTICS_VALIDATION.md) beschreibt Voraussetzungen, Zeitpunkte, Browserdurchlauf und Grenzen.
+
+Öl startet bei 0. Raffinerien produzieren 1 Öl/Sekunde je fertiger Stufe; Lagerhaus und Lagerlogistik gelten auch für Öl. LKWs kosten je 100 Holz/100 Stein und nutzen die bestehende Ausbildungsqueue mit Hungerpause. Standardmäßig tragen sie 200 Nahrung, verbrauchen 180 Nahrung/Stunde und kosten 1 Öl/Feld/einfache Strecke. Infanterie kämpft und trägt weiterhin 20; Späher bleiben Aufklärungseinheiten. Standardmäßig benötigen beide alten Typen kein Öl.
+
+„Einsatz prüfen“ liefert verbindliche Typmengen, Traglast, Öl für beide Wege und Unterhalt. 20 Infanteristen/4 LKW über fünf Felder kosten einmalig 40 Öl und 7920 Nahrung/Stunde. Gegen zehn Verteidiger ohne Generalboni überleben 15 Infanteristen/3 LKW, tragen maximal 900 Nahrung, geben 20 General-XP und +4 Kampfpunkte. Hunger reduziert Truppen und Traglast; Nahrung wird erst bei Rückkehr bis zur freien Lagerkapazität eingelagert. LKWs erhöhen keine Kampfkraft.
+
+Spielerschema 13 migriert verlustfrei ab Schema 12; alte bezahlte Forschung, Missionen, Bewerber, Porträts und Postbox bleiben erhalten. Neue Ölbuchungen werden zusammen mit Einsatz und Wiederholungsbeleg gespeichert. Betriebswerte stehen in [.env.example](.env.example), Regeln/Protokoll in [docs/WEBSOCKET.md](docs/WEBSOCKET.md).
+
 ## Starten
 
 Voraussetzung: Node.js 24 oder neuer. Abhängigkeiten installieren und den React-Client bauen:

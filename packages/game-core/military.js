@@ -166,7 +166,7 @@ export function barracksIsBusy(military, barracksSlotId) {
 }
 
 export function newMilitary(playerId) {
-  return { units: { scout: 0, infantry: 0, truck: 0 }, trainingQueue: [], generals: [normalizeGeneral({ id: `general-${playerId}`, ownerId: playerId, name: 'General', level: 1, experience: 0, leadership: 20, status: 'idle' })], missions: [], reports: [], rewardedNpcIds: [] };
+  return { combatScore: 0, units: { scout: 0, infantry: 0, truck: 0 }, trainingQueue: [], generals: [normalizeGeneral({ id: `general-${playerId}`, ownerId: playerId, name: 'General', level: 1, experience: 0, leadership: 20, status: 'idle' })], missions: [], reports: [], rewardedNpcIds: [] };
 }
 
 export function advanceMilitary(previous, now, npcById = new Map()) {

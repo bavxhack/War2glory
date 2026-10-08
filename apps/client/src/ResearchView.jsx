@@ -54,7 +54,7 @@ export function ResearchView({ state, transport }) {
     })}</div>
     {error && <p className="notice" role="alert">{error}</p>}
     {preview && <Dialog open kicker="FORSCHUNG BESTÄTIGEN" title={`${state.technologies[preview.technology].label} · Stufe ${preview.targetLevel}`} onClose={close} actions={<button disabled={loading} onClick={confirm}>{loading ? 'Wird gespeichert …' : 'Kosten bezahlen und starten'}</button>}>
-      <p>{quoteText(preview)} · Universität Stufe {preview.expectedUniversityLevel}</p><p>{state.technologies[preview.technology].kind === 'unlock' ? 'Neue Gebäude/Einheiten ab Abschluss freigeschaltet.' : 'Wirtschaftsbonus ab Abschluss.'}</p><p>Faktor: +{Math.round((preview.factorBefore - 1) * 100)} % → +{Math.round((preview.factorAfter - 1) * 100)} %. Forschung füllt keine Vorräte auf. Kein Abbruch oder Rückerstattung.</p>
+      <p>{quoteText(preview)} · Universität Stufe {preview.expectedUniversityLevel}</p><p>{state.technologies[preview.technology].kind === 'unlock' ? 'Neue Gebäude/Einheiten ab Abschluss freigeschaltet.' : 'Wirtschaftsbonus ab Abschluss.'}</p>{state.technologies[preview.technology].kind !== 'unlock' && <p>Bonus: +{Math.round((preview.factorBefore - 1) * 100)} % → +{Math.round((preview.factorAfter - 1) * 100)} %.</p>}<p>Forschung füllt keine Vorräte auf. Kein Abbruch oder Rückerstattung.</p>
       <p>{preview.researcher.generalName ?? 'Ohne General'} · Führung {preview.researcher.leadership} · Geschwindigkeit +{preview.researcher.bonusPercent} %. Ohne General {formatDuration(preview.durationWithoutGeneralMs)}, tatsächlich {formatDuration(preview.durationMs)}.</p>
     </Dialog>}
   </section>;

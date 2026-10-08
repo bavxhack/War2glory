@@ -282,7 +282,7 @@ test('Jede Kaserne besitzt drei eigene Slots und bildet parallel aus', () => {
   for (let index = 0; index < 3; index += 1) {
     ({ city, military } = enqueueTraining(military, city, { id: `first-${index}`, barracksSlotId: 'military-plot-1', unit: 'scout', amount: 1 }, 0));
   }
-  assert.throws(() => enqueueTraining(military, city, { id: 'first-full', barracksSlotId: 'military-plot-1', unit: 'scout', amount: 1 }, 0), /dieser Kaserne ist voll/);
+  assert.throws(() => enqueueTraining(military, city, { id: 'first-full', barracksSlotId: 'military-plot-1', unit: 'scout', amount: 1 }, 0), /dieses Gebäudes ist voll/);
   const second = enqueueTraining(military, city, { id: 'second-1', barracksSlotId: 'military-plot-2', unit: 'infantry', amount: 1 }, 0);
   assert.equal(second.military.trainingQueue.find(job => job.id === 'second-1').finishesAt, 3000);
   assert.equal(second.military.trainingQueue.find(job => job.id === 'first-2').finishesAt, 6000);

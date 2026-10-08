@@ -281,6 +281,8 @@ export class WorldStorage {
       player.schemaVersion = 13;
     }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
+    if (!Number.isFinite(player.city.resources.oil) || player.city.resources.oil < 0 || !Number.isSafeInteger(player.military.units.truck) || player.military.units.truck < 0) throw new Error('Inkonsistente Öl- oder LKW-Bestände in Schema 13.');
+    normalizeResearch(player.city);
     normalizeOfficers(player);
     if (migrated) await this.savePlayer(player);
     return player;
@@ -382,7 +384,7 @@ export class WorldStorage {
           general.experience += result.generalExperience;
           general.level = generalLevel(general.experience); general.leadership = general.level * 20;
           general.version += 1;
-          player.military.combatScore += result.combatScore;
+          player.military.combatScore = (player.military.combatScore ?? 0) + result.combatScore;
           if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'raid', missionId: mission.id,
             targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, startedAt: mission.startedAt,
             arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, infantry: mission.initialUnits?.infantry ?? mission.initialInfantry ?? mission.infantry + (mission.hungerLosses ?? 0), ...result,

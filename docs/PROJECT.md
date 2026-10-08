@@ -20,7 +20,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills, Universität/vier Stadtforschungen, Offiziersbewerber und Forschungsleitung umgesetzt; neue Freischaltungen in Auftrag 13 beauftragt |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
-| 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Auftrag 13 beauftragt; noch nicht als implementiert bestätigt |
+| 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Auftrag 13 implementiert und geprüft; vorläufige Balance |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -348,9 +348,9 @@ Gleiches vorläufiges Grundwertbudget 30, pro Pool drei verschiedene Profile aus
 
 Neue Technologien, Öl/LKWs, Forschungswarteschlange, Generalentlassung, Respec, PvP und Föderation folgen separat.
 
-## Beauftragter Auftrag 13 vom 08.10.2026: Ölwirtschaft und LKW-Farmzüge
+## Umgesetzter Auftrag 13 vom 08.10.2026: Ölwirtschaft und LKW-Farmzüge
 
-Status: Anweisungen erstellt, noch nicht als implementiert bestätigt. Nach bestätigtem Abschluss von Auftrag 12 wird der nächste geplante vollständige Spielablauf beauftragt. Der ausführbare Auftrag steht in CODEX_PROMPT.md. Neue Zahlen sind vorläufige eigene Balancevorschläge, keine Originalwerte.
+Status: Implementiert und geprüft im Pull Request zu Auftrag 13. Abnahmedetails und ausgeführter Browserablauf stehen in [LOGISTICS_VALIDATION.md](LOGISTICS_VALIDATION.md); 127 Tests und Frontend-Build bestanden. Spielerschema 13, typisierte Missionen mit eingefrorenem Öl/Traglast, Journal und bestehende Postbox sind integriert. Nach bestätigtem Abschluss von Auftrag 12 ist damit der nächste vollständige Spielablauf umgesetzt. Der ausführbare Auftrag steht in CODEX_PROMPT.md. Neue Zahlen sind vorläufige eigene Balancevorschläge, keine Originalwerte.
 
 ### Spielbarer Ablauf und Bestand
 
@@ -460,7 +460,7 @@ Technischer Vorschlag für die Kostenbasis: insgesamt erworbene Skillpunkte eins
 
 ## Geplante Logistik: Traglast, LKWs und Öl
 
-Nutzerergänzung vom 28.09.2026. Typabhängige Traglast ist mit Auftrag 8 eingeführt; Auftrag 9 ergänzt Kapazitätsverlust durch Hunger. Öl/LKWs sind jetzt Gegenstand des beauftragten Auftrags 13. Dessen konkrete Prototypregeln stehen im neuen Abschnitt; die folgenden ursprünglichen Fragen bleiben als Anforderungshistorie erhalten.
+Nutzerergänzung vom 28.09.2026. Typabhängige Traglast ist mit Auftrag 8 eingeführt; Auftrag 9 ergänzt Kapazitätsverlust durch Hunger. Öl/LKWs sind mit Auftrag 13 als vorläufiger Prototyp implementiert und geprüft. Dessen konkrete Prototypregeln stehen im neuen Abschnitt; die folgenden ursprünglichen Fragen bleiben als Anforderungshistorie erhalten.
 
 ### Bestätigte Anforderungen
 

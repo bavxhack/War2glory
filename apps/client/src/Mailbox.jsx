@@ -18,7 +18,7 @@ function Report({ report }) {
 }
 
 function LogisticsReport({ report }) {
-  return <><p>Öl bezahlt für Hin- und Rückweg: {report.paidOil} · {report.distanceFields} Felder</p><table><thead><tr><th>Typ</th><th>Start</th><th>Kampfverlust</th><th>Hungerverlust</th><th>Rückkehr</th></tr></thead><tbody>{Object.entries(report.initialUnits).map(([unit, amount]) => <tr key={unit}><th>{{ infantry: 'Infanterie', truck: 'LKW', scout: 'Späher' }[unit]}</th><td>{amount}</td><td>{report.combatLossesByUnit?.[unit] ?? 0}</td><td>{report.hungerLossesByUnit?.[unit] ?? 0}</td><td>{report.returnedUnits?.[unit] ?? 0}</td></tr>)}</tbody></table>{report.finalCapacity != null && <p>Traglast nach Kampf: {report.capacity} · bei Rückkehr: {report.finalCapacity}</p>}</>;
+  return <><p>Öl bezahlt für Hin- und Rückweg: {report.paidOil} · {report.distanceFields} Felder</p><div className="logistics-table" tabIndex="0" role="region" aria-label="Truppenbilanz, horizontal scrollbar"><table><thead><tr><th>Typ</th><th>Start</th><th>Kampfverlust</th><th>Hungerverlust</th><th>Rückkehr</th></tr></thead><tbody>{Object.entries(report.initialUnits).map(([unit, amount]) => <tr key={unit}><th>{{ infantry: 'Infanterie', truck: 'LKW', scout: 'Späher' }[unit]}</th><td>{amount}</td><td>{report.combatLossesByUnit?.[unit] ?? 0}</td><td>{report.hungerLossesByUnit?.[unit] ?? 0}</td><td>{report.returnedUnits?.[unit] ?? 0}</td></tr>)}</tbody></table></div>{report.finalCapacity != null && <p>Traglast nach Kampf: {report.capacity} · bei Rückkehr: {report.finalCapacity}</p>}</>;
 }
 export function Mailbox({ state, transport }) {
   const [folder, setFolder] = useState('inbox');

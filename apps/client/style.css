@@ -237,3 +237,11 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 .mail-detail th,.mail-detail td { padding:.4rem .2rem; text-align:left; overflow-wrap:anywhere; }
 @media (max-width:1000px) { .resources { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:480px) { .resources { grid-template-columns:1fr; } .mail-detail { min-width:0; } }
+.world-layout > *, .map-stage { min-width:0; }
+.world-map { width:100%; max-width:100%; }
+@media (max-width:900px) { .world-layout { grid-template-columns:minmax(0,1fr); } .map-sidebar { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:560px) { .map-sidebar { grid-template-columns:minmax(0,1fr); } .zoom { flex-wrap:wrap; } .dialog-actions { grid-template-columns:1fr; } }
+
+.logistics-table { max-width:100%; overflow-x:auto; }
+.logistics-table table { min-width:480px; }
+.logistics-table th,.logistics-table td { overflow-wrap:normal; white-space:nowrap; }

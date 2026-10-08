@@ -246,11 +246,11 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           if (message.type === 'construction.enqueue') {
             const slot = player.city.militarySlots?.find(candidate => candidate.id === message.payload.slotId);
             if (['barracks', 'vehicleFactory'].includes(slot?.building) && barracksIsBusy(player.military, slot.id)) throw new Error('Dieses Ausbildungsgebäude ist durch Ausbildung belegt.');
-            player.city = enqueueConstruction(player.city, { id: message.requestId, ...message.payload }, now);
+            player.city = enqueueConstruction(player.city, { ...message.payload, id: message.requestId }, now);
           }
           if (message.type === 'training.enqueue') {
             if (player.supply?.inShortage) throw new Error('Ausbildung ist wegen Nahrungsmangel pausiert.');
-            const result = enqueueTraining(player.military, player.city, { id: message.requestId, ...message.payload }, now);
+            const result = enqueueTraining(player.military, player.city, { ...message.payload, id: message.requestId }, now);
             player.city = result.city; player.military = result.military;
           }
           if (['scouting.start', 'raid.start'].includes(message.type)) {

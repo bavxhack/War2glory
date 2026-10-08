@@ -45,7 +45,7 @@ test('WebSocket mixed convoy: fuel/roles/troops atomic, journal failure recovery
   await request(a, 'mail.read', { kind: 'report', id: p.military.reports[0].id });
   await request(b, 'raid.start', { ...payload, preview: q }, 'command.ok', retryId); assert.equal((await storage.loadPlayer(p.playerId)).military.reports.length, 1);
   // Retry after ordinary receipt retention expires: the mission is still the durable receipt.
-  clients.forEach(c => c.close()); await close(running.server); now += 25 * 3600000;
+  clients.forEach(c => c.close()); await close(running.server); now += 31 * 24 * 3600000;
   running = await start(dir, () => now, 'alpha', parseConfiguration({ OIL_TRUCK_PER_FIELD: '2', TRUCK_CARGO_CAPACITY: '300' }));
   const resumed = await websocket(running.port); clients.push(resumed); await authenticate(resumed, 'login', 'TruckOwner');
   const duplicate = await request(resumed, 'raid.start', { ...payload, preview: q }, 'command.ok', retryId); assert.equal(duplicate.duplicate, true);

@@ -15,3 +15,7 @@ Die älteren SVGs bleiben für bisherige URLs verfügbar; die aktuelle Oberfläc
 Stabile Kennungen `general-portrait-01` bis `general-portrait-20` stehen im gemeinsamen Katalog `packages/game-core/portraits.js`. `GeneralPortrait` zeigt den zugehörigen Ausschnitt quadratisch in Bewerberkarten, Generalübersicht und Modal. Der Server wählt zufällig und speichert vor Auslieferung; Bewerber behalten ihr Bild bei Verpflichtung. Bei einer neuen Vergabe werden bereits verwendete Porträts im eigenen Bestand/Pool bevorzugt vermieden; sind alle 20 belegt, sind Wiederholungen möglich. Bestehende Vergaben werden nicht umgewürfelt.
 
 Schema 11 ergänzt fehlende Porträts einmalig bei vorhandenen Generälen und gespeichertem Bewerberpool. Namen, Identitäten, Werte, XP, Rollen, Kosten und Aufträge bleiben unverändert. Geschlecht und Aussehen haben keine Spielwirkung; Namen werden bei Migration nicht verändert.
+
+## Auftrag 13
+
+`refinery.svg`, `vehicleFactory.svg` und `truck.svg` sind eigene einfache SVG-Illustrationen der Raffinerie, Fahrzeugfabrik und Transportfahrzeuge. Lokal ausgeliefert; keine Originalgrafiken von War2Glory. Vorhandene Bildsprache und Porträtatlas bleiben erhalten.

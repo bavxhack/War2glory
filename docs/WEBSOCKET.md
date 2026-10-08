@@ -110,3 +110,26 @@ Generäle und Bewerber besitzen seit Schema 11 eine private `portraitId` aus dem
 Sendungen sind in der Weltwarteschlange serialisiert; Senderkopie und Empfängerkopie werden gemeinsam mit dem bestehenden Transaktionsjournal gespeichert. Bestätigung und private Broadcasts erst danach. Derselbe Sender/requestId/Inhalt liefert dauerhaft dieselbe Nachricht-ID, ohne zweite Zustellung oder erneute Rate-Limit-Buchung; anderer Inhalt wird abgewiesen. Die Nachrichtenkopie enthält dafür `commandId`/`fingerprint`, unabhängig von der begrenzten allgemeinen Befehlshistorie. Lesestatusänderungen werden in der eigenen Spielerdatei gespeichert und an alle eigenen Verbindungen gesendet. Kein Nachrichten-Polling oder zusätzlicher Socket. Große ausgehende private Snapshots nutzen gültige 64-Bit-WebSocket-Längen.
 
 Migration 11 → 12 ergänzt leere Nachrichten und markiert ausschließlich bereits vorhandene Berichts-IDs als gelesen. Später abgeschlossene Einsätze liefern weiterhin neue ungelesene Berichte, auch bei Offline-Abrechnung. Keine rückwirkende Änderung der Berichtsinhalte.
+
+## Forschungsfreischaltungen und typisierte Logistik (Auftrag 13)
+
+Private Snapshots enthalten Ölressourcen/Kapazitäten, LKW-Bestand, zwei neue Technologien sowie bedingte Bauangebote (`reason`). `research-3-logistics-provisional` ergänzt `oilProcessing` (maximal 1, Universität 1, 300/300, 120 s) und `motorization` (maximal 1, Universität 2, Ölverarbeitung/Lagerlogistik 1, 500/500, 240 s). Kosten/Dauer der vier bisherigen Technologien bleiben unverändert. `research-1`-/`research-2`-Aufträge werden anhand gespeicherter Zeiten abgeschlossen, ohne Nachbelastung oder Generalbonusänderung. Freischaltungen geben jeweils zehn abgeleitete Forschungspunkte.
+
+`training.enqueue` akzeptiert `{trainingSlotId, unit, amount}` und den bisherigen Alias `barracksSlotId`. `truck` darf nur in der eigenen fertigen `vehicleFactory` mit abgeschlossener Motorisierung hergestellt werden; Infanterie/Späher nur in Kasernen. Kosten, Gebäudestufe und Dauer werden beim Einreihen festgehalten. Derselbe Ausbildungs-/Hungermechanismus gilt für beide Gebäudetypen.
+
+Neue Vorschauen:
+
+- `raid.preview`: `{targetId, generalId, units: {infantry: positive Ganzzahl, truck: nicht negative Ganzzahl}}`.
+- `scouting.preview`: `{targetId, generalId, scouts: positive Ganzzahl}`.
+- Antworten desselben Typs enthalten `type`, `targetId`, `generalId`, `generalVersion`, `units`, relevante verfügbare Bestände, `distanceFields`, `travelMs`, `capacity`, `upkeepPerHour`, `outboundOil`, `returnOil`, `totalOil`, `logistics`, `supplyVersion`, effektive Grundwerte/Skills und Kampfboni. Keine aktuellen NPC-Vorräte oder Garnisonen.
+- `raid.start`/`scouting.start`: dieselben Mengen-/Ziel-/Generalfelder plus unverändertes vollständiges `preview`. Der Server berechnet erneut und vergleicht. Auch reine Infanterie-/Spähereinsätze benötigen diese Vorschau; ihre Standardölkosten sind 0. Legacy-Mengen `infantry`/`trucks` werden bei Farmzügen ebenfalls akzeptiert, wenn sie dieselbe Vorschau erzeugen.
+
+`totalOil = ceil(2 × distanceFields × Summe(Menge × oilMilliPerField) / 1000)`. Reisefelder mindestens 1, je Richtung weiterhin fünf Sekunden/Feld. Hin-/Rückweganteile in der Anzeige dürfen gebrochen sein, nur die Gesamtsumme wird bezahlt. Zahlung, Truppenreservierung, Generalbindung, Missionsaufnahme, Ereignissequenz und Fingerprint werden im Weltjournal gemeinsam gespeichert. Erfolg/Push erst danach. Gleiche ID/Payload wirkt einmal; anderer Inhalt wird abgewiesen. Der private interne Fingerprint wird nicht im Client-Snapshot ausgeliefert.
+
+Neue Farmmissionen verwenden `npc-pve-4-logistics-provisional`, neue Aufklärung `npc-scout-2-logistics-provisional`. `units` ist der aktuelle lebende Bestand, `initialUnits` die unveränderliche Startaufnahme. `logistics`, `paidOil`, Distanz und Generalboni sind eingefroren. LKW-Verluste werden aus den Infanteriekampfverlusten berechnet; `combatLossesByUnit`/`combatSurvivorsByUnit` bleiben Kampfnachweise, `hungerLossesByUnit` erfasst weitere Verluste. Nur das aktuelle `units`-Objekt zählt zum Unterhalt/Rückkehrbestand.
+
+Zurückgekehrte Berichte in der bestehenden Postbox ergänzen Start-, Kampf-, Hunger- und Rückkehrmengen, `paidOil`, `distanceFields`, `logistics`, Kampfboni, `capacity` nach Kampf und `finalCapacity` bei Rückkehr. Nahrung wird getrennt als `originalLoadedFood`, `foodLostInTransit`, `loadedFood`, `storedFood`, `overflowFood` gespeichert. Ausgefallener Angriff hat `cancelled: true` und keine Beute/XP/Kampfpunkte. Bericht/Lesestatus/Animation verwenden die bestehenden stabilen IDs. Historische Berichte werden nicht um erfundene Ölbuchungen ergänzt.
+
+Schema 13 ergänzt Nullbestände und Freischaltungen, erhält das Schema-12-Postfach und die vorherigen Migrationsketten. Alte Missionsversionen 1–3 bleiben unverändert; der versionsbezogene Mengenadapter liest ihre skalaren Felder. Ereignisordnung, Forschungsleiterbindung, NPC-Journal und private Zugriffsgrenzen bleiben bestehen.
+
+Die initiale `auth.required`-Begrüßung mit `requestId: "connection"` ist keine fehlgeschlagene Sitzung. Der Client bewahrt dabei den gespeicherten Schlüssel; erst eine tatsächliche Ablehnung von `auth.resume` entfernt ihn. Alle neuen Vorschauen verwenden den bestehenden zentralen Socket/Request-Transport.
