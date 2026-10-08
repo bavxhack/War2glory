@@ -1,6 +1,8 @@
 import { parseArgs } from 'node:util';
 import { readFile, rename } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { loadConfiguration } from './config.js';
+import { normalizeResearch } from '../../packages/game-core/research.js';
 import { WorldStorage } from './storage.js';
 import { migrateLegacyState } from './legacy.js';
 
@@ -11,14 +13,15 @@ if (!values.world || !/^[a-zA-Z0-9_-]{1,40}$/.test(values.world) || !values.user
   throw new Error('Aufruf: npm run claim-legacy -- --world NAME --username KONTO --confirm');
 }
 const directory = resolve('data', values.world);
-const storage = await new WorldStorage(directory, values.world).initialize();
+const config = await loadConfiguration({ env: process.env, cli: { world: values.world } });
+const storage = await new WorldStorage(directory, values.world, Date.now, config).initialize();
 const normalized = values.username.trim().normalize('NFKC').toLocaleLowerCase('de-DE');
 const account = storage.accounts.accounts.find(candidate => candidate.normalized === normalized);
 if (!account) throw new Error('Konto wurde nicht gefunden. Zuerst registrieren, dann den Server stoppen.');
 const legacyFile = resolve(directory, 'state.json');
 const legacy = migrateLegacyState(JSON.parse(await readFile(legacyFile, 'utf8')));
 const player = await storage.loadPlayer(account.playerId);
-player.city = legacy.city;
+player.city = normalizeResearch({ ...legacy.city, militarySlots: legacy.city.militarySlots ?? player.city.militarySlots });
 player.processedCommands = (legacy.processedCommands ?? []).map(id => ({ id, fingerprint: 'legacy', acceptedAt: Date.now() }));
 await storage.savePlayer(player);
 await rename(legacyFile, `${legacyFile}.claimed-${Date.now()}.bak`);

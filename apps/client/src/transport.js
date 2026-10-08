@@ -38,7 +38,7 @@ export class GameTransport {
   #receive(raw) {
     let event; try { event = JSON.parse(raw); } catch { return; }
     const request = this.#requests.get(event.requestId);
-    if (request && ['general.preview', 'command.ok', 'command.error'].includes(event.type)) {
+    if (request && ['general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
       this.#requests.delete(event.requestId);
       if (event.type === 'command.error') request.reject(new Error(event.payload.message));
       else request.resolve(event.payload);

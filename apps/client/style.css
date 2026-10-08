@@ -169,3 +169,28 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
   .topbar > div { min-width: 0; }
   .topbar h1 { overflow-wrap: anywhere; }
 }
+
+.research-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1rem; margin-top: 1rem; }
+.research-grid .action { width: 100%; }
+.research-grid h3 { margin-top: .5rem; }
+progress { width: 100%; accent-color: var(--accent, #b6915b); }
+.view-tabs { flex-wrap: wrap; }
+
+@media (max-width: 900px) { .resources { position: static; } }
+.resource small { display: block; }
+
+.research-view label { display: grid; gap: .4rem; }
+.research-view select { width: 100%; padding: .6rem; border: 1px solid #65755d; border-radius: .5rem; background: #111a10; color: #f7f2df; font: inherit; }
+
+/* Keep technologies close to the top; the university artwork is a small icon. */
+.research-title { font-size: 1.3rem; margin: .75rem 0; }
+.research-controls { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: .5rem .75rem; align-items: center; padding: .75rem; }
+.research-controls > .building-art { width: 56px; height: 48px; margin: 0; aspect-ratio: auto; border-radius: .5rem; }
+.research-university { min-width: 0; }
+.research-university label { font-size: .85rem; }
+.research-university .notice { margin: 0; }
+.research-help, .research-controls > .mission-preview { grid-column: 1 / -1; }
+.research-help { font-size: .85rem; color: #bac5b6; }
+.research-help summary { cursor: pointer; color: #d5e59b; }
+.research-help p { margin: .5rem 0 0; line-height: 1.5; }
+.research-grid { margin-top: .75rem; }

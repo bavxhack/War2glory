@@ -24,7 +24,7 @@ export function WorldView({ state, map, details, transport }) {
   };
   const pan = (x, y) => request({ x: center.x + x, y: center.y + y });
   const zoom = delta => {
-    const next = Math.max(5, Math.min(15, size + delta));
+    const next = Math.max(Math.min(5, map?.bounds.width ?? 5, map?.bounds.height ?? 5), Math.min(15, map?.bounds.width ?? 15, map?.bounds.height ?? 15, size + delta));
     setSize(next);
     request(center, next);
   };
@@ -74,7 +74,7 @@ export function WorldView({ state, map, details, transport }) {
           style={{ '--map-columns': map?.viewport.width ?? size }}
           role="grid"
           tabIndex="0"
-          aria-label="Quadratische Weltkarte"
+          aria-label="Weltkarte mit quadratischen Feldern"
           onClick={selectTileFromEvent}
           onKeyDown={event => {
             const offsets = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };

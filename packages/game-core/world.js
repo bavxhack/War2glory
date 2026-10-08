@@ -55,8 +55,8 @@ export function randomFreeLocation(map, randomIndex) {
 
 export function publicMap(world, ownPlayerId, viewport) {
   const { config } = world.map;
-  const width = viewport?.width ?? config.maxViewport;
-  const height = viewport?.height ?? config.maxViewport;
+  const width = viewport?.width ?? Math.min(config.maxViewport, config.width);
+  const height = viewport?.height ?? Math.min(config.maxViewport, config.height);
   const x = viewport?.x ?? 0;
   const y = viewport?.y ?? 0;
   if (![x, y, width, height].every(Number.isInteger) || width < 1 || height < 1 ||

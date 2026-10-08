@@ -286,3 +286,39 @@ test('Gemeinsame Karte vergibt eindeutige Positionen, sendet Push und bleibt nac
     assert.equal(readFileSync(join(directory, 'world.json'), 'utf8'), before);
   } finally { clients.forEach(client => client.close()); if (running) await close(running.server); rmSync(directory, { recursive: true, force: true }); }
 });
+
+test('WebSocket research: private preview, two connections, deduplication, storage failure and restart', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'research-ws-')); let now = 100000;
+  let running = await start(directory, () => now); const clients = [];
+  t.after(async () => { for (const client of clients) client.close(); await close(running.server); rmSync(directory, { recursive: true, force: true }); });
+  const a = await websocket(running.port), b = await websocket(running.port), other = await websocket(running.port); clients.push(a, b, other);
+  const owner = await authenticate(a, 'register', 'ResearchOwner');
+  await authenticate(b, 'login', 'ResearchOwner'); await authenticate(other, 'register', 'ResearchOther');
+  let p = await running.server.storage.loadPlayer(owner.snapshot.player.id);
+  Object.assign(p.city.buildingSlots[3], { building: 'university', buildingId: 'owned-university', level: 1 });
+  p.city.resources.wood = 1000; p.city.resources.stone = 1000; await running.server.storage.savePlayer(p);
+  const command = { technology: 'forestry', targetLevel: 1, universityId: 'owned-university', rulesetVersion: 'research-1-provisional' };
+  async function request(client, type, payload, responseType = 'command.ok', id) { const requestId = client.send(type, payload, id); return (await client.next(responseType, requestId)).payload; }
+  assert.match((await request(other, 'research.preview', command, 'command.error')).message, /eigene/);
+  const preview = await request(a, 'research.preview', command, 'research.preview'); assert.equal(preview.cost.wood, 100); assert.equal(preview.durationMs, 60000);
+  const before = await running.server.storage.loadPlayer(p.playerId); assert.equal(before.city.resources.wood, 1000);
+  const payload = { ...command, expectedUniversityLevel: preview.expectedUniversityLevel, cost: { wood: 0 }, durationMs: 1 };
+  const save = running.server.storage.savePlayer.bind(running.server.storage);
+  running.server.storage.savePlayer = async () => { throw new Error('simulated research disk failure'); };
+  assert.match((await request(a, 'research.start', payload, 'command.error')).message, /disk failure/);
+  running.server.storage.savePlayer = save; assert.equal((await running.server.storage.loadPlayer(p.playerId)).city.resources.wood, 1000);
+  const id = 'research-shared-id'; const first = request(a, 'research.start', payload, 'command.ok', id), duplicate = request(b, 'research.start', payload, 'command.ok', id);
+  assert.equal((await first).duplicate, false); assert.equal((await duplicate).duplicate, true);
+  p = await running.server.storage.loadPlayer(p.playerId); assert.equal(p.city.resources.wood, 900); assert.equal(p.city.research.active.durationMs, 60000);
+  assert.match((await request(b, 'research.start', { ...payload, technology: 'masonry' }, 'command.error', id)).message, /anderem Inhalt/);
+  assert.match((await request(b, 'research.start', { ...payload, technology: 'masonry' }, 'command.error')).message, /bereits/);
+  assert.match((await request(a, 'building.preview', { slotId: 'plot-4' }, 'command.error')).message, /Forschung/);
+  const ownEntity = running.server.storage.world.map.entities.find(e => e.playerId === p.playerId);
+  const details = await request(other, 'map.details', { id: ownEntity.id }, 'map.details'); assert.equal(details.entity.research, undefined); assert.equal(details.entity.resources, undefined);
+  now += 90000; for (const client of clients) client.close(); await close(running.server); running = await start(directory, () => now);
+  const resumed = await websocket(running.port); clients.push(resumed); const logged = await authenticate(resumed, 'login', 'ResearchOwner');
+  assert.equal(logged.snapshot.city.research.levels.forestry, 1); assert.equal(logged.snapshot.score.research, 10); assert.equal(logged.snapshot.city.research.active, null);
+  assert.equal(logged.snapshot.city.resources.wood, 991.5);
+  const replay = await request(resumed, 'research.start', payload, 'command.ok', id); assert.equal(replay.duplicate, true);
+  const synced = await request(resumed, 'city.sync', {}, 'city.snapshot'); assert.equal(synced.city.resources.wood, 991.5);
+});

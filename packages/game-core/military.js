@@ -197,7 +197,7 @@ export function advanceMilitary(previous, now, npcById = new Map()) {
 }
 
 export function enqueueTraining(previous, city, command, now) {
-  const military = advanceMilitary(previous, now); const definition = UNITS[command.unit];
+  const military = structuredClone(previous); const definition = UNITS[command.unit];
   if (!definition) throw new Error('Unbekannter Einheitentyp.');
   if (!Number.isInteger(command.amount) || command.amount < 1 || command.amount > MILITARY_RULES.maxTrainingAmount) throw new Error('Ungültige Ausbildungsmenge.');
   if (typeof command.barracksSlotId !== 'string') throw new Error('Eine eigene Kaserne muss ausgewählt werden.');
@@ -216,7 +216,7 @@ export function enqueueTraining(previous, city, command, now) {
 }
 
 export function startScoutMission(previous, command, now, origin, target) {
-  const military = advanceMilitary(previous, now); const general = military.generals.find(item => item.id === command.generalId);
+  const military = structuredClone(previous); const general = military.generals.find(item => item.id === command.generalId);
   if (!general || general.status !== 'idle') throw new Error('Kein eigener freier General ausgewählt.');
   validateMissionUnits({ scout: command.scouts });
   if (command.scouts > military.units.scout) throw new Error('Nicht genügend verfügbare Späher.');

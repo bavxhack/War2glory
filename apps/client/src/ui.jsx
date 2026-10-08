@@ -8,7 +8,7 @@ export const canAfford = (state, quote) => Object.entries(quote.cost).every(([re
 export const capacitySummary = capacities => Object.entries(capacities).map(([resource, value]) => `${resourceLabels[resource]} ${value}`).join(' · ');
 
 export function ActionButton({ label, detail, disabled, onClick }) { return <button type="button" className="action" disabled={disabled} onClick={onClick}><strong>{label}</strong><span>{detail}</span></button>; }
-const artPositions = { sawmill: [0, 0], quarry: [50, 0], farm: [100, 0], warehouse: [0, 50], barracks: [50, 50], scout: [100, 50], infantry: [0, 100], general: [50, 100], town: [100, 100] };
+const artPositions = { university: [100, 100], sawmill: [0, 0], quarry: [50, 0], farm: [100, 0], warehouse: [0, 50], barracks: [50, 50], scout: [100, 50], infantry: [0, 100], general: [50, 100], town: [100, 100] };
 export function GameArt({ type, label, className = '' }) {
   const [x, y] = artPositions[type] ?? artPositions.town;
   return <span className={`game-art ${className}`} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} style={{ backgroundImage: `url(${gameArtwork})`, backgroundPosition: `${x}% ${y}%` }}/>;
