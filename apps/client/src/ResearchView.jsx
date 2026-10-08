@@ -27,9 +27,13 @@ export function ResearchView({ state, transport }) {
     finally { setLoading(false); }
   };
   return <section className="research-view" aria-labelledby="research-heading">
-    <div className="heading"><div><span className="kicker">WISSEN FÜR DEINE STADT</span><h2 id="research-heading">Universität und Forschung</h2></div></div>
-    <section className="card"><BuildingArt type="university"/><p>Abgeschlossene Erkenntnisse wirken dauerhaft in dieser Stadt, auch nach einem Universitätsabriss. Je Stufe +5 % Produktion beziehungsweise Lagerkapazität. Eine Forschung gleichzeitig; keine Warteschlange und kein Abbruch.</p>
+    <h2 id="research-heading" className="research-title">Forschung</h2>
+    <section className="card research-controls">
+      <BuildingArt type="university"/>
+      <div className="research-university">
       {universities.length ? <label>Universität<select value={selected.buildingId} onChange={event => { setUniversityId(event.target.value); setPreview(null); }}>{universities.map(slot => <option key={slot.buildingId} value={slot.buildingId}>Grundstück {slot.id.split('-').at(-1)} · Universität Stufe {slot.level}</option>)}</select></label> : <p className="notice">Errichte zuerst eine Universität auf einem freien Stadtgrundstück.</p>}
+      </div>
+      <details className="research-help"><summary>Forschungsregeln</summary><p>Abgeschlossene Erkenntnisse wirken dauerhaft in dieser Stadt, auch nach einem Universitätsabriss. Je Stufe +5 % Produktion beziehungsweise Lagerkapazität. Eine Forschung gleichzeitig; keine Warteschlange und kein Abbruch.</p></details>
       {active && <div className="mission-preview" role="status"><strong>{state.technologies[active.technology].label} · Stufe {active.targetLevel}</strong><progress aria-label="Forschungsfortschritt" max={active.durationMs} value={Math.min(active.durationMs, Math.max(0, state.serverTime - active.startsAt))}/><span>Noch {formatDuration(active.finishesAt - state.serverTime)} · läuft auch bei Nahrungsmangel weiter.</span></div>}
     </section>
     <div className="research-grid">{state.researchOffers.map(offer => {
