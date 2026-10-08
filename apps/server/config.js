@@ -1,3 +1,4 @@
+import { LOGISTICS_RULES } from '../../packages/game-core/logistics.js';
 import { readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 import { createHash } from 'node:crypto';
@@ -9,6 +10,9 @@ const definitions = {
   GENERAL_RECRUIT_COST_EXPONENT: [2, 1, 3, true], GENERAL_CANDIDATE_REFRESH_HOURS: [24, 1 / 60, 8760],
   RESEARCH_LEADERSHIP_PERCENT: [1, 0, 10], RESEARCH_BONUS_CAP_PERCENT: [50, 0, 100],
   WORLD_WIDTH: [24, 2, 64, true], WORLD_HEIGHT: [24, 2, 64, true], WORLD_NPC_COUNT: [18, 0, 4095, true],
+  UPKEEP_TRUCK_PER_HOUR: [180, 0, 3600000],
+  OIL_INFANTRY_PER_FIELD: [0, 0, 100000], OIL_SCOUT_PER_FIELD: [0, 0, 100000], OIL_TRUCK_PER_FIELD: [1, 0, 100000],
+  TRUCK_CARGO_CAPACITY: [200, 1, 1000000, true],
   UPKEEP_INFANTRY_PER_HOUR: [360, 0, 3600000], UPKEEP_SCOUT_PER_HOUR: [180, 0, 3600000],
   SUPPLY_GRACE_SECONDS: [1800, 0.001, 31536000], SUPPLY_LOSS_INTERVAL_SECONDS: [300, 0.001, 31536000],
   SUPPLY_LOSS_PERCENT: [5, 0.000001, 100], SUPPLY_RECOVERY_SECONDS: [60, 0.001, 31536000],
@@ -22,9 +26,10 @@ export function parseConfiguration(env = {}) {
     if (!Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
       throw new Error(`${name}: ${integer ? 'Ganzzahl' : 'Dezimalzahl mit Punkt'} zwischen ${min} und ${max} erwartet; keine leeren Werte oder Einheiten.`);
     }
+    if (name.startsWith('OIL_') && raw !== undefined && !/^\d+(?:\.\d{1,3})?$/.test(raw)) throw new Error(`${name}: höchstens drei Nachkommastellen.`);
     numbers[name] = value;
   }
-  const supply = { ...SUPPLY_RULES, upkeepPerSecond: { infantry: numbers.UPKEEP_INFANTRY_PER_HOUR / 3600, scout: numbers.UPKEEP_SCOUT_PER_HOUR / 3600 },
+  const supply = { ...SUPPLY_RULES, upkeepPerSecond: { infantry: numbers.UPKEEP_INFANTRY_PER_HOUR / 3600, scout: numbers.UPKEEP_SCOUT_PER_HOUR / 3600, truck: numbers.UPKEEP_TRUCK_PER_HOUR / 3600 },
     graceMs: numbers.SUPPLY_GRACE_SECONDS * 1000, lossIntervalMs: numbers.SUPPLY_LOSS_INTERVAL_SECONDS * 1000,
     lossRate: numbers.SUPPLY_LOSS_PERCENT / 100, recoveryMs: numbers.SUPPLY_RECOVERY_SECONDS * 1000 };
   const changed = Object.keys(SUPPLY_RULES).some(key => key !== 'version' && JSON.stringify(supply[key]) !== JSON.stringify(SUPPLY_RULES[key]));
@@ -33,7 +38,9 @@ export function parseConfiguration(env = {}) {
     exponent: numbers.GENERAL_RECRUIT_COST_EXPONENT, refreshMs: Math.round(numbers.GENERAL_CANDIDATE_REFRESH_HOURS * 3600000),
     leadershipPercent: numbers.RESEARCH_LEADERSHIP_PERCENT, bonusCapPercent: numbers.RESEARCH_BONUS_CAP_PERCENT };
   officers.version = `officers-1-${createHash('sha256').update(JSON.stringify(officers)).digest('hex').slice(0, 16)}`;
-  return { map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
+  const logistics = { ...LOGISTICS_RULES, oilMilliPerField: Object.fromEntries(['infantry', 'scout', 'truck'].map(unit => [unit, Math.round(numbers[`OIL_${unit.toUpperCase()}_PER_FIELD`] * 1000)])), cargoPerUnit: { ...LOGISTICS_RULES.cargoPerUnit, truck: numbers.TRUCK_CARGO_CAPACITY } };
+  logistics.version = `logistics-1-${createHash('sha256').update(JSON.stringify(logistics)).digest('hex').slice(0, 16)}`;
+  return { logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
 }
 
 export async function loadConfiguration({ env = {}, file = '.env', cli = {} } = {}) {
