@@ -151,3 +151,21 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .training-form .training-art { aspect-ratio:1.8; }
 .general-grid { grid-template-columns:repeat(auto-fill,minmax(190px,260px)); }
 .city-grid.compact .building-art { aspect-ratio:1.8; }
+
+/* Skill drafts remain usable in a narrow, scrollable general dialog. */
+.attribute-list small { display: block; margin-top: .4rem; line-height: 1.4; }
+.attribute-list > div > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.attribute-list .stepper { flex-shrink: 0; }
+.mission-dialog section > button { margin-top: .5rem; margin-right: .4rem; }
+@media (max-width: 560px) {
+  .game-layout { grid-template-columns: minmax(0, 1fr); }
+  .game-layout > *, .resources > * { min-width: 0; }
+  .resources { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .resource { overflow-wrap: anywhere; }
+  .mission-dialog { width: calc(100vw - 2rem); max-height: calc(100dvh - 2rem); }
+}
+@media (max-width: 560px) {
+  .topbar { flex-wrap: wrap; }
+  .topbar > div { min-width: 0; }
+  .topbar h1 { overflow-wrap: anywhere; }
+}

@@ -36,3 +36,17 @@ test('Mutationen werden nach Verbindungsabbruch nicht blind erneut gesendet', ()
   transport.start(); const first = FakeSocket.instances[0]; first.readyState = FakeSocket.OPEN; first.emit('open'); transport.mutate('construction.enqueue', { slotId: 'plot-4', building: 'farm' }); assert.equal(first.sent.length, 1);
   first.emit('close'); scheduled[0](); const second = FakeSocket.instances[1]; second.readyState = FakeSocket.OPEN; second.emit('open'); assert.equal(second.sent.length, 0);
 });
+
+test('Skillanfragen verwenden den zentralen Socket und verwerfen Antworten nach Sitzungsende', async () => {
+  FakeSocket.instances = [];
+  const transport = new GameTransport({ WebSocketImpl: FakeSocket, storage: storage(), location: { protocol: 'http:', host: 'localhost' } });
+  transport.start(); const socket = FakeSocket.instances[0]; socket.readyState = FakeSocket.OPEN; socket.emit('open');
+  const quote = transport.request('general.preview', { points: 3 });
+  socket.emit('message', { data: JSON.stringify({ type: 'general.preview', requestId: socket.sent[0].requestId, payload: { conversion: { cost: 60 } } }) });
+  assert.equal((await quote).conversion.cost, 60);
+  const saving = transport.request('general.convert', { points: 3 });
+  socket.emit('message', { data: JSON.stringify({ type: 'auth.required', payload: { message: 'Abgelaufen' } }) });
+  await assert.rejects(saving, /Sitzung beendet/);
+  assert.equal(FakeSocket.instances.length, 1);
+  transport.stop();
+});
