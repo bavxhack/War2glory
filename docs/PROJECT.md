@@ -269,23 +269,48 @@ Die folgenden Forschungswerte sind Vorschläge des Planungschats für den Review
 4. Danach weitere Einheiten/Waffensysteme, Bündnisse, Handel, Unterstützung und PvP.
 5. Matrix-Anbindung und aktives Spielen zwischen Servern mit eigenen Identitäts-, Ereignis- und Vertrauensregeln; weiterhin Kernziel des Projekts.
 
-## Beauftragter Auftrag 12 vom 08.10.2026: Weitere Generäle und Forschungsleitung
+## Beauftragter Auftrag 12 vom 08.10.2026: Offiziersbewerber, steigende Kosten und Forschungsleitung
 
-Status: Anweisungen erstellt, noch nicht als implementiert bestätigt. Der vollständige ausführbare Auftrag steht in CODEX_PROMPT.md. Der Nutzer beauftragt nach Abschluss von Auftrag 11 den nächsten Schritt; die folgenden konkreten Regeln sind vorläufige Vorschläge des Planungschats, keine Originalwerte oder einzeln bestätigten Balanceentscheidungen.
+Status: Anweisungen erstellt, noch nicht als implementiert bestätigt. Der vollständige ausführbare Auftrag steht in CODEX_PROMPT.md. Der Nutzer beauftragt nach Abschluss von Auftrag 11 den nächsten Schritt. Am 08.10.2026 bestätigt er zusätzlich die Bewerberauswahl mit unterschiedlichen Anfangsstärken und verlangt steigende Kosten für jeden weiteren General. Diese Fassung ersetzt identische Direktrekrutierungen. Konkrete Zahlen, Intervalle und Bonusformeln bleiben vorläufige eigene Balancevorschläge.
 
 ### Spielbarer Ablauf
 
-Zwei weitere Generäle rekrutieren → einen als Bürgermeister einsetzen → einen als Forschungsleiter einsetzen → mit dem dritten einen NPC-Einsatz führen → Forschung beschleunigt abschließen → Forschungsleiter bei Bedarf abberufen und für Einsätze nutzen.
+Aus zwei aufeinanderfolgenden Bewerberauswahlen je einen passenden General rekrutieren → einen als Bürgermeister einsetzen → einen als Forschungsleiter einsetzen → mit dem dritten einen NPC-Einsatz führen → Forschung beschleunigt abschließen → Forschungsleiter bei Bedarf abberufen und für Einsätze nutzen.
 
-### Rekrutierung
+### Offiziersbewerber und steigende Kosten
 
-- Kostenloser Startgeneral bleibt unverändert. Standardlimit insgesamt drei Generäle pro Spieler/Welt; alle Rollen und Einsätze zählen mit.
-- Eine eigene fertige Kaserne ist Voraussetzung. Keine neue Gebäudeart oder Forschungssperre.
-- Bewusste sofortige Rekrutierung nach serverseitiger Vorschau und Namenseingabe, ohne Warteschlange.
-- Bei k vorhandenen Generälen Kosten k × 500 Holz und k × 500 Stein: zweiter 500/500, dritter 1000/1000.
-- Neue Generäle beginnen mit Level 1, XP 0, Führung 20, Angriff/Verteidigung 0 und leeren Skillzählern; stabile serverseitige IDs.
-- Keine automatische Gratisvergabe, Zufallswerte, Entlassung oder neuen laufenden Unterhaltskosten. Rekrutierung erzeugt keine Kommandantenpunkte/XP.
-- Bestehende Aufklärungs-/Kampferfahrungsregeln erhalten, keine erneute Erstzielbelohnung je neuem General.
+- Kostenloser Startgeneral unverändert; Standardlimit drei Generäle pro Spieler/Welt, weiterhin per ENV anpassbar.
+- Fertige eigene Kaserne schaltet drei private Bewerber frei. Genau einen nach Vorschau einstellen; restliche Auswahl verfällt.
+- Standardmäßig alle 24 Stunden ein neuer Pool. Erste Auswahl bei erfüllter Voraussetzung; keine verpassten Angebote ansammeln. Auch ungenutzte Pools laufen ab.
+- Pool, Kandidatenwerte, IDs und Wechseltermin serverseitig speichern. Neuladen, Neustart, fehlgeschlagene Käufe oder Kasernenabriss/-neubau erzeugen keine neuen Würfe.
+- Preis je Ressource = Basispreis × k^Exponent, mit monotonem Erwerbszähler k einschließlich Startgeneral.
+- Vorschlag Basispreis 500 Holz/500 Stein, Exponent 2: zweiter General je 500, dritter je 2000; bei erhöhtem Limit vierter je 4500, fünfter je 8000. Beispiele: 500 × 2² = 2000 und 500 × 3² = 4500.
+- Preise werden pro Erwerbsschritt strikt größer unter unveränderten Regeln. Zähler nur nach erfolgreicher Verpflichtung erhöhen, nicht nach Vorschau/Poolwechsel; späterer Verlust oder Entlassung darf ihn nicht senken.
+- Bestand bestimmt das General-Limit, dauerhaft erworbene Anzahl die Preisstufe. Altzähler mindestens aus vorhandenen Generälen initialisieren, keine historischen Kosten erfinden.
+- Alle Bewerber desselben Erwerbsschritts kosten gleich viel. Keine Nahrung/XP, keine passive XP oder neuen laufenden General-Unterhaltskosten.
+- Erwerb, Zahlung, Kandidatenverbrauch, Zähler und Wiederholungsbeleg gemeinsam speichern. Kein Kauf mehrerer Kandidaten desselben Pools durch parallele Befehle.
+- Keine zusätzliche Militärgebäudeart, Entlassung, Verkauf oder manuell bezahlte/kostenlose Neuwürfe.
+
+### Anfangsstärken und Skillentwicklung
+
+Gleiches vorläufiges Grundwertbudget 30, pro Pool drei verschiedene Profile aus vier:
+
+| Profil | Führung | Angriff | Verteidigung |
+| --- | --- | --- | --- |
+| Organisator | 20 | 5 | 5 |
+| Angreifer | 10 | 15 | 5 |
+| Verteidiger | 10 | 5 | 15 |
+| Allrounder | 10 | 10 | 10 |
+
+- Optional bis zu zwei Grundwertpunkte übertragen; Gesamtsumme 30 erhalten, je Eigenschaft höchstens zwei Abweichung zur Vorlage und keine negativen Werte. Gleiche Summe ist keine Garantie gleicher Spielstärke.
+- Profile sind keine Klassen: alle Generäle können Rollen wechseln und Skills entwickeln.
+- Level 1, XP 0, leere Skillzähler; angezeigte Grundwerte exakt bei Verpflichtung übernehmen. Grundwerte erzeugen keine freien Skills und zählen nicht als gekaufte Punkte.
+- Name vor Einstellung bearbeitbar, danach im vorhandenen Modal. Server vergibt stabile General-ID; Kandidatenherkunft und gezahlte Kosten bleiben gespeichert.
+- Altgeneräle/Startgeneral unverändert erhalten, keine automatische Aufwertung auf 30 Grundwertpunkte.
+- Neue Farmzüge berücksichtigen Grundangriff/-verteidigung plus verteilte Punkte: 2 Prozent je effektivem Punkt, maximal 50 Prozent. Beispiel Grundangriff 15 plus 2 Skills = 17 × 2 = 34 Prozent.
+- Neue Kampfregelversion mit Startsnapshot. Alte laufende Missionen/Berichte unverändert; keine zweite Belohnungsbuchung. Neue Missionen von Altgenerälen nutzen deren vorhandene Grundwerte ebenfalls, bewusst dokumentieren.
+- Neue militärische Skillzuweisungen nur bis effektiver Eigenschaft 25, Führung nach bestehender Grenze. Alte überzählige Werte nicht kürzen; Boni begrenzen. Grundwerte nicht doppelt zählen, Skillkosten bleiben von erworbenen Skillpunkten abhängig.
+- Keine erneute Erstaufklärungsbelohnung durch einen neuen General.
 
 ### Forschungsleitung
 
@@ -300,23 +325,24 @@ Zwei weitere Generäle rekrutieren → einen als Bürgermeister einsetzen → ei
 - Nur Dauer ändert sich. Kosten, Forschungseffekte, Voraussetzungen und Punkte bleiben gleich.
 - General/Bonus und Endzeit beim Start festschreiben; spätere Skilländerung, Umbenennung, Ausbau oder Neustart beschleunigt laufende Forschung nicht.
 - Letzte Universität ohne aktive Forschung abreißen gibt Forschungsleiter atomar frei. Bei weiterer Universität bleibt Rolle; Auftragsgebäude bleibt gegen Abriss geschützt.
-- Keine Forschungs-XP oder passive XP durch Amtszeit. Vorhandene Skillregeln bleiben unverändert.
+- Keine Forschungs-XP oder passive XP durch Amtszeit. XP-Umrechnung bleibt unverändert; Zuweisungsgrenzen berücksichtigen die oben beschriebenen Grundwerte.
 
 ### ENV und Bestandsschutz
 
-- GENERAL_MAX_COUNT=3, GENERAL_RECRUIT_WOOD=500, GENERAL_RECRUIT_STONE=500, RESEARCH_LEADERSHIP_PERCENT=1 und RESEARCH_BONUS_CAP_PERCENT=50 im vorhandenen Konfigurationseinstieg.
+- GENERAL_MAX_COUNT=3, GENERAL_RECRUIT_WOOD=500 und GENERAL_RECRUIT_STONE=500 als Basispreise; GENERAL_RECRUIT_COST_EXPONENT=2 und GENERAL_CANDIDATE_REFRESH_HOURS=24 ergänzen.
+- RESEARCH_LEADERSHIP_PERCENT=1 und RESEARCH_BONUS_CAP_PERCENT=50 bleiben. Positive Basispreise/Exponent/Intervalle validieren; Null nur bei Forschungsboni erlaubt.
 - Validierung, native Starts, Prozessvorrang, Compose-Weitergabe und .env.example gemeinsam erweitern. Kein Client-Neubuild.
-- Neue Preise/Boni gelten ab Neustart nur für neue Aktionen; bestehende Aufträge behalten ihre gespeicherten Werte.
+- Neue Preise/Boni gelten ab Neustart für neue Vorschauen/Aktionen; alte Kaufvorschauen werden ungültig. Bestehende Aufträge behalten ihre Werte. Bewerber behalten ihre Grundwerte und gespeicherten Termine; Intervallwechsel erst ab dem nächsten Wechsel nach Aktivierung anwenden.
 - Nach Senken des General-Limits keine Bestandslöschung: weitere Rekrutierung blockiert, vorhandene Generäle bleiben nutzbar.
 - Unterhalts-Regelhistorie, Kartenwerte und Versorgungsfristen aus Auftrag 11 unverändert erhalten.
 
 ### Technische Abnahme
 
 - WebSocket-Ereignisse, serverseitige Angebote, Eigentum, Rollenbindung, Vorschauversionen und requestId-Deduplizierung.
-- Erwerbskosten, neuer General und Wiederholungsbeleg gemeinsam speichern; Rollenwechsel und Forschungsbindung atomar.
+- Erwerbskosten, General, verbrauchter Pool, Erwerbszähler und Wiederholungsbeleg gemeinsam speichern; Rollenwechsel/Forschungsbindung atomar. Ablaufzeit und Kandidaten-/Pool-Version beim Kauf prüfen.
 - Schema 9 auf nächste Version migrieren; ältere Migrationskette ausdrücklich über Schema 9 führen.
 - Alte laufende research-1-provisional-Aufträge normal zum gespeicherten Termin abschließen, ohne nachträglichen Generalbonus.
-- Mehrere Tabs, konkurrierende Rollen/Missionen, Schreibfehler, Neustart, Offlineabschluss, Gebäuderückbau und ENV-Wechsel prüfen.
+- Mehrere Tabs/Kandidatenkäufe, konkurrierende Rollen/Missionen, Schreibfehler, Neustart, Poolablaufgrenze, lange Abwesenheit, Gebäuderückbau und ENV-Wechsel prüfen. Preisfolge, Grundwertbudget, neue/alte Kampfversionen und Skillgrenzen mit unabhängigen Erwartungen testen.
 - React-Generalverwaltung, Modal und Forschung erweitern; alle eigenen Generäle auswählbar und Rollen verständlich sichtbar.
 - Codex liefert Tests, Frontend-Build, dokumentierten manuellen Ablauf und PR. Der Planungschat aktualisiert nur Anweisungen.
 
