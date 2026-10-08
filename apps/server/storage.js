@@ -13,7 +13,7 @@ import { advanceSupplyHistory, refreshSupplyAt, SUPPLY_RULES, settleSupplyAt } f
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 12;
+export const PLAYER_SCHEMA_VERSION = 13;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -265,6 +265,19 @@ export class WorldStorage {
       migrated = true;
       player.mailbox = { messages: [], readReportIds: player.military.reports.map(report => report.id) };
       player.schemaVersion = 12;
+    }
+    if (player.schemaVersion === 12) {
+      migrated = true;
+      player.city.resources.oil ??= 0;
+      player.military.units.truck ??= 0;
+      normalizeResearch(player.city);
+      for (const slot of allSlots(player.city)) if (slot.investment?.paid) slot.investment.paid.oil ??= 0;
+      for (const job of player.military.trainingQueue) {
+        const slot = player.city.militarySlots.find(s => s.id === (job.trainingSlotId ?? job.barracksSlotId));
+        if (!slot || slot.building !== 'barracks' || !['infantry', 'scout'].includes(job.unit)) throw new Error('Inkonsistenter alter Ausbildungsauftrag.');
+        job.trainingSlotId ??= job.barracksSlotId;
+      }
+      player.schemaVersion = 13;
     }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
     normalizeOfficers(player);
