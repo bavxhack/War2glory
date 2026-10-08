@@ -247,9 +247,6 @@ export class WorldStorage {
       const { player, mission: scheduledMission, at } = event;
       Object.assign(player, advanceSupply(player, at, this.world.supplyActivatedAt, { deferLossAtEnd: true }));
       const mission = player.military.missions.find(candidate => candidate.id === scheduledMission.id);
-      const completedTraining = player.military.trainingQueue.filter(job => job.finishesAt <= at);
-      for (const job of completedTraining) player.military.units[job.unit] += job.amount;
-      player.military.trainingQueue = player.military.trainingQueue.filter(job => job.finishesAt > at);
       if (event.phase === 'arrival' && mission.status === 'outbound') {
         const npcIndex = this.world.map.entities.findIndex(entity => entity.id === mission.targetId && entity.kind === 'npc');
         if (npcIndex < 0) throw new Error('Einsatzziel existiert nicht mehr.');
@@ -308,9 +305,6 @@ export class WorldStorage {
     for (const player of players.values()) {
       const before = JSON.stringify([player.city, player.military, player.supply]);
       Object.assign(player, advanceSupply(player, now, this.world.supplyActivatedAt));
-      const completedTraining = player.military.trainingQueue.filter(job => job.finishesAt <= now && !job.pausedForSupply);
-      for (const job of completedTraining) player.military.units[job.unit] += job.amount;
-      player.military.trainingQueue = player.military.trainingQueue.filter(job => !completedTraining.includes(job));
       if (before !== JSON.stringify([player.city, player.military, player.supply])) changed.add(player.playerId);
     }
     if (worldChanged || changed.size) await this.#commitTransaction([...changed].map(id => players.get(id)), worldChanged);

@@ -111,3 +111,41 @@ test('Eine am Zeitrand zurückkehrende Versorgung verhindert die fällige Hunger
   assert.equal(settled.military.units.infantry, 20);
   assert.equal(settled.supply.events.length, 0);
 });
+
+for (const minutes of [30, 31, 35, 46]) test(`Schonfrist unabhängig von Abrufen bis Minute ${minutes}`, () => {
+  const initial = playerAt();
+  initial.city.buildingSlots[2].level = 0;
+  initial.city.resources.food = 0;
+  initial.military.units.infantry = 100;
+  const direct = advanceSupply(initial, minutes * 60_000, 0);
+  const split = advanceSupply(advanceSupply(initial, 10 * 60_000, 0), minutes * 60_000, 0);
+  assert.deepEqual(split.supply.events, direct.supply.events);
+  assert.equal(split.supply.events[0].at, 30 * 60_000);
+  assert.deepEqual(split.military.units, direct.military.units);
+});
+
+test('Unabhängige Unterhaltsrechnungen und unveränderte Trainingskosten', () => {
+  let p = playerAt(); p.city.buildingSlots[2].level = 0;
+  p.city.resources.food = 1000; p.military.units.infantry = 10;
+  assert.equal(advanceSupply(p, 60_000, 0).city.resources.food, 940);
+  p.city.buildingSlots[2].level = 1;
+  assert.equal(supplySummary(p).net, 0);
+  p.city.buildingSlots[2].level = 2; p.military.units.infantry = 30;
+  p.military.generals[0].attributes.leadership = 10;
+  p.military = assignMayor(p.military, 'general-p1');
+  assert.equal(supplySummary(p).production, 2.2);
+  assert.equal(advanceSupply(p, 60_000, 0).city.resources.food, 952);
+});
+
+test('Gebrochener Leerstandszeitpunkt: viele Schritte und exakte Verlustgrenze', () => {
+  const initial = playerAt(); initial.city.buildingSlots[2].level = 0;
+  initial.city.resources.food = 10; initial.military.units = { infantry: 80, scout: 20 };
+  const end = 10 / 9 * 1000 + 35 * 60_000;
+  const direct = advanceSupply(initial, end, 0);
+  let split = initial;
+  for (let t = 1234; t < end; t += 1234) split = advanceSupply(split, t, 0);
+  split = advanceSupply(split, end, 0);
+  assert.deepEqual(split.military.units, direct.military.units);
+  assert.equal(split.supply.events.length, 2);
+  for (let i = 0; i < 2; i++) assert.ok(Math.abs(split.supply.events[i].at - direct.supply.events[i].at) < 1e-6);
+});
