@@ -17,10 +17,10 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäude-/Kampfwertung umgesetzt; Forschungspunkte mit Auftrag 11 umgesetzt |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills und Universität/vier Stadtforschungen umgesetzt; zusätzliche Generäle und Forschungsleitung mit Auftrag 12 beauftragt |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills, Universität/vier Stadtforschungen, Offiziersbewerber und Forschungsleitung umgesetzt; neue Freischaltungen in Auftrag 13 beauftragt |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
-| 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
+| 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Auftrag 13 beauftragt; noch nicht als implementiert bestätigt |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -264,14 +264,14 @@ Die folgenden Forschungswerte sind Vorschläge des Planungschats für den Review
 ### Weitere Reihenfolge
 
 1. Auftrag 11 ist vom Nutzer als fertig bestätigt. Unterhaltsprüfung und Implementierungsgrenzen sind in docs/UPKEEP_AUDIT.md dokumentiert.
-2. Auftrag 12: zusätzliche Generäle rekrutieren und Forschungsleitung spielbar machen, einschließlich ENV-Parametern.
-3. Anschließend neue Forschungsfreischaltungen mit Ölraffinerien, Fahrzeugproduktion und LKW-Transport verbinden; konkrete Kosten, Ölverbrauch, Traglast und Kampfregeln vorher spezifizieren.
+2. Auftrag 12 ist abgeschlossen: Offiziersbewerber, steigende Rekrutierungskosten, Forschungsleitung und ENV-Parameter; zusätzlich Porträts und Postbox implementiert.
+3. Auftrag 13 verbindet neue Forschungsfreischaltungen mit Ölraffinerien, Fahrzeugproduktion und LKW-Farmzügen. Konkrete vorläufige Werte und Abnahmeregeln stehen in CODEX_PROMPT.md.
 4. Danach weitere Einheiten/Waffensysteme, Bündnisse, Handel, Unterstützung und PvP.
 5. Matrix-Anbindung und aktives Spielen zwischen Servern mit eigenen Identitäts-, Ereignis- und Vertrauensregeln; weiterhin Kernziel des Projekts.
 
-## Beauftragter Auftrag 12 vom 08.10.2026: Offiziersbewerber, steigende Kosten und Forschungsleitung
+## Umgesetzter Auftrag 12 vom 08.10.2026: Offiziersbewerber, steigende Kosten und Forschungsleitung
 
-Status: Anweisungen erstellt, noch nicht als implementiert bestätigt. Der vollständige ausführbare Auftrag steht in CODEX_PROMPT.md. Der Nutzer beauftragt nach Abschluss von Auftrag 11 den nächsten Schritt. Am 08.10.2026 bestätigt er zusätzlich die Bewerberauswahl mit unterschiedlichen Anfangsstärken und verlangt steigende Kosten für jeden weiteren General. Diese Fassung ersetzt identische Direktrekrutierungen. Konkrete Zahlen, Intervalle und Bonusformeln bleiben vorläufige eigene Balancevorschläge.
+Status: Der Nutzer bestätigt Auftrag 12 am 08.10.2026 als abgeschlossen; README und der Implementierungsabschnitt dokumentieren Bewerber und Forschungsleitung. Der frühere ausführbare Auftrag steht im Git-Verlauf von CODEX_PROMPT.md. Der Planungschat hat keine eigenen Anwendungstests durchgeführt. Der Nutzer beauftragt nach Abschluss von Auftrag 11 den nächsten Schritt. Am 08.10.2026 bestätigt er zusätzlich die Bewerberauswahl mit unterschiedlichen Anfangsstärken und verlangt steigende Kosten für jeden weiteren General. Diese Fassung ersetzt identische Direktrekrutierungen. Konkrete Zahlen, Intervalle und Bonusformeln bleiben vorläufige eigene Balancevorschläge.
 
 ### Spielbarer Ablauf
 
@@ -348,6 +348,79 @@ Gleiches vorläufiges Grundwertbudget 30, pro Pool drei verschiedene Profile aus
 
 Neue Technologien, Öl/LKWs, Forschungswarteschlange, Generalentlassung, Respec, PvP und Föderation folgen separat.
 
+## Beauftragter Auftrag 13 vom 08.10.2026: Ölwirtschaft und LKW-Farmzüge
+
+Status: Anweisungen erstellt, noch nicht als implementiert bestätigt. Nach bestätigtem Abschluss von Auftrag 12 wird der nächste geplante vollständige Spielablauf beauftragt. Der ausführbare Auftrag steht in CODEX_PROMPT.md. Neue Zahlen sind vorläufige eigene Balancevorschläge, keine Originalwerte.
+
+### Spielbarer Ablauf und Bestand
+
+Ölverarbeitung erforschen → zivile Raffinerie errichten → Motorisierung erforschen → Fahrzeugfabrik im Militärbereich errichten → LKWs herstellen → zusammen mit Infanterie einen NPC angreifen → begrenzte Nahrung zurückbringen.
+
+Bestehende Generäle, Profile, Bewerberpreise/-zyklen, Forschungsleitung, individuelle Porträts und Postbox bleiben erhalten. Ausgangsschema ist inzwischen 12 einschließlich Nachrichten/Lesestatus. Der Planungschat hat Code gelesen, keine Anwendungstests durchgeführt.
+
+### Forschung und Gebäude
+
+| Inhalt | Voraussetzung | Vorläufige Wirkung |
+| --- | --- | --- |
+| Ölverarbeitung, maximal Stufe 1 | Universität 1 | Schaltet zivile Ölraffinerie frei |
+| Motorisierung, maximal Stufe 1 | Universität 2, Ölverarbeitung 1, Lagerlogistik 1 | Schaltet militärische Fahrzeugfabrik und dortige LKW-Herstellung frei |
+| Ölraffinerie | Ölverarbeitung abgeschlossen | 1 Öl/Sekunde je fertiger Gebäudestufe |
+| Fahrzeugfabrik | Motorisierung abgeschlossen | Eigene sequenzielle Herstellungsqueue für LKWs |
+
+- Ölverarbeitung kostet 300 Holz/300 Stein und hat 120 Sekunden Grunddauer, Motorisierung 500/500 und 240 Sekunden.
+- Universität und Forschungsleitung reduzieren die Grunddauer nach bestehender Formel; Beispiel Motorisierung bei Universität 2/Führung 20: ceil(240 / (1,1 × 1,2)) = 182 Sekunden.
+- Neue Technologien sind Freischaltungen, keine zusätzlichen Produktionsfaktoren. Maximal eine abgeschlossene Stufe und jeweils 10 abgeleitete Forschungspunkte.
+- Bestehende vier Technologien unverändert. Weiter eine aktive Stadtforschung, keine Queue/Abbruchfunktion.
+- Raffinerie nur zivil, Fabrik nur militärisch; keine zusätzlichen Bauplätze. Beide zunächst bestehende Baukosten-/Zeitkurve und Höchststufe.
+- Kein Öl als Einstiegskosten, keine Rohöl-Verarbeitungskette. Freischaltungen bleiben nach Universitätsabriss erhalten.
+- Öl startet bei 0; Lagerbasis 2000, Raffinerie +250 je Stufe oberhalb 1, Lagerhaus +500 je Stufe, Lagerlogistik wie bei anderen Ressourcen.
+- Beispiel Raffinerie 2/Lagerhaus 1/Lagerlogistik 2: floor((2000 + 250 + 500) × 1,10) = 3025 Kapazität ohne kostenlose Vorräte.
+- Ölproduktion ab echtem Bauabschluss; Abriss, Investitionsnachweise und Überbestandsregeln erhalten.
+
+### LKW-Herstellung und Mobilmachung
+
+- Je LKW vorläufig 100 Holz/100 Stein, 10 Sekunden Grunddauer geteilt durch Fabrikstufe; kein Öl/Nahrung als einmaliger Herstellungspreis.
+- Drei Gruppen je Fabrik, maximal 1000 Einheiten je Gruppe, verschiedene Gebäude parallel. Hungerpause, Ausbau-/Abrisssperren und persistente Abschlüsse wie vorhandene Kasernenqueues.
+- Infanterie/Späher bleiben in Kasernen. Fahrzeugfabrik ersetzt keine Kaserne für Bewerber.
+- LKW trägt standardmäßig 200 Nahrung, hat keine Kampfkraft und verbraucht 180 Nahrung/Stunde; Infanterie trägt weiter 20.
+- Laufender Nahrungsunterhalt und einmalige Mobilmachung mit Öl bleiben getrennt.
+- Öl je Einheit/Feld/einfache Strecke: Infanterie 0, Späher 0, LKW 1. Distanzfelder max(1, ceil(Luftlinie)).
+- Gesamtöl = ceil(2 × Distanzfelder × Summe(Anzahl × Typ-Ölrate)); Hin- und Rückweg vollständig beim Start bezahlen.
+- Beispiel 20 Infanteristen/4 LKWs über 5 Felder: 2 × 5 × 4 = 40 Öl. Keine Rückweg-Nachbelastung oder Verlust-Erstattung.
+- Bisherige Reisegeschwindigkeit bleibt vorläufig bestehen, keine Wegfindung/Geländekosten.
+
+### Gemischte Farmzüge und Verluste
+
+- Mindestens eine Infanterie beim Start, LKWs optional. Keine reinen LKW-Angriffe, keine Späher im Farmzug; 10.000 Einheiten maximal über alle Typen.
+- Generalboni beim Start festschreiben. Infanteriekampf unverändert; LKWs verbessern weder Angriff noch Schutz der Infanterie.
+- LKW-Kampfverluste = ceil(LKW-Zahl beim Kampf × Infanterieverluste im Kampf / Infanteriezahl beim Kampf), auf vorhandene LKWs begrenzen. Ohne Infanterieverlust kein LKW-Kampfverlust.
+- Bei Ankunft ohne Infanterie durch Hunger fällt Angriff aus; verbliebene LKWs kehren planmäßig ohne Beute/Kampfbelohnung zurück.
+- Nach Kampf Traglast aus Überlebenden aller Typen bilden; nur tatsächliche gemeinsame NPC-Nahrung plündern.
+- Beispiel ohne Boni 20 Infanteristen/4 LKWs gegen 10 Verteidiger: 5 Infanterie- und 1 LKW-Verlust, verbleibende Kapazität 15 × 20 + 3 × 200 = 900. NPC-Vorrat begrenzt Beute zusätzlich.
+- Niederlage bringt keine Beute, aber Überlebende kehren zurück. General überlebt gemäß bisherigen Regeln.
+- LKWs erhalten typabhängigen Nahrungsunterhalt und Hungerverluste auch unterwegs; keine Doppelzählung oder Unterhalt vor Fertigstellung.
+- Rückwegverlust reduziert Traglast und entfernt überzählige Ladung dauerhaft: 900 Nahrung mit 15 Infanteristen/3 LKWs, dann 1 LKW verloren → 700 Traglast, 200 Nahrung verloren.
+- Beute erst bei Rückkehr bis freies Heimatlager einlagern, Überlauf wie bisher. Keine Rückgabe verlorener Nahrung an NPC.
+- Neue Kampfwertung: NPC-Verluste minus eigene Infanterie- und LKW-Kampfverluste. Beispiel 10 − 5 − 1 = +4 Punkte. Hunger nicht zusätzlich werten.
+- General-XP weiterhin 2 je getötetem NPC-Verteidiger, Beispiel 20 XP; keine Erfahrung für Transportmenge.
+- Neue Missionsversion; alte laufende Einsätze und historische Berichte der Versionen 1–3 unverändert weiterverarbeiten.
+
+### ENV, Migration und Oberfläche
+
+- UPKEEP_TRUCK_PER_HOUR=180, OIL_INFANTRY_PER_FIELD=0, OIL_SCOUT_PER_FIELD=0, OIL_TRUCK_PER_FIELD=1 und TRUCK_CARGO_CAPACITY=200.
+- Native/Compose-Weitergabe und zentrale Validierung; Null bei Unterhalt/Öl zulässig, Ölraten auf feste Tausendstelbasis, Kapazität positive Ganzzahl.
+- Unterhaltsänderungen über vorhandene Regelhistorie; Öl/Traglast für laufende Missionen eingefroren. Keine rückwirkende Ölschuld oder Fristenresets.
+- Neue Ressource, Einheiten, zwei Forschungsstufen und Migration ab Schema 12 mit Null ergänzen; alte Ressourcen, Queues, Generalporträts, Nachrichten und Lesestatus erhalten.
+- Forschungs-/Bau-/Herstellungsvoraussetzungen serverseitig prüfen; Ölzahlung, General/Truppenbindung und Wiederholungsbeleg gemeinsam speichern.
+- Bestehendes Journal schützt weiterhin gemeinsamen NPC-Abzug und Beute. Ein großer Offline-Zeitschritt muss dasselbe ergeben wie viele kleine.
+- React zeigt Ölwirtschaft, Fabrik/LKW-Produktion und gemischte Einsatzvorschau. Starttraglast ist keine garantierte Beute; private NPC-Werte bleiben verborgen.
+- Vorhandene Postbox erweitert Berichte um Typmengen, Kampf-/Hungerverluste, Öl, Ladungsverlust, Einlagerung und Überlauf. Alte Berichte/Lesestatus erhalten.
+- Codex führt Tests, Build und vollständigen manuellen Ablauf aus, dokumentiert in docs/LOGISTICS_VALIDATION.md und liefert einen PR. Dieser Planungschat ändert keine Spiellogik.
+
+### Danach
+
+Zunächst Logistikkreislauf und Spieltempo bewerten. Weitere Rohstoffbeute, Handel/Unterstützung, PvP und zusätzliche militärische Technologien separat spezifizieren. Matrix-Föderation bleibt Kernziel; Identitäten, Regeln und Vertrauen benötigen weiterhin eine eigene Etappe.
+
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 
 Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung und Skillgrundlage sind mit Auftrag 7 laut Nutzer und Repository-Dokumentation umgesetzt; die Aktivierung wurde mit Auftrag 10 umgesetzt. Rekrutierung und Forschungsleitung sind Gegenstand des beauftragten Auftrags 12. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
@@ -387,7 +460,7 @@ Technischer Vorschlag für die Kostenbasis: insgesamt erworbene Skillpunkte eins
 
 ## Geplante Logistik: Traglast, LKWs und Öl
 
-Nutzerergänzung vom 28.09.2026. Typabhängige Traglast ist laut Repository-Dokumentation mit Auftrag 8 eingeführt. Auftrag 9 ergänzt ihre Verringerung bei Hungerverlusten unterwegs. LKWs und Öl bleiben spätere Erweiterungen.
+Nutzerergänzung vom 28.09.2026. Typabhängige Traglast ist mit Auftrag 8 eingeführt; Auftrag 9 ergänzt Kapazitätsverlust durch Hunger. Öl/LKWs sind jetzt Gegenstand des beauftragten Auftrags 13. Dessen konkrete Prototypregeln stehen im neuen Abschnitt; die folgenden ursprünglichen Fragen bleiben als Anforderungshistorie erhalten.
 
 ### Bestätigte Anforderungen
 
@@ -538,7 +611,7 @@ Auftrag 5 konkretisiert die Ausbauetappe mit ausdrücklich vorläufigen Arbeitsv
 
 Der nach Auftrag 7 dokumentierte Vorschlag einer manuellen Umrechnung mit 10 × n XP wird in Auftrag 10 als vorläufiger Regelsatz aufgegriffen. Führung wirkt bereits seit Auftrag 9 beim Bürgermeister; Auftrag 10 ergänzt den Beitrag zugewiesener Punkte und begrenzte militärische Boni.
 
-Noch offen bleiben endgültige Balance, Rücksetzung/Umverteilung und Wirkungen zukünftiger Forschungs-/Waffensysteme. Rekrutierung zusätzlicher Generäle und Forschungsleitung sind mit vorläufigen Regeln in Auftrag 12 beauftragt. Das aufgehobene militärische Führungslimit wird nicht wiederhergestellt. Die ursprüngliche Vorschlagsfassung bleibt im Git-Verlauf erhalten.
+Noch offen bleiben endgültige Balance, Rücksetzung/Umverteilung und Wirkungen zukünftiger Forschungs-/Waffensysteme. Rekrutierung zusätzlicher Generäle und Forschungsleitung sind mit vorläufigen Regeln in Auftrag 12 umgesetzt. Das aufgehobene militärische Führungslimit wird nicht wiederhergestellt. Die ursprüngliche Vorschlagsfassung bleibt im Git-Verlauf erhalten.
 
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
