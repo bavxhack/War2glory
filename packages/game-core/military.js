@@ -181,7 +181,8 @@ export function startScoutMission(previous, command, now, origin, target) {
   const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
   const travelMs = Math.max(MILITARY_RULES.minimumTravelMs, Math.ceil(distance) * MILITARY_RULES.scoutTravelMsPerField);
   military.units.scout -= command.scouts; general.status = 'scouting';
-  military.missions.push({ id: command.id, targetId: target.id, targetName: target.name, coordinates: { x: target.x, y: target.y }, generalId: general.id, generalName: general.name, scouts: command.scouts, status: 'outbound', startedAt: now, arrivesAt: now + travelMs, returnsAt: now + 2 * travelMs });
+  military.missions.push({ id: command.id, targetId: target.id, targetName: target.name, coordinates: { x: target.x, y: target.y }, generalId: general.id, generalName: general.name,
+    scouts: command.scouts, initialScouts: command.scouts, status: 'outbound', startedAt: now, arrivesAt: now + travelMs, returnsAt: now + 2 * travelMs });
   return military;
 }
 
@@ -210,6 +211,6 @@ export function startRaidMission(previous, command, now, origin, target, eventSe
   general.status = 'raiding';
   military.missions.push({ id: command.id, type: 'raid', ruleset: MILITARY_RULES.raidRuleset, eventSequence, targetId: target.id,
     targetName: target.name, coordinates: { x: target.x, y: target.y }, generalId: general.id, generalName: general.name,
-    infantry: command.infantry, status: 'outbound', startedAt: now, arrivesAt: now + travelMs, returnsAt: now + 2 * travelMs });
+    infantry: command.infantry, initialInfantry: command.infantry, status: 'outbound', startedAt: now, arrivesAt: now + travelMs, returnsAt: now + 2 * travelMs });
   return military;
 }

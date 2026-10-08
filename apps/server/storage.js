@@ -2,12 +2,13 @@ import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallbac
 import { copyFile, mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
-import { advanceCity, allSlots, constructionQuote, newCity, resourceCapacities, RULESET } from '../../packages/game-core/index.js';
+import { allSlots, constructionQuote, newCity, resourceCapacities, RULESET } from '../../packages/game-core/index.js';
 import { generalLevel, newMilitary, normalizeGeneral, resolveNpcCombat } from '../../packages/game-core/military.js';
+import { advanceSupply, settleSupplyAt } from '../../packages/game-core/supply.js';
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 6;
+export const PLAYER_SCHEMA_VERSION = 7;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -77,6 +78,10 @@ export class WorldStorage {
       await atomicWrite(this.worldFile, this.world);
     } else if (this.world.schemaVersion !== WORLD_SCHEMA_VERSION || !this.world.map) {
       throw new Error(`Unbekannte Welt-Schemaversion: ${this.world.schemaVersion}.`);
+    }
+    if (!Number.isFinite(this.world.supplyActivatedAt)) {
+      this.world.supplyActivatedAt = this.clock();
+      await atomicWrite(this.worldFile, this.world);
     }
     await this.#assignMissingLocations();
     await this.advanceWorld(this.clock());
@@ -193,6 +198,12 @@ export class WorldStorage {
       migrated = true;
       player.military.combatScore ??= 0;
       for (const mission of player.military.missions) mission.type ??= 'scout';
+      player.schemaVersion = 6;
+    }
+    if (player.schemaVersion === 6) {
+      migrated = true;
+      player.military.mayorGeneralId ??= null;
+      player.supply = { version: 1, activatedAt: this.world.supplyActivatedAt, updatedAt: Math.max(this.world.supplyActivatedAt, player.city.updatedAt), shortageMs: 0, recoveryStartedAt: null, nextLossAt: null, events: [] };
       player.schemaVersion = PLAYER_SCHEMA_VERSION;
     }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
@@ -219,9 +230,10 @@ export class WorldStorage {
     events.sort((a, b) => a.at - b.at || a.sequence - b.sequence || a.player.playerId.localeCompare(b.player.playerId) || a.phase.localeCompare(b.phase));
     let worldChanged = false;
     const changed = new Set();
-    for (const event of events) {
-      const { player, mission, at } = event;
-      player.city = advanceCity(player.city, at);
+    for (const [eventIndex, event] of events.entries()) {
+      const { player, mission: scheduledMission, at } = event;
+      Object.assign(player, advanceSupply(player, at, this.world.supplyActivatedAt, { deferLossAtEnd: true }));
+      const mission = player.military.missions.find(candidate => candidate.id === scheduledMission.id);
       const completedTraining = player.military.trainingQueue.filter(job => job.finishesAt <= at);
       for (const job of completedTraining) player.military.units[job.unit] += job.amount;
       player.military.trainingQueue = player.military.trainingQueue.filter(job => job.finishesAt > at);
@@ -230,17 +242,19 @@ export class WorldStorage {
         if (npcIndex < 0) throw new Error('Einsatzziel existiert nicht mehr.');
         const npc = advanceNpc(this.world.map.entities[npcIndex], at);
         if (mission.type === 'raid') {
-          const combat = resolveNpcCombat(mission.infantry, npc.garrison.amount);
+          const attackers = mission.result?.survivors ?? mission.infantry;
+          const combat = attackers > 0 ? resolveNpcCombat(attackers, npc.garrison.amount) : { victory: false, attackerLosses: 0, defenderLosses: 0, survivors: 0 };
           npc.garrison.amount -= combat.defenderLosses;
           npc.garrison.updatedAt = at;
           const availableFood = Math.floor(npc.resources.food.amount);
           const loadedFood = combat.victory ? Math.min(combat.survivors * 20, availableFood) : 0;
           npc.resources.food.amount -= loadedFood;
           mission.result = { ...combat, loadedFood, capacity: combat.survivors * 20, generalExperience: combat.defenderLosses * 2,
-            combatScore: combat.defenderLosses - combat.attackerLosses, defenders: combat.defenderLosses + npc.garrison.amount };
+            combatScore: combat.defenderLosses - combat.attackerLosses, defenders: combat.defenderLosses + npc.garrison.amount, hungerLosses: mission.hungerLosses ?? 0 };
         } else {
-          mission.intelligence = { capturedAt: at, food: { amount: npc.resources.food.amount, capacity: npc.resources.food.capacity },
-            garrison: { amount: npc.garrison.amount, capacity: npc.garrison.capacity } };
+          mission.intelligence = mission.scouts > 0
+            ? { capturedAt: at, food: { amount: npc.resources.food.amount, capacity: npc.resources.food.capacity }, garrison: { amount: npc.garrison.amount, capacity: npc.garrison.capacity } }
+            : null;
         }
         this.world.map.entities[npcIndex] = npc;
         mission.status = 'returning';
@@ -262,14 +276,26 @@ export class WorldStorage {
           player.military.combatScore += result.combatScore;
           if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'raid', missionId: mission.id,
             targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, startedAt: mission.startedAt,
-            arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, infantry: mission.infantry, ...result, storedFood, overflowFood: result.loadedFood - storedFood, ruleset: mission.ruleset });
+            arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, infantry: mission.initialInfantry ?? mission.infantry + (mission.hungerLosses ?? 0), ...result,
+            hungerLosses: mission.hungerLosses ?? 0, originalLoadedFood: result.loadedFood + (mission.foodLostInTransit ?? 0), foodLostInTransit: mission.foodLostInTransit ?? 0,
+            storedFood, overflowFood: result.loadedFood - storedFood, ruleset: mission.ruleset });
         } else {
           player.military.units.scout += mission.scouts;
-          if (!player.military.rewardedNpcIds.includes(mission.targetId)) { player.military.rewardedNpcIds.push(mission.targetId); general.experience += 10; general.level = generalLevel(general.experience); general.leadership = general.level * 20; }
+          if (mission.intelligence && !player.military.rewardedNpcIds.includes(mission.targetId)) { player.military.rewardedNpcIds.push(mission.targetId); general.experience += 10; general.level = generalLevel(general.experience); general.leadership = general.level * 20; }
           if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'scout', missionId: mission.id, targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, coordinates: mission.coordinates, capturedAt: mission.intelligence?.capturedAt, returnedAt: mission.returnsAt, intelligence: mission.intelligence });
         }
       } else continue;
       changed.add(player.playerId);
+      const hasAnotherPlayerEventAtSameTime = events.slice(eventIndex + 1).some(candidate => candidate.at === at && candidate.player.playerId === player.playerId);
+      if (!hasAnotherPlayerEventAtSameTime) Object.assign(player, settleSupplyAt(player, at));
+    }
+    for (const player of players.values()) {
+      const before = JSON.stringify([player.city, player.military, player.supply]);
+      Object.assign(player, advanceSupply(player, now, this.world.supplyActivatedAt));
+      const completedTraining = player.military.trainingQueue.filter(job => job.finishesAt <= now && !job.pausedForSupply);
+      for (const job of completedTraining) player.military.units[job.unit] += job.amount;
+      player.military.trainingQueue = player.military.trainingQueue.filter(job => !completedTraining.includes(job));
+      if (before !== JSON.stringify([player.city, player.military, player.supply])) changed.add(player.playerId);
     }
     if (worldChanged || changed.size) await this.#commitTransaction([...changed].map(id => players.get(id)), worldChanged);
     return players;
