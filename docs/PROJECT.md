@@ -13,11 +13,11 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 1b | Stufenabhängige Lagerkapazitäten, ausbaubares Lagerhaus und Gebäudeabriss mit Teilrückerstattung | Implementiert als Prototyp; Balance und Altbestandsregel bleiben zu prüfen |
 | 2 | Konten, eigene Stadt pro Spieler, Berechtigungen und JSON-Migrationen | Implementiert (JSON-Prototyp) |
 | UI | React-/Vite-Migration der vorhandenen Oberfläche bei unveränderter Spiellogik | Implementiert mit Auftrag 6 |
-| Konfiguration | Weltgröße, NPC-Anzahl und Versorgung per validierter ENV mit gespeicherten Regelversionen | Aktueller Auftrag 11 |
+| Konfiguration | Weltgröße, NPC-Anzahl und Versorgung per validierter ENV mit gespeicherten Regelversionen | Implementiert mit Auftrag 11; versionierte Regeln und geprüfte Grenzen |
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
-| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäude-/Kampfwertung umgesetzt; Forschungspunkte in Auftrag 11 |
+| P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäude-/Kampfwertung umgesetzt; Forschungspunkte mit Auftrag 11 umgesetzt |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills umgesetzt; Universität und erste Forschung in Auftrag 11, Forschungsgeneral später |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills umgesetzt; Universität und vier Stadtforschungen mit Auftrag 11 umgesetzt; Forschungsgeneral später |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
@@ -47,7 +47,7 @@ Die Obergrenze von drei Aufträgen, neun Bauplätze sowie alle Kosten und Bauzei
 - Die responsive Stadtlandschaft verwendet selbst erstellte CSS-Gebäude, Wege und sichtbare Baustellen.
 - Die alte Demo-Stadt wird nur durch einen ausdrücklichen Betreiberbefehl einem gewählten Konto zugeordnet.
 
-Datenbank, Passwortwiederherstellung, E-Mail-Verifikation und produktiver Mehrprozessbetrieb bleiben geplant. Matrix-Föderation, NPC-Städte und Generäle gehören weiterhin zu späteren Etappen.
+Datenbank, Passwortwiederherstellung, E-Mail-Verifikation und produktiver Mehrprozessbetrieb bleiben geplant. NPC-Städte und Generäle sind inzwischen implementiert; aktive Matrix-Föderation bleibt geplant.
 
 ## Implementierter Stand von Etappe 3a
 
@@ -75,7 +75,7 @@ Diese Grundfunktionen werden in der aktuellen README als Prototyp beschrieben. D
 Die folgenden Werte wurden vom Planungschat zur Konkretisierung des Codex-Auftrags vorgeschlagen. Sie sind keine einzeln vom Nutzer bestätigten Balanceentscheidungen und keine Originalwerte von War2Glory. Codex soll sie konfigurierbar umsetzen und im Pull Request ausdrücklich zur Prüfung ausweisen:
 
 - Gebäudepunkte: 10 × Summe der fertiggestellten Gebäudelevel. Drei Gebäude auf Stufe 1 ergeben 30 Punkte; ein Upgrade auf Stufe 2 erhöht die Summe auf 40. Spätere Abrisse entfernen den jeweiligen Gebäudebeitrag.
-- Punkteübersicht zunächst nur für den Eigentümer; keine öffentliche Rangliste. Forschungs- und Kampfwertung noch inaktiv, keine erfundenen historischen Beiträge.
+- Punkteübersicht zunächst nur für den Eigentümer; keine öffentliche Rangliste. Historisch in Auftrag 4 waren Forschungs- und Kampfwertung inaktiv; seit Auftrag 8/11 aktiv, ohne erfundene historische Beiträge.
 - Genau ein kostenloser Startgeneral pro Kommandant. General-Erfahrung bleibt von Kommandantenpunkten getrennt.
 - Generallevel L ab insgesamt 50 × L × (L − 1) Erfahrung; vorläufig maximal Level 10. Führungskapazität: 20 × Level Einheiten.
 - Erste zurückgekehrte Aufklärung je Kommandant und NPC-ID: 10 Erfahrung für den eingesetzten General; keine erneute Erstbelohnung beim gleichen Ziel.
@@ -124,7 +124,7 @@ Der Nutzer bestätigt am 29.09.2026 die Umsetzung der Generäle. README und Prot
 - Echte Umrechnung und neue Bonuswirkungen bleiben im regulären Spiel serverseitig deaktiviert, bis Kostenkurve, Umrechnungsart und Wirkungen festgelegt sind. Das blockiert nicht die aktive Generalverwaltung.
 - Vorhandene XP, Level, Führungskapazitäten, aktive Einsätze und die bisherige Erstzielbelohnung je Kommandant/NPC bleiben erhalten.
 - Daten bleiben privat, serverseitig geprüft, über WebSocket übertragen und in JSON gespeichert. Keine erneute Frontendmigration.
-- Codex liefert neben Implementierung und Prüfungen einen getrennten Vorschlag für die noch offenen Skillregeln. Bürgermeister, Forschungsgeneral und Kampferfahrung bleiben spätere Aufgaben.
+- Codex liefert neben Implementierung und Prüfungen einen getrennten Vorschlag für die noch offenen Skillregeln. Bürgermeister und Kampferfahrung sind inzwischen umgesetzt; Forschungsgeneral bleibt eine spätere Aufgabe.
 
 ## Umgesetzter Auftrag 8: NPC-Farmzüge
 
@@ -146,7 +146,7 @@ Dies sind neue Arbeitsvorschläge des Planungschats, keine einzeln bestätigten 
 - Garnisonsmaximum: 5 × NPC-Schwierigkeitsstufe; Wiederaufbau ein Verteidiger je 300 Sekunden bis zum Maximum. Vorhandene Nahrungsraten und Kapazitäten erhalten und aktivieren.
 - Einfaches Mengenmodell mit A angreifenden Infanteristen und D Verteidigern: bei A > D Sieg, D NPC-Verluste und ceil(D/2) eigene Verluste; bei A <= D und D > 0 Niederlage, A eigene Verluste und floor(A/2) NPC-Verluste. Bei D = 0 keine Verluste und keine Kampfbelohnung.
 - General überlebt vorläufig jede Niederlage und kehrt nach normaler Rückreise allein zurück; verlorene Einheiten werden nicht ersetzt.
-- Für Aufklärung und Farmzüge ist derzeit kein Führungslimit aktiv. Einheiten müssen stationiert und ungebunden sein; der Führungswert bleibt bis zu einem später abgestimmten Regelsatz rein informativ.
+- Für Aufklärung und Farmzüge ist derzeit kein Führungslimit aktiv. Einheiten müssen stationiert und ungebunden sein; Führung wirkt seit Auftrag 9/10 auf Bürgermeisterproduktion, ohne militärisches Einheitenlimit.
 - Pro Einsatz gilt ein serverseitiges Maximum von insgesamt 10.000 entsendeten Einheiten über alle beteiligten Typen. Die später vorgesehene Reichweitenbegrenzung durch Nahrung ist noch nicht implementiert.
 - Infanterie trägt 20 Nahrung je Überlebendem. Späher/Aufklärungsflugzeuge tragen 0 und sind für Farmangriffe nicht zugelassen; LKWs folgen später.
 - Beute = Minimum aus verbleibender Traglast und abgerundetem tatsächlichen NPC-Vorrat, nur bei Sieg.
@@ -184,7 +184,7 @@ Die folgenden Werte und Detailregeln stammen vom Planungschat. Sie sind keine ei
 - Ein Bürgermeister je Stadt; General kann nicht gleichzeitig Bürgermeister und Missionsführer sein. Ernennung, Wechsel und Abberufung gelten ab tatsächlichem Zeitpunkt, auch offline.
 - Bürgermeisterbonus = min(50 Prozent, Führung × 1 Prozent). Nur vorhandenen serverseitigen Eigenschaftswert verwenden, nicht das frühere Führungslimit als Ersatz. Keine neue Skillvergabe.
 - Beispiel: Führung 10 ergibt 10 Prozent mehr Nahrung. Grundproduktion 2 Nahrung/Sekunde wird 2,2. Mit 30 Infanteristen (Verbrauch 3) beträgt die Bilanz −0,8 pro Sekunde; 480 Nahrung reichen bei unveränderten Raten 600 Sekunden.
-- Bonus wirkt auf Produktion, nicht Beute, Lagerkapazität oder andere Rohstoffe. Skillumrechnung, militärische Skillboni und Forschungsgeneral bleiben deaktiviert.
+- Bonus wirkt auf Produktion, nicht Beute, Lagerkapazität oder andere Rohstoffe. Historisch waren Skills hier deaktiviert; seit Auftrag 10 aktiv. Forschungsgeneral bleibt offen.
 - Kein Wiederherstellen des inzwischen entfernten Führungslimits; vorhandene Grenze von insgesamt 10.000 Einheiten je Einsatz bleibt.
 - Bestehendes Transaktionsjournal und globale Ereignisreihenfolge erweitern. Keine rückwirkenden Unterhaltskosten vor dauerhaft festgehaltenem Einführungszeitpunkt.
 
@@ -218,9 +218,9 @@ Diese Werte sind neue Arbeitsvorschläge des Planungschats bzw. greifen den best
 - Beispiel: 10 Angreifer gegen 20 Verteidiger verlieren weiterhin; mit 10 Verteidigungspunkten gehen 8 statt 10 Angreifer verloren, 2 kehren ohne Beute zurück.
 - Die konkreten Formeln, Rundungen, Migrationsregeln und Tests stehen in CODEX_PROMPT.md und werden im PR zur Prüfung dokumentiert.
 
-## Aktueller Auftrag 11 vom 08.10.2026: Unterhaltsprüfung, ENV-Konfiguration und Forschung
+## Umgesetzter Auftrag 11 vom 08.10.2026: Unterhaltsprüfung, ENV-Konfiguration und Forschung
 
-Der Nutzer beauftragt Universität/erste Forschungen gemeinsam mit konfigurierbarer Weltgröße und Truppenunterhalt und bittet um Prüfung möglicherweise zu hoher oder falsch berechneter Unterhaltskosten. CODEX_PROMPT.md enthält den ausführbaren Auftrag. Noch nicht als implementiert bestätigt.
+Der Nutzer beauftragt Universität/erste Forschungen gemeinsam mit konfigurierbarer Weltgröße und Truppenunterhalt und bittet um Prüfung möglicherweise zu hoher oder falsch berechneter Unterhaltskosten. CODEX_PROMPT.md enthält den ausführbaren Auftrag. Als Prototyp implementiert; vorläufige Balancewerte bleiben zur Prüfung.
 
 ### Priorität und vorläufige Codeprüfung
 
@@ -263,7 +263,7 @@ Die folgenden Forschungswerte sind Vorschläge des Planungschats für den Review
 
 ### Weitere Reihenfolge
 
-1. Auftrag 11: Unterhaltsprüfung/Fixes, ENV-Konfiguration und Universität/Wirtschaftsforschung.
+1. Auftrag 11 ist implementiert: Unterhaltsprüfung/Fixes, ENV-Konfiguration und Universität/Wirtschaftsforschung. Testergebnisse und Grenzen stehen in docs/UPKEEP_AUDIT.md.
 2. Forschungsgeneral, zusätzliche Forschungszweige/Freischaltungen und Regeln zur Rekrutierung weiterer Generäle.
 3. LKWs, Ölwirtschaft und weitere Einheiten/Waffensysteme.
 4. Bündnisse, Handel, Unterstützung, PvP und aktive Föderation gemäß bisherigen Zielen.
@@ -460,7 +460,7 @@ Noch offen bleiben endgültige Balance, Rücksetzung/Umverteilung, Rekrutierung 
 
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
-Die ersten Wirtschafts-/Lagerforschungen und der Gebäudetyp Universität sind Gegenstand des aktuellen Auftrags 11. Noch nicht als implementiert bestätigt. Der obige Abschnitt konkretisiert den ersten Prototyp; spätere Freischaltungen und Forschungsgeneral bleiben offen.
+Die ersten Wirtschafts-/Lagerforschungen und der Gebäudetyp Universität sind mit Auftrag 11 als Prototyp umgesetzt. Als Prototyp implementiert; vorläufige Balancewerte bleiben zur Prüfung. Der obige Abschnitt konkretisiert den ersten Prototyp; spätere Freischaltungen und Forschungsgeneral bleiben offen.
 
 ### Universität und Forschungsbereiche
 
@@ -541,3 +541,10 @@ Als Diskussionsgrundlage, noch nicht beschlossen: Gesamtpunkte setzen sich aus G
 3. Welche genaue General- und NPC-Mechanik soll aus deiner Erinnerung übernommen werden?
 
 Öffentliche Beschreibungen als Ausgangspunkt zur späteren Anforderungsaufnahme: https://www.browsergames.de/war2/ und https://www.mmogames.com/game/war2-glory/. Diese ersetzen keine vollständige Spezifikation.
+
+
+### Implementierungsstand Auftrag 11
+
+Der Audit bestätigt verschobene Hungertermine durch vorzeitigen Modulo und Bruchteil-Gleichheit. Gespeicherte nächste Verlustschwellen korrigieren dies; Standards 360/180 Nahrung pro Stunde bleiben erhalten. Reine Spielfunktionen bekommen wirksame Regeln explizit. Weltregelhistorie und Journal trennen alte Offlineintervalle vom Neustartwechsel; aktive Mangelzyklen bewahren ihre Fristen/Verluste. Kartenwerte gelten nur bei Neuanlage, geprüft von kleinen/rechteckigen Karten bis 64×64. Keine automatische Bestandskartenmigration.
+
+Universität und Forstwirtschaft/Steinverarbeitung/Landwirtschaft/Lagerlogistik sind spielbar. Spielerschema 9 erhält Altbestände und ergänzt Stufe 0, ohne historische Leistungen zu erfinden. Forschungspunkte werden abgeleitet. Produktion/Kapazität wechseln erst am Abschluss; Wissen bleibt nach Abriss erhalten. Ein laufender Forschungsauftrag, keine Warteschlange/Rückerstattung oder Forschungsgeneral. Protokoll, Balanceformeln und getestete Abläufe: README, docs/WEBSOCKET.md und docs/UPKEEP_AUDIT.md.

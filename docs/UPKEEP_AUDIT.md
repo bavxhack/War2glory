@@ -26,4 +26,36 @@ Ausbildungsabschlüsse gehören ausschließlich in die Versorgungssimulation. Zu
 
 ## Prüfumfang
 
-Nach der ersten Korrektur: alle 14 Versorgungstests bestanden, einschließlich der zuvor scheiternden Reproduktionen. Gesamtergebnisse und ENV-/Forschungsintegration werden bei Lieferung ergänzt. Browser-/Containerprüfungen werden nur als durchgeführt ausgewiesen, wenn sie tatsächlich ausgeführt wurden.
+Nach der ersten Korrektur: alle 14 Versorgungstests bestanden, einschließlich der zuvor scheiternden Reproduktionen. Die folgenden Ergebnisse stammen aus tatsächlichen lokalen Prüfungen.
+
+
+## Ergebnis der Gesamtprüfung
+
+Am 08.10.2026 unter Node.js 24.19.0:
+
+| Prüfung | Ergebnis / Beleg |
+| --- | --- |
+| Bestehende Suite vor Änderungen | 62/62 bestanden |
+| Unterhaltskorrektur | 68/68 bestanden; 14 gezielte Versorgungstests im Zwischenstand; 15 im Endstand |
+| ENV-Zwischenstand | 73/73 bestanden und Vite-Build erfolgreich |
+| Endstand | 87/87 Tests bestanden; `npm test` |
+| Frontend | `npm run build` erfolgreich, React/Vite 7.1.7 |
+| Native ENV-Startprüfung | wirkliche Node-CLI mit `.env`, Prozess-/CLI-Vorrang; gespeicherte 9×4-Karte/3 NPCs und 0,01/0,005 Nahrung/s |
+| Container | lokales AMD64-Image gebaut; isolierter Compose-Start mit eigenem Volume; identische gespeicherte Karte/Raten 36/18 pro Stunde ohne Client-Rebuild |
+| Browser | Chromium/Playwright, 1440×1000 und 390×844, getrennte Konten; Universität bauen → Vorschau → bestätigen → Abschluss → Forschungswirkung/Punkte → kleine rechteckige Karte/Suche → Logout/Login |
+| Browser-Unterhalt | zehn Infanteristen tatsächlich ausgebildet; vorher 0 im Unterhalt, anschließend `10 × 36 Nahrung/h`, getrennte Ausbildungsanzeige |
+| Mobile Sichtprüfung | keine horizontale Seitenüberbreite oder JavaScript-Fehler; nach Korrektur keine überlagernde Ressourcenleiste; Ertrags-/Lagerdetails aufklappbar |
+
+`test/config.test.js` belegt Standards/0/Dezimalwerte, ungültige Werte/Dateien, Vorrang, kleine/rechteckige und 64×64-Karten, unmögliche NPC-Belegung ohne gespeicherte Welt, unveränderte Bestandskarten, kostenlose sichtbare Truppen und voneinander unabhängige Regeln. Neustarttests rechnen Offlinezeit vor Übergang mit alten Raten und danach mit neuen, stellen alte Spielerjournalbilder mit Regelhistorie wieder her und erhalten aktive Mangelzyklusregeln bis Erholung.
+
+`test/research.test.js` belegt Universitätsbau/Gebiet/Investitionen, die 200/200- und 110-Sekunden-Rechnung, Voraussetzungen und atomare Ablehnung, genau einen Auftrag trotz mehrerer Gebäude, Produktions-/Lager-/Bürgermeisterformeln, Punkterechnung, Online-/Offlinegrenzen, Hunger/Erholung, Abrissbindung, unveränderte laufende Dauer bei Ausbau, erhaltenes Wissen nach Neubau und Abschluss vor Beuteeinlagerung bei gleichem Zeitpunkt. Journal-Schreibfehler nach Berechnung und Wiederherstellung im gleichen Prozess erzeugen keine doppelte Stufe oder Punkte.
+
+`test/server.test.js` belegt Forschungsaktionen mit zwei Verbindungen, eine Zahlung/einen Auftrag, abweichende Wiederholung, fremde Universität, private öffentliche Kartendetails, Speicherfehler ohne Abbuchung und Neustart/Deduplizierung. Bestehende Tests decken Skills, Bürgermeister, Farmzug-Verluste/Beute, Hunger, Lagergrenzen, Überbestand, Anmeldung und Sitzungen ab. Snapshot-Abrufe besitzen keinen separaten Abrechnungsweg.
+
+Zusätzlicher bestätigter Altbestandsfehler: Bei einer Stadtzeit vor Versorgungsaktivierung konnte die erste Stadtfortschreibung ihre aktuelle Unterhaltskorrektur auf die gesamte alte Stadtzeit anwenden. Jetzt wird dieses Vorintervall ausdrücklich ohne Unterhalt fortgeschrieben. Regression: 1000 Nahrung, zehn Infanteristen, Aktivierung bei 60 s, Abruf bei 120 s ergibt 940 (keine 120-Sekunden-Rechnung). Die ausdrückliche Demo-Übernahme ergänzt ebenfalls Forschungsdaten und liest die gleiche ENV-Konfiguration.
+
+## Grenzen und nicht durchgeführte Prüfungen
+
+Keine produktiven Daten, reales Langzeitdeployment oder Matrix-Föderation geprüft. Kein ARM64-Containerlauf und keine Prüfung anderer Browser als Chromium. Die lokale Containerprüfung nutzte eine nur für diese Umgebung angepasste Builddatei mit CA-Secret für den vorgeschriebenen Proxy; die Projekt-Dockerdatei und TLS-Prüfung bleiben unverändert. Kritische Absturzfenster werden durch deterministische Journal-/Schreibfehler und Neustarts geprüft; keine Behauptung vollständiger Hardware-/Stromausfallsicherheit. JSON-Speicherung bleibt auf genau einen Prozess je Welt beschränkt.
+
+Vorläufige Forschungskosten, 5-Prozent-Faktoren, Universitätsbeschleunigung und Forschungspunkte sowie bestehende Versorgungsbalance bleiben Reviewwerte. Keine automatische Senkung, keine rückwirkenden Kampfbonusänderungen und keine historischen Ersatzbuchungen.
