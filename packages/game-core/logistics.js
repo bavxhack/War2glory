@@ -1,6 +1,6 @@
 import { combatBonuses, effectiveAttributes, MILITARY_RULES, validateMissionUnits } from './military.js';
 
-export const LOGISTICS_RULES = Object.freeze({ version: 'logistics-1-provisional', oilMilliPerField: Object.freeze({ infantry: 0, scout: 0, truck: 1000 }), cargoPerUnit: Object.freeze({ infantry: 20, scout: 0, truck: 200 }) });
+export const LOGISTICS_RULES = Object.freeze({ version: 'logistics-2-provisional', oilMilliPerField: Object.freeze({ infantry: 100, scout: 500, truck: 1000 }), cargoPerUnit: Object.freeze({ infantry: 20, scout: 0, truck: 200 }) });
 export const LOGISTICS_RAID_RULESET = 'npc-pve-4-logistics-provisional';
 
 // Legacy scalar missions are read only through this adapter. New missions have one authoritative inventory.

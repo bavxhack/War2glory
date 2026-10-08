@@ -82,20 +82,20 @@ Vorläufige Werte:
 
 | Typ | Kampfwirkung | Nahrungstraglast | Nahrung pro Stunde | Öl je Einheit/Feld/einfache Strecke |
 | --- | --- | --- | --- | --- |
-| Infanterie | Bestehende Kampfformel | 20 | Bestehende ENV, Standard 360 | 0 |
-| Späher | Bisherige Aufklärung, nicht in Farmzügen | 0 | Bestehende ENV, Standard 180 | 0 |
+| Infanterie | Bestehende Kampfformel | 20 | Bestehende ENV, Standard 360 | 0,1 |
+| Späher | Bisherige Aufklärung, nicht in Farmzügen | 0 | Bestehende ENV, Standard 180 | 0,5 |
 | LKW | 0 Angriff, keine zusätzliche Kampfstärke/Schutzwirkung | 200 | 180 | 1 |
 
 - LKW ist transportfähig, nicht unverwundbar. Keine Erhöhung der Infanteriestärke, Siegchance oder Verringerung ihrer Verluste allein durch mehr LKWs.
-- Die Ölstandards 0 für bestehende Einheiten vermeiden eine neue zwingende Ölhürde für bisherige reine Infanterie-/Spähereinsätze. Betreiber können typabhängige Raten ändern.
+- Nutzerergänzung nach Umsetzung: Auch reine Infanterieangriffe und Aufklärungen kosten standardmäßig Öl. Vorläufige neue Standards sind 0,1 für Infanterie und 0,5 für Späher je Feld/einfache Strecke. Zuerst Ölverarbeitung erforschen und eine Raffinerie bauen; Betreiber können typabhängige Raten weiterhin ändern.
 - Fahrgeschwindigkeit zunächst wie vorhandene Farmzüge: pro Richtung max(5 Sekunden, ceil(Luftlinienentfernung) × 5 Sekunden). Keine neue Wegfindung, Geländekosten oder Geschwindigkeitsboni.
 - Für neue Missionen Distanzfelder d = max(1, ceil(Luftlinienentfernung)).
 - Gesamtöl = ceil(2 × d × Summe(entsendete Anzahl je Typ × Ölrate je Typ)). Faktor 2 umfasst Hin- und Rückweg; nur Gesamtsumme einmal aufrunden.
-- Beispiel 20 Infanteristen und 4 LKWs bei Distanz 5: ceil(2 × 5 × (20 × 0 + 4 × 1)) = 40 Öl.
+- Beispiel 20 Infanteristen und 4 LKWs bei Distanz 5: ceil(2 × 5 × (20 × 0,1 + 4 × 1)) = 60 Öl. Zwei Späher über fünf Felder kosten 10 Öl.
 - Gesamtes Öl beim erfolgreichen Start aus der Heimatstadt einmalig abbuchen, zusammen mit Truppenreservierung, Generalbindung, Missionssnapshot und Wiederholungsbeleg.
 - Fehlendes Öl verhindert Start ohne Teilbuchung. Keine spätere Rückwegabbuchung, kein zusätzliches Öl pro Tick und kein automatisches Auffüllen.
 - Verluste oder ausgefallener Angriff erstatten keinen bereits bezahlten Kraftstoff. Keine neue Abbruchaktion in diesem Auftrag.
-- Eingesetzte Infanterie/Späher werden nur dann ölpflichtig, wenn der Betreiber ausdrücklich ihre Raten erhöht. Auch neue Aufklärungsstarts benötigen dann die serverseitige Ölvorschau/-prüfung.
+- Neue Infanterie- und Spähereinsätze benötigen standardmäßig Öl, einschließlich serverseitiger Ölvorschau/-prüfung für Aufklärung. Explizite Betreiberwerte bleiben wirksam.
 - Alte bereits laufende Missionen behalten 0 neu fällige Ölkosten; niemals rückwirkend belasten.
 - Neue Mission speichert Entfernungsgrundlage, Hin-/Rückwegkosten, Einheitensnapshot, Preisregelversion, bezahltes Gesamtöl und Traglastwerte. Künftige Konfigurationswechsel verändern diese Werte nicht.
 - Ölverbrauch und Kapazität anhand tatsächlich gestarteter Truppen; Client kann weder Preise noch Distanzen festlegen.
@@ -151,8 +151,8 @@ Bestehenden zentralen Konfigurationseinstieg verwenden; reine Spiellogik erhält
 | Variable | Standard | Einheit |
 | --- | --- | --- |
 | UPKEEP_TRUCK_PER_HOUR | 180 | Nahrung je lebendem LKW/Stunde |
-| OIL_INFANTRY_PER_FIELD | 0 | Öl je Infanterist/Feld/einfache Strecke |
-| OIL_SCOUT_PER_FIELD | 0 | Öl je Späher/Feld/einfache Strecke |
+| OIL_INFANTRY_PER_FIELD | 0.1 | Öl je Infanterist/Feld/einfache Strecke |
+| OIL_SCOUT_PER_FIELD | 0.5 | Öl je Späher/Feld/einfache Strecke |
 | OIL_TRUCK_PER_FIELD | 1 | Öl je LKW/Feld/einfache Strecke |
 | TRUCK_CARGO_CAPACITY | 200 | Nahrungstraglast je LKW |
 
@@ -202,7 +202,7 @@ Mit unabhängigen Erwartungen prüfen:
 2. Ölressource mit 0, Produktion ab Fertigstellung, Beispielkapazität 3025, Lagerhaus-/Lagerlogistikwirkung, Offlineproduktion und Abriss/Überbestand.
 3. Raffinerie nur zivil, Fabrik nur militärisch; LKW nur Fabrik, andere Einheiten nur Kaserne. Bauplätze und alte Queues unverändert.
 4. Gruppenherstellung: einmalige Kosten, Fertigstellung, mehrere Fabriken, Hungerpause/Fortsetzung, Ausbau-/Abrisssperre und Neustart.
-5. Distanz-5-Beispiel mit 20 Infanteristen/4 LKWs kostet 40 Öl. Fehlendes Öl keine Teilbuchung. Ölraten 0 gültig; konfigurierter Späherbedarf auch beim Aufklärungsstart geprüft. Rundung einmal über gesamte Hin-/Rückstrecke.
+5. Distanz-5-Beispiel mit 20 Infanteristen/4 LKWs kostet 60 Öl. Reine Infanterie und Aufklärung haben positive Standardkosten. Fehlendes Öl keine Teilbuchung. Ölraten 0 gültig; konfigurierter Späherbedarf auch beim Aufklärungsstart geprüft. Rundung einmal über gesamte Hin-/Rückstrecke.
 6. Maximalmenge typübergreifend, unbekannte Typen, negative/gebrochene Mengen, reine LKW-Mission und fremde Generäle/Bauten/Truppen abgewiesen.
 7. Kampfbeispiel 20 Infanterie/4 LKW gegen 10 ohne Boni: 5 Infanterie- und 1 LKW-Verlust, Kapazität 900, XP 20, Kampfbeitrag +4. Dieselbe Infanterie ohne LKW erzeugt dieselben Verteidiger-/Infanterieverluste.
 8. Niederlage mit Überlebenden, vollständiger Kampfverlust, unverteidigtes Ziel und Infanterie bereits vor Ankunft durch Hunger verloren. Keine LKW-Kampfkraft oder Teilung durch null.

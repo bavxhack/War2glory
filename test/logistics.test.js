@@ -102,10 +102,14 @@ test('factory uses shared queues, exact prices, parallel groups and hunger pause
 
 test('fixed-point oil rounds total once, starts atomically, freezes price/cargo and rejects invalid troops', () => {
   const p = fixture(), c = command(p); const q = missionQuote(p, c, origin, target);
-  assert.equal(q.totalOil, 40); assert.equal(q.capacity, 1200); assert.equal(q.upkeepPerHour, 7920);
-  const sent = start(p); assert.equal(sent.city.resources.oil, 60); assert.equal(p.city.resources.oil, 100);
-  assert.deepEqual(sent.military.units, { infantry: 0, truck: 0, scout: 2 }); assert.equal(sent.military.missions[0].paidOil, 40);
-  p.city.resources.oil = 39; assert.throws(() => start(p), /Öl/); assert.equal(p.military.units.truck, 4);
+  assert.deepEqual(parseConfiguration().logistics.oilMilliPerField, LOGISTICS_RULES.oilMilliPerField);
+  assert.equal(missionQuote(p, command(p, { units: { infantry: 20 } }), origin, target).totalOil, 20);
+  assert.equal(missionQuote(p, command(p, { units: { infantry: 1 } }), origin, { ...target, x: 0, y: 0 }).totalOil, 1);
+  assert.equal(missionQuote(p, { type: 'scout', generalId: c.generalId, scouts: 2 }, origin, target).totalOil, 10);
+  assert.equal(q.totalOil, 60); assert.equal(q.capacity, 1200); assert.equal(q.upkeepPerHour, 7920);
+  const sent = start(p); assert.equal(sent.city.resources.oil, 40); assert.equal(p.city.resources.oil, 100);
+  assert.deepEqual(sent.military.units, { infantry: 0, truck: 0, scout: 2 }); assert.equal(sent.military.missions[0].paidOil, 60);
+  p.city.resources.oil = 59; assert.throws(() => start(p), /Öl/); assert.equal(p.military.units.truck, 4);
   p.city.resources.oil = 100;
   const tiny = parseConfiguration({ OIL_INFANTRY_PER_FIELD: '0.001', OIL_TRUCK_PER_FIELD: '0.001' }).logistics;
   assert.equal(missionQuote(p, c, origin, target, tiny).totalOil, 1);
@@ -151,7 +155,7 @@ test('shared journal settles 900 food, +4 score, 20 XP and one return/report acr
   const restarted = await new WorldStorage(f.dir, 'test', () => 50000, parseConfiguration(), { warn() {} }).initialize();
   current = await restarted.loadPlayer(p.playerId); assert.deepEqual(current.military.units, { infantry: 15, truck: 3, scout: 2 });
   assert.equal(current.military.combatScore, 4); assert.equal(current.military.generals[0].experience, 20); assert.equal(current.military.reports.length, 1);
-  assert.equal(current.military.reports[0].paidOil, 40); assert.equal(current.mailbox.readReportIds.length, 0);
+  assert.equal(current.military.reports[0].paidOil, 60); assert.equal(current.mailbox.readReportIds.length, 0);
   const before = structuredClone(current); await restarted.advanceWorld(50000); assert.deepEqual(await restarted.loadPlayer(p.playerId), before);
 });
 
@@ -271,10 +275,10 @@ test('active missions freeze oil/cargo across config restart; historical missing
   await f.storage.saveWorld(); await f.storage.savePlayer(p);
   const changed = parseConfiguration({ OIL_TRUCK_PER_FIELD: '100', TRUCK_CARGO_CAPACITY: '1000', UPKEEP_INFANTRY_PER_HOUR: '0', UPKEEP_SCOUT_PER_HOUR: '0' });
   const restart = await new WorldStorage(f.dir, 'test', () => 10000, changed, { warn() {} }).initialize();
-  let current = await restart.loadPlayer(p.playerId); assert.equal(current.city.resources.food, 1000); assert.equal(current.city.resources.oil, 60);
+  let current = await restart.loadPlayer(p.playerId); assert.equal(current.city.resources.food, 1000); assert.equal(current.city.resources.oil, 40);
   assert.equal(current.military.missions[0].logistics.cargoPerUnit.truck, 200);
   await restart.advanceWorld(20000); current = await restart.loadPlayer(p.playerId); assert.equal(current.city.resources.food, 998);
-  await restart.advanceWorld(50000); current = await restart.loadPlayer(p.playerId); assert.equal(current.military.reports[0].originalLoadedFood, 900); assert.equal(current.military.reports[0].paidOil, 40);
+  await restart.advanceWorld(50000); current = await restart.loadPlayer(p.playerId); assert.equal(current.military.reports[0].originalLoadedFood, 900); assert.equal(current.military.reports[0].paidOil, 60);
   assert.equal(restart.world.supplyRuleHistory[0].rules.upkeepPerSecond.truck, undefined);
 });
 

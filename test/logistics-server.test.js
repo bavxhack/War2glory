@@ -8,6 +8,47 @@ import { parseConfiguration } from '../apps/server/config.js';
 
 async function request(client, type, payload, expected = 'command.ok', id) { const requestId = client.send(type, payload, id); return (await client.next(expected, requestId)).payload; }
 
+for (const type of ['raid', 'scouting']) test(`WebSocket ${type}: default oil cost, insufficient fuel atomic, single charge through retry and restart`, async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'mission-oil-')); let now = 100000;
+  let running = await start(dir, () => now); const clients = [];
+  t.after(async () => { clients.forEach(c => c.close()); await close(running.server); await rm(dir, { recursive: true, force: true }); });
+  const a = await websocket(running.port), b = await websocket(running.port); clients.push(a, b);
+  const owner = await authenticate(a, 'register', 'FuelOwner'); await authenticate(b, 'login', 'FuelOwner');
+  let p = await running.server.storage.loadPlayer(owner.snapshot.player.id);
+  p.military.units.infantry = 20; p.military.units.scout = 2; p.city.resources.oil = 0; p.city.resources.food = 2000;
+  const home = running.server.storage.world.map.entities.find(e => e.playerId === p.playerId), npc = running.server.storage.world.map.entities.find(e => e.kind === 'npc');
+  Object.assign(home, { x: 0, y: 0 }); Object.assign(npc, { x: 3, y: 4 });
+  await running.server.storage.saveWorld(); await running.server.storage.savePlayer(p);
+  const payload = { generalId: p.military.generals[0].id, targetId: npc.id, ...(type === 'raid' ? { units: { infantry: 20, truck: 0 } } : { scouts: 2 }) };
+  const cost = type === 'raid' ? 20 : 10;
+  assert.match((await request(a, `${type}.preview`, payload, 'command.error')).message, /Öl/);
+  assert.match((await request(a, `${type}.start`, { ...payload, preview: { totalOil: 0 } }, 'command.error')).message, /Öl/);
+  assert.deepEqual(await running.server.storage.loadPlayer(p.playerId), p);
+  p.city.resources.oil = cost; await running.server.storage.savePlayer(p);
+  const q = await request(a, `${type}.preview`, payload, `${type}.preview`);
+  assert.equal(q.totalOil, cost); assert.equal(q.outboundOil, cost / 2); assert.equal(q.returnOil, cost / 2);
+  p.city.resources.oil = cost - 1; await running.server.storage.savePlayer(p);
+  assert.match((await request(a, `${type}.start`, { ...payload, preview: q }, 'command.error')).message, /Öl/);
+  assert.deepEqual(await running.server.storage.loadPlayer(p.playerId), p);
+  p.city.resources.oil = cost; await running.server.storage.savePlayer(p);
+  assert.match((await request(a, `${type}.start`, { ...payload, preview: { ...q, totalOil: 0 } }, 'command.error')).message, /vorschau/);
+  const id = `${type}-default-oil-once`;
+  await request(a, `${type}.start`, { ...payload, preview: q }, 'command.ok', id);
+  assert.equal((await request(b, `${type}.start`, { ...payload, preview: q }, 'command.ok', id)).duplicate, true);
+  p = await running.server.storage.loadPlayer(p.playerId); assert.equal(p.city.resources.oil, 0); assert.equal(p.military.missions.length, 1);
+  assert.equal(p.military.missions[0].paidOil, cost);
+  const frozenRates = p.military.missions[0].logistics.oilMilliPerField;
+  clients.forEach(c => c.close()); await close(running.server);
+  running = await start(dir, () => now, 'alpha', parseConfiguration({ OIL_INFANTRY_PER_FIELD: '10', OIL_SCOUT_PER_FIELD: '10' }));
+  const resumed = await websocket(running.port); clients.push(resumed); await authenticate(resumed, 'login', 'FuelOwner');
+  assert.equal((await request(resumed, `${type}.start`, { ...payload, preview: q }, 'command.ok', id)).duplicate, true);
+  now += 50000; await request(resumed, 'city.sync', {}, 'city.snapshot');
+  p = await running.server.storage.loadPlayer(p.playerId); assert.equal(p.city.resources.oil, 0); assert.equal(p.military.reports.length, 1);
+  assert.equal(p.military.reports[0].paidOil, cost); assert.deepEqual(p.military.reports[0].logistics.oilMilliPerField, frozenRates);
+  assert.equal((await request(resumed, `${type}.start`, { ...payload, preview: q }, 'command.ok', id)).duplicate, true);
+  assert.equal((await running.server.storage.loadPlayer(p.playerId)).city.resources.oil, 0);
+});
+
 test('WebSocket mixed convoy: fuel/roles/troops atomic, journal failure recovery, permanent retry, privacy, factory locks', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'logistics-ws-')); let now = 100000;
   let running = await start(dir, () => now); const clients = [];
@@ -16,7 +57,7 @@ test('WebSocket mixed convoy: fuel/roles/troops atomic, journal failure recovery
   const owner = await authenticate(a, 'register', 'TruckOwner'); await authenticate(b, 'login', 'TruckOwner'); await authenticate(other, 'register', 'TruckOther');
   const storage = running.server.storage;
   let p = await storage.loadPlayer(owner.snapshot.player.id);
-  p.military.units.infantry = 20; p.military.units.truck = 4; p.city.resources.oil = 40; p.city.resources.food = 1000;
+  p.military.units.infantry = 20; p.military.units.truck = 4; p.city.resources.oil = 60; p.city.resources.food = 1000;
   p.military.generals[0].attributes.attack = 0; p.military.generals[0].attributes.defense = 0;
   const home = storage.world.map.entities.find(e => e.playerId === p.playerId), npc = storage.world.map.entities.find(e => e.kind === 'npc');
   Object.assign(home, { x: 0, y: 0 }); Object.assign(npc, { x: 3, y: 4 }); npc.resources.food.amount = 1000; npc.resources.food.capacity = 1000; npc.resources.food.regenerationPerHour = 0;
@@ -24,15 +65,15 @@ test('WebSocket mixed convoy: fuel/roles/troops atomic, journal failure recovery
   await storage.saveWorld(); await storage.savePlayer(p);
   const payload = { generalId: p.military.generals[0].id, targetId: npc.id, units: { infantry: 20, truck: 4 } };
   assert.match((await request(other, 'raid.preview', payload, 'command.error')).message, /eigener/);
-  const q = await request(a, 'raid.preview', payload, 'raid.preview'); assert.equal(q.totalOil, 40); assert.equal(q.capacity, 1200); assert.equal(q.upkeepPerHour, 7920); assert.equal(q.garrison, undefined);
+  const q = await request(a, 'raid.preview', payload, 'raid.preview'); assert.equal(q.totalOil, 60); assert.equal(q.capacity, 1200); assert.equal(q.upkeepPerHour, 7920); assert.equal(q.garrison, undefined);
   assert.match((await request(a, 'raid.start', { ...payload, preview: { ...q, totalOil: 0 } }, 'command.error')).message, /vorschau/);
   assert.match((await request(a, 'raid.start', { ...payload, units: { infantry: 0, truck: 4 }, preview: q }, 'command.error')).message, /Infanterist/);
-  assert.equal((await storage.loadPlayer(p.playerId)).city.resources.oil, 40);
+  assert.equal((await storage.loadPlayer(p.playerId)).city.resources.oil, 60);
   const sequence = storage.world.nextEventSequence;
   await mkdir(storage.journalFile); // Fail before the journal can become durable.
   assert.match((await request(a, 'raid.start', { ...payload, preview: q }, 'command.error', 'journal-fault-id')).message, /directory|EISDIR/i);
   await rm(storage.journalFile, { recursive: true });
-  p = await storage.loadPlayer(p.playerId); assert.equal(p.city.resources.oil, 40); assert.equal(p.military.units.truck, 4); assert.equal(storage.world.nextEventSequence, sequence);
+  p = await storage.loadPlayer(p.playerId); assert.equal(p.city.resources.oil, 60); assert.equal(p.military.units.truck, 4); assert.equal(storage.world.nextEventSequence, sequence);
   const retryId = 'once-oil-start-id';
   const [first, retry] = await Promise.all([request(a, 'raid.start', { ...payload, preview: q }, 'command.ok', retryId), request(b, 'raid.start', { ...payload, preview: q }, 'command.ok', retryId)]);
   assert.equal(first.duplicate, false); assert.equal(retry.duplicate, true);
@@ -40,7 +81,7 @@ test('WebSocket mixed convoy: fuel/roles/troops atomic, journal failure recovery
   assert.match((await request(b, 'raid.start', { ...payload, preview: q, units: { infantry: 20, truck: 3 } }, 'command.error', retryId)).message, /anderem Inhalt/);
   const sync = await request(a, 'city.sync', {}, 'city.snapshot'); assert.equal(sync.military.missions[0].commandFingerprint, undefined); assert.equal(sync.supply.unitCounts.truck, 4);
   now += 50000; await request(a, 'city.sync', {}, 'city.snapshot');
-  p = await storage.loadPlayer(p.playerId); assert.equal(p.military.reports[0].paidOil, 40); assert.equal(p.military.reports[0].combatScore, 4); assert.equal(p.military.reports[0].originalLoadedFood, 900);
+  p = await storage.loadPlayer(p.playerId); assert.equal(p.military.reports[0].paidOil, 60); assert.equal(p.military.reports[0].combatScore, 4); assert.equal(p.military.reports[0].originalLoadedFood, 900);
   assert.equal((await request(a, 'city.sync', {}, 'city.snapshot')).mailbox.unreadCount, 1);
   await request(a, 'mail.read', { kind: 'report', id: p.military.reports[0].id });
   await request(b, 'raid.start', { ...payload, preview: q }, 'command.ok', retryId); assert.equal((await storage.loadPlayer(p.playerId)).military.reports.length, 1);
@@ -49,7 +90,7 @@ test('WebSocket mixed convoy: fuel/roles/troops atomic, journal failure recovery
   running = await start(dir, () => now, 'alpha', parseConfiguration({ OIL_TRUCK_PER_FIELD: '2', TRUCK_CARGO_CAPACITY: '300' }));
   const resumed = await websocket(running.port); clients.push(resumed); await authenticate(resumed, 'login', 'TruckOwner');
   const duplicate = await request(resumed, 'raid.start', { ...payload, preview: q }, 'command.ok', retryId); assert.equal(duplicate.duplicate, true);
-  p = await running.server.storage.loadPlayer(p.playerId); assert.equal(p.military.reports.length, 1); assert.equal(p.military.reports[0].paidOil, 40); assert.equal(p.military.reports[0].logistics.cargoPerUnit.truck, 200); assert.equal(p.mailbox.readReportIds.length, 1);
+  p = await running.server.storage.loadPlayer(p.playerId); assert.equal(p.military.reports.length, 1); assert.equal(p.military.reports[0].paidOil, 60); assert.equal(p.military.reports[0].logistics.cargoPerUnit.truck, 200); assert.equal(p.mailbox.readReportIds.length, 1);
   p.city.research.levels.motorization = 1;
   Object.assign(p.city.militarySlots[0], { building: 'vehicleFactory', buildingId: 'factory-1', level: 1 }); p.city.resources.wood = 1000; p.city.resources.stone = 1000; p.city.resources.food = 1000;
   await running.server.storage.savePlayer(p);

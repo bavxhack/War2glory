@@ -26,25 +26,27 @@ Die kontrollierte Testwelt verwendete 20.000 Holz/Stein und 1.000 Nahrung als St
 | Motorisierung | 182 Sekunden |
 | Fertige Truppen | 20 Infanterie, 4 LKW, 0 Späher |
 | Öl vor Einsatz | 298 |
-| Einsatzvorschau | 1.200 Nahrung Traglast, 40 Öl, 7.920 Nahrung/Stunde, je 25 Sekunden Reise |
+| Einsatzvorschau | 1.200 Nahrung Traglast, 60 Öl, 7.920 Nahrung/Stunde, je 25 Sekunden Reise |
 | Kampf | 5 Infanterie-/1 LKW-Verlust, 10 NPC-Verluste |
 | Rückkehr | 15 Infanterie/3 LKW, 900 Nahrung geladen und eingelagert, 0 Überlauf |
 | Belohnung | 20 General-XP, +4 Kampfbeitrag |
-| Wiederanmeldung/Neustart | Ein Bericht, gelesen; 15/3 Truppen; +4 Punkte; Öl 308 einschließlich laufender Raffinerieproduktion |
+| Wiederanmeldung/Neustart | Ein Bericht, gelesen; 15/3 Truppen; +4 Punkte; Öl 288 einschließlich laufender Raffinerieproduktion |
 
 1440×1000 und 390×844 Pixel geprüft. Schmale Karte und Postbox verursachen keinen Dokumentüberlauf; die Truppenbilanz lässt sich innerhalb ihrer beschrifteten Region horizontal scrollen. Einsatzbestätigung per Tastaturfokus/Enter ausgeführt. Keine Browser-JavaScript-Fehler. Bestehende Porträtdatei unverändert erhalten und im Build enthalten.
 
 Dabei gefundene und behobene Fehler: Die WebSocket-Begrüßung löschte bisher den gespeicherten Sitzungsschlüssel; sie ist nun von einer tatsächlich fehlgeschlagenen Anmeldung getrennt. Neue Einsatzvorschauen werden durch den bestehenden zentralen Promise-Transport aufgelöst. Die erste Kampfwertung einer neuen Stadt beginnt ausdrücklich bei null. Die mobile Weltkarte erhält eine begrenzte Spaltenbreite.
 
+Nutzerergänzung: Auch Angriffe ohne LKW und Aufklärungen benötigen jetzt standardmäßig Öl. Vorläufige Raten je Einheit/Feld/einfache Strecke: Infanterie 0,1, Späher 0,5, LKW 1. Der vollständige Browserablauf wurde damit erneut ausgeführt, einschließlich anschließender Ausbildung von zwei Spähern: Aufklärung über fünf Felder zeigte 5 Öl Hinweg + 5 Öl Rückweg und buchte genau 10 Öl beim Start. Danach wurde ein Angriff mit zehn Infanteristen ohne LKW über dieselbe Entfernung mit ebenfalls 10 Öl gestartet und abgeschlossen. Auf beiden Rückwegen gab es ausschließlich Raffinerieproduktion und keine weitere Ölbuchung. Mobile Vorschau und Berichte bestätigten die bezahlten Werte; keine Browserfehler. Vor der Ölproduktion sind zunächst Ölverarbeitung und Raffinerie nötig. Die zwei neuen WebSocket-Prüfungen prüfen fehlendes Öl vor Vorschau und nach Vorschau, Preismanipulation, zwei Tabs, Neustart mit anderen Preisen und dauerhafte Startwiederholung ohne Doppelzahlung. Alte laufende Missionen bleiben an ihre bezahlten Preise gebunden.
+
 ## Automatisierte Prüfungen
 
-`npm test`: **127 Tests bestanden, 0 Fehler**; kein Test übersprungen. Tests benötigen lokale Ports und Node-Unterprozesse und wurden mit den dafür nötigen Ausführungsrechten ausgeführt. `npm run build`: bestanden, einschließlich Porträtatlas und neuer eigener SVG-Grafiken.
+`npm test`: **129 Tests bestanden, 0 Fehler**; kein Test übersprungen. Tests benötigen lokale Ports und Node-Unterprozesse und wurden mit den dafür nötigen Ausführungsrechten ausgeführt. `npm run build`: bestanden, einschließlich Porträtatlas und neuer eigener Logistik-Bildtafel.
 
 Neue Tests in `test/logistics.test.js`, `test/logistics-server.test.js` und `test/transport.test.js` ergänzen die bestehende Regression:
 
 - Individuelle Forschungsgrenzen, Abhängigkeiten, serverseitiger Bau-/Herstellungsschutz, Öl-Einstieg ohne Kreisabhängigkeit, Kapazität 3025 und zeitlich exakte Raffinerieproduktion/Abriss/Überbestand.
 - Drei Gruppen je Fabrik, parallele Herstellung, nachgewiesene Kosten, Hungerpause/Fortsetzung, Ausbau-/Abrisssperren und Bestände erst nach Abschluss.
-- Festkomma-Ölraten: einmalige Gesamtrundung, 40-Öl-Beispiel, konfigurierte Späherkosten, Nullwerte, ungültige Werte/Grenzen, native Datei-/Prozesspriorität und Compose-Weitergabe.
+- Festkomma-Ölraten: einmalige Gesamtrundung, 60-Öl-Beispiel, konfigurierte Späherkosten, Nullwerte, ungültige Werte/Grenzen, native Datei-/Prozesspriorität und Compose-Weitergabe.
 - Sichere Ganzzahlen, typübergreifende Grenze, unbekannte Typen, fremde Generäle, keine reinen LKW-Farmzüge; veraltete/manipulierte Vorschau ohne Teilbuchung.
 - Kampf unverändert für Infanterie, Transportverluste bei Sieg/Niederlage, keine LKW-Kampfkraft, unverteidigtes Ziel ohne künstliche Belohnung, ausgefallener Angriff bei fehlender Infanterie.
 - Unterhalt stationiert/unterwegs einmal; Null-Unterhaltseinheiten bleiben sichtbar. Tatsächliche Hungerwelle verliert einen LKW und senkt 900 auf 700 Ladung. Rückkehr bei 600 freiem Lager: 600 eingelagert, 100 Überlauf, getrennt von 200 unterwegs verlorener Nahrung.
@@ -64,6 +66,6 @@ Neue Tests in `test/logistics.test.js`, `test/logistics-server.test.js` und `tes
 
 ## Grenzen und Folgearbeit
 
-Die nachträglich ergänzte Bildtafel `logistics-art.png` zeigt Ölraffinerie, Fahrzeugfabrik und LKW im Stil der bestehenden Spielillustrationen. Erneuter Produktionsbuild und alle 127 Tests bestanden. Der vollständige Browserablauf wurde erneut ausgeführt; die Fahrzeugfabrik und LKW-Darstellung wurden bei 1440×1000 und 390×844 geprüft. Die Motive werden lokal über einen von Vite versionierten Import geladen.
+Die nachträglich ergänzte Bildtafel `logistics-art.png` zeigt Ölraffinerie, Fahrzeugfabrik und LKW im Stil der bestehenden Spielillustrationen. Erneuter Produktionsbuild und alle 129 Tests bestanden. Der vollständige Browserablauf wurde erneut ausgeführt; die Fahrzeugfabrik und LKW-Darstellung wurden bei 1440×1000 und 390×844 geprüft. Die Motive werden lokal über einen von Vite versionierten Import geladen.
 
 Balance/Spieltempo bleiben zu bewerten. Browserablauf wurde mit kontrollierten Vorräten und Uhr ausgeführt; unbeaufsichtigte langfristige Lasttests und vollständige Screenreader-Abnahme sind nicht ausgeführt. Automatische Grenz-/Offline-/Hungerprüfungen ersetzen keine solche Belastungsprüfung. NPCs liefern ausschließlich Nahrung. PvP, Handel, eigenständige Transporte, weitere Kampfeinheiten und aktive Matrix-Föderation bleiben geplant.

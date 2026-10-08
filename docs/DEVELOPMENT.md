@@ -45,9 +45,11 @@ Schema 12 ergänzt `mailbox` nach der bestehenden Schema-11-Porträtmigration. N
 
 ## Logistikregeln und Migration (Auftrag 13)
 
-Die fünf neuen ENV-Werte werden durch denselben Konfigurationseinstieg geprüft und in Compose weitergegeben: `UPKEEP_TRUCK_PER_HOUR=180`, `OIL_INFANTRY_PER_FIELD=0`, `OIL_SCOUT_PER_FIELD=0`, `OIL_TRUCK_PER_FIELD=1`, `TRUCK_CARGO_CAPACITY=200`. Unterhalt erlaubt 0–3600000 Nahrung/Stunde. Öl erlaubt 0–100000 je Feld/einfache Strecke mit höchstens drei Nachkommastellen; die Konfiguration speichert ganzzahlige Tausendstel. Kapazität ist eine Ganzzahl 1–1000000. Leere/negative/ungültige/überlaufende Werte stoppen vor Spielstandänderungen. Prozess-ENV überschreibt `.env`; kein Frontend-Rebuild für Regeln.
+Die fünf neuen ENV-Werte werden durch denselben Konfigurationseinstieg geprüft und in Compose weitergegeben: `UPKEEP_TRUCK_PER_HOUR=180`, `OIL_INFANTRY_PER_FIELD=0.1`, `OIL_SCOUT_PER_FIELD=0.5`, `OIL_TRUCK_PER_FIELD=1`, `TRUCK_CARGO_CAPACITY=200`. Unterhalt erlaubt 0–3600000 Nahrung/Stunde. Öl erlaubt 0–100000 je Feld/einfache Strecke mit höchstens drei Nachkommastellen; die Konfiguration speichert ganzzahlige Tausendstel. Kapazität ist eine Ganzzahl 1–1000000. Leere/negative/ungültige/überlaufende Werte stoppen vor Spielstandänderungen. Prozess-ENV überschreibt `.env`; kein Frontend-Rebuild für Regeln.
 
 `config.logistics` ist eine instanzbezogene Aufnahme mit stabiler Regelkennung, `oilMilliPerField` und `cargoPerUnit`. Neue Vorschau/Starts erhalten sie explizit. Hin- und Rückweg werden gemeinsam einmal aufgerundet und bezahlt. Laufende Missionen verwenden nur ihre gespeicherten Werte. Neue Startbelege bleiben auch nach dem Ablauf der allgemeinen Request-Historie an der Mission erhalten.
+
+Angriffe und Aufklärung sind standardmäßig ölpflichtig. Bei einer vorhandenen `.env` oder Prozesskonfiguration mit den früheren expliziten Nullwerten `OIL_INFANTRY_PER_FIELD=0` und `OIL_SCOUT_PER_FIELD=0` diese auf `0.1` und `0.5` ändern und den Server neu starten. Explizite Betreiberwerte überschreiben weiterhin die Standards. Die Änderung gilt nur für neue Einsätze; bereits gestartete Missionen werden nicht nachbelastet.
 
 Unterhalt für LKWs folgt der vorhandenen Welt-Regelhistorie. Historische Aufnahmen ohne `truck` gelten für diesen Typ als 0 und bleiben unverändert. Laufende Mangelzyklen erhalten ihre Fristen. Öl und Traglast ändern keine vergangenen Einsätze. Startjournal enthält Weltsequenz, Ölzahlung, General/Truppenbindung und Request-Beleg; Journalwiederherstellung erfolgt vor Migration/weiterer Abrechnung.
 

@@ -350,7 +350,7 @@ Neue Technologien, Öl/LKWs, Forschungswarteschlange, Generalentlassung, Respec,
 
 ## Umgesetzter Auftrag 13 vom 08.10.2026: Ölwirtschaft und LKW-Farmzüge
 
-Status: Implementiert und geprüft im Pull Request zu Auftrag 13. Abnahmedetails und ausgeführter Browserablauf stehen in [LOGISTICS_VALIDATION.md](LOGISTICS_VALIDATION.md); 127 Tests und Frontend-Build bestanden. Spielerschema 13, typisierte Missionen mit eingefrorenem Öl/Traglast, Journal und bestehende Postbox sind integriert. Nach bestätigtem Abschluss von Auftrag 12 ist damit der nächste vollständige Spielablauf umgesetzt. Der ausführbare Auftrag steht in CODEX_PROMPT.md. Neue Zahlen sind vorläufige eigene Balancevorschläge, keine Originalwerte.
+Status: Implementiert und geprüft im Pull Request zu Auftrag 13. Abnahmedetails und ausgeführter Browserablauf stehen in [LOGISTICS_VALIDATION.md](LOGISTICS_VALIDATION.md); 129 Tests und Frontend-Build bestanden. Spielerschema 13, typisierte Missionen mit eingefrorenem Öl/Traglast, Journal und bestehende Postbox sind integriert. Nach bestätigtem Abschluss von Auftrag 12 ist damit der nächste vollständige Spielablauf umgesetzt. Der ausführbare Auftrag steht in CODEX_PROMPT.md. Neue Zahlen sind vorläufige eigene Balancevorschläge, keine Originalwerte.
 
 ### Spielbarer Ablauf und Bestand
 
@@ -384,9 +384,9 @@ Bestehende Generäle, Profile, Bewerberpreise/-zyklen, Forschungsleitung, indivi
 - Infanterie/Späher bleiben in Kasernen. Fahrzeugfabrik ersetzt keine Kaserne für Bewerber.
 - LKW trägt standardmäßig 200 Nahrung, hat keine Kampfkraft und verbraucht 180 Nahrung/Stunde; Infanterie trägt weiter 20.
 - Laufender Nahrungsunterhalt und einmalige Mobilmachung mit Öl bleiben getrennt.
-- Öl je Einheit/Feld/einfache Strecke: Infanterie 0, Späher 0, LKW 1. Distanzfelder max(1, ceil(Luftlinie)).
+- Öl je Einheit/Feld/einfache Strecke: Infanterie 0,1, Späher 0,5, LKW 1. Auch reine Infanterieangriffe und Aufklärung benötigen damit Öl; zuerst Ölverarbeitung und Raffinerie aufbauen. Distanzfelder max(1, ceil(Luftlinie)).
 - Gesamtöl = ceil(2 × Distanzfelder × Summe(Anzahl × Typ-Ölrate)); Hin- und Rückweg vollständig beim Start bezahlen.
-- Beispiel 20 Infanteristen/4 LKWs über 5 Felder: 2 × 5 × 4 = 40 Öl. Keine Rückweg-Nachbelastung oder Verlust-Erstattung.
+- Beispiel 20 Infanteristen/4 LKWs über 5 Felder: 2 × 5 × (20 × 0,1 + 4 × 1) = 60 Öl. Zwei Späher über dieselbe Distanz kosten 10 Öl. Keine Rückweg-Nachbelastung oder Verlust-Erstattung.
 - Bisherige Reisegeschwindigkeit bleibt vorläufig bestehen, keine Wegfindung/Geländekosten.
 
 ### Gemischte Farmzüge und Verluste
@@ -407,7 +407,7 @@ Bestehende Generäle, Profile, Bewerberpreise/-zyklen, Forschungsleitung, indivi
 
 ### ENV, Migration und Oberfläche
 
-- UPKEEP_TRUCK_PER_HOUR=180, OIL_INFANTRY_PER_FIELD=0, OIL_SCOUT_PER_FIELD=0, OIL_TRUCK_PER_FIELD=1 und TRUCK_CARGO_CAPACITY=200.
+- UPKEEP_TRUCK_PER_HOUR=180, OIL_INFANTRY_PER_FIELD=0.1, OIL_SCOUT_PER_FIELD=0.5, OIL_TRUCK_PER_FIELD=1 und TRUCK_CARGO_CAPACITY=200.
 - Native/Compose-Weitergabe und zentrale Validierung; Null bei Unterhalt/Öl zulässig, Ölraten auf feste Tausendstelbasis, Kapazität positive Ganzzahl.
 - Unterhaltsänderungen über vorhandene Regelhistorie; Öl/Traglast für laufende Missionen eingefroren. Keine rückwirkende Ölschuld oder Fristenresets.
 - Neue Ressource, Einheiten, zwei Forschungsstufen und Migration ab Schema 12 mit Null ergänzen; alte Ressourcen, Queues, Generalporträts, Nachrichten und Lesestatus erhalten.

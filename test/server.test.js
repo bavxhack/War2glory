@@ -365,7 +365,7 @@ test('Auftrag 12: two candidate pools, atomic recruitment, three roles, research
   await request(a, 'general.mayor', { generalId: A.id, expectedRoleVersion: p.military.roleVersion }); p = await load();
   await request(a, 'general.researcher', { generalId: B.id, expectedRoleVersion: p.military.roleVersion }); p = await load();
   assert.match((await request(a, 'general.mayor', { generalId: B.id, expectedRoleVersion: p.military.roleVersion }, 'command.error')).message, /freier/);
-  p.military.units.infantry = 20; p.city.research.levels.forestry = 1; await running.server.storage.savePlayer(p);
+  p.military.units.infantry = 20; p.city.resources.oil = 2000; p.city.research.levels.forestry = 1; await running.server.storage.savePlayer(p);
   const target = running.server.storage.world.map.entities.find(e => e.kind === 'npc');
   const raidPayload = { generalId: C.id, targetId: target.id, infantry: 20 };
   const raidPreview = await request(a, 'raid.preview', raidPayload, 'raid.preview');
