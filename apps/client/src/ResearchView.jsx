@@ -21,13 +21,21 @@ export function ResearchView({ state, transport }) {
   const confirm = async () => {
     setLoading(true); setError('');
     try {
-      await transport.request('research.start', { universityId: preview.universityId, technology: preview.technology, targetLevel: preview.targetLevel, expectedUniversityLevel: preview.expectedUniversityLevel, rulesetVersion: preview.rulesetVersion });
+      await transport.request('research.start', { universityId: preview.universityId, technology: preview.technology, targetLevel: preview.targetLevel, expectedUniversityLevel: preview.expectedUniversityLevel, rulesetVersion: preview.rulesetVersion, researcher: preview.researcher });
       setPreview(null);
     } catch (cause) { setPreview(null); setError(`${cause.message} Bitte das aktuelle Angebot erneut prüfen.`); }
     finally { setLoading(false); }
   };
   return <section className="research-view" aria-labelledby="research-heading">
     <h2 id="research-heading" className="research-title">Forschung</h2>
+    <section className="card"><h3>Forschungsleitung</h3><p>{state.researcher.generalName ?? 'Keine Forschungsleitung'} · Führung {state.researcher.leadership} · Geschwindigkeit +{state.researcher.bonusPercent} %</p>
+      <label>General<select aria-label="General" value={state.military.researcherGeneralId ?? ''} disabled={Boolean(active) || loading || !universities.length} onChange={async e => {
+        const generalId = e.target.value || null; setLoading(true); setError('');
+        try { await transport.request('general.researcher', { generalId, expectedRoleVersion: state.military.roleVersion }); setPreview(null); }
+        catch (cause) { setError(cause.message); } finally { setLoading(false); }
+      }}><option value="">Ohne Forschungsleitung</option>{state.military.generals.filter(g => g.status === 'idle' || g.id === state.military.researcherGeneralId).map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
+      {active && <p>Während der Forschung ist das Amt gesperrt. Gespeichert: {active.researcher?.generalName ?? 'ohne General'} · Geschwindigkeit +{active.researcher?.bonusPercent ?? 0} %. Nach Abschluss bleibt die Leitung im Amt.</p>}
+    </section>
     <section className="card research-controls">
       <BuildingArt type="university"/>
       <div className="research-university">
@@ -47,6 +55,7 @@ export function ResearchView({ state, transport }) {
     {error && <p className="notice" role="alert">{error}</p>}
     {preview && <Dialog open kicker="FORSCHUNG BESTÄTIGEN" title={`${state.technologies[preview.technology].label} · Stufe ${preview.targetLevel}`} onClose={close} actions={<button disabled={loading} onClick={confirm}>{loading ? 'Wird gespeichert …' : 'Kosten bezahlen und starten'}</button>}>
       <p>{quoteText(preview)} · Universität Stufe {preview.expectedUniversityLevel}</p><p>Wirkung ab Abschluss: +{Math.round((preview.factorBefore - 1) * 100)} % → +{Math.round((preview.factorAfter - 1) * 100)} %. Forschung füllt keine Vorräte auf. Kein Abbruch oder Rückerstattung.</p>
+      <p>{preview.researcher.generalName ?? 'Ohne General'} · Führung {preview.researcher.leadership} · Geschwindigkeit +{preview.researcher.bonusPercent} %. Ohne General {formatDuration(preview.durationWithoutGeneralMs)}, tatsächlich {formatDuration(preview.durationMs)}.</p>
     </Dialog>}
   </section>;
 }
