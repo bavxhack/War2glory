@@ -75,12 +75,14 @@ function quoteCapacity(city, currentSlot, building, level) {
   return resourceCapacities(copy);
 }
 
-function produce(city, until) {
+function produce(city, until, rateAdjustments = {}) {
   const seconds = Math.max(0, until - city.updatedAt) / 1000;
   const capacities = resourceCapacities(city);
   const rates = productionRates(city);
   for (const resource of RESOURCE_KEYS) {
-    if (city.resources[resource] < capacities[resource]) city.resources[resource] = Math.min(capacities[resource], city.resources[resource] + seconds * rates[resource]);
+    const rate = rates[resource] + (rateAdjustments[resource] ?? 0);
+    if (rate < 0) city.resources[resource] = Math.max(0, city.resources[resource] + seconds * rate);
+    else if (city.resources[resource] < capacities[resource]) city.resources[resource] = Math.min(capacities[resource], city.resources[resource] + seconds * rate);
   }
   city.updatedAt = until;
 }
@@ -96,12 +98,12 @@ function finishConstruction(city, job) {
   city.constructionQueue.shift();
 }
 
-export function advanceCity(previous, now) {
+export function advanceCity(previous, now, rateAdjustments = {}) {
   const city = structuredClone(previous); const until = Math.max(now, city.updatedAt);
   while (city.constructionQueue[0]?.finishesAt <= until) {
-    const job = city.constructionQueue[0]; produce(city, Math.max(city.updatedAt, job.finishesAt)); finishConstruction(city, job);
+    const job = city.constructionQueue[0]; produce(city, Math.max(city.updatedAt, job.finishesAt), rateAdjustments); finishConstruction(city, job);
   }
-  produce(city, until); return city;
+  produce(city, until, rateAdjustments); return city;
 }
 
 export function enqueueConstruction(previous, command, now) {
