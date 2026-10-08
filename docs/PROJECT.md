@@ -16,7 +16,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäudepunkte laut README umgesetzt; Forschung/Kämpfe später |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral und Mehrfachverwaltung umgesetzt; Skillgrundlage getestet, aber nicht aktiviert; Forschung weiterhin später |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Startgeneral/Mehrfachverwaltung umgesetzt; Skillaktivierung im aktuellen Auftrag 10; Forschung weiterhin später |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Geplant; nach dem ersten Farmkreislauf empfohlen |
@@ -155,11 +155,11 @@ Dies sind neue Arbeitsvorschläge des Planungschats, keine einzeln bestätigten 
 - Negativen kumulierten Kampfbeitrag erhalten; nur die Gesamtanzeige aus Gebäude- und aktiven weiteren Beiträgen auf mindestens null begrenzen. Keine doppelte Niederlagenstrafe.
 - Alle regelabhängigen Ergebnisse versionieren und nur einmal abrechnen. Gegnerdetails und Kampfresultat bleiben bis zur vorgesehenen Berichtsfreigabe privat.
 
-## Aktueller Auftrag 9 vom 29.09.2026: Versorgung und Bürgermeister
+## Umgesetzter Auftrag 9: Versorgung und Bürgermeister
 
 Der Nutzer bestätigt: Nach einer Schonfrist gehen Truppen bei Nahrungsmangel verloren. Außerdem kann ein General Bürgermeister werden und anhand seiner Eigenschaft Führung die Nahrungsproduktion erhöhen. Der Bürgermeister wird deshalb gegenüber der vorherigen Reihenfolge vorgezogen.
 
-CODEX_PROMPT.md enthält den ausführbaren nächsten Auftrag. Noch nicht als implementiert bestätigt.
+Am 08.10.2026 bestätigt der Nutzer Auftrag 9 als abgeschlossen. README und Protokolldokumentation beschreiben Versorgung, Hungerverluste und Bürgermeister als implementiert. Der Planungschat hat keine eigenen Laufzeittests durchgeführt. Der frühere Auftrag 9 ist im Git-Verlauf von CODEX_PROMPT.md erhalten.
 
 ### Bestätigte Anforderungen
 
@@ -187,17 +187,47 @@ Die folgenden Werte und Detailregeln stammen vom Planungschat. Sie sind keine ei
 - Kein Wiederherstellen des inzwischen entfernten Führungslimits; vorhandene Grenze von insgesamt 10.000 Einheiten je Einsatz bleibt.
 - Bestehendes Transaktionsjournal und globale Ereignisreihenfolge erweitern. Keine rückwirkenden Unterhaltskosten vor dauerhaft festgehaltenem Einführungszeitpunkt.
 
+## Aktueller Auftrag 10 vom 08.10.2026: General-Skills aktivieren
+
+Nach Abschluss von Auftrag 9 folgt die Aktivierung der vorhandenen Skillgrundlage. CODEX_PROMPT.md enthält den neuen Arbeitsauftrag. Er ist erteilt, noch nicht als implementiert bestätigt.
+
+### Umfang
+
+- Manuelle Umrechnung verfügbarer Erfahrung in Skillpunkte im bestehenden React-Generalmodal.
+- Verteilung auf Führung, Angriff und Verteidigung mit nachvollziehbarer Vorschau, serverseitiger Prüfung und dauerhafter Speicherung.
+- Führung wirkt auf den bereits bestehenden Bürgermeisterbonus. Angriff und Verteidigung erhalten begrenzte Wirkungen bei neuen NPC-Farmmissionen.
+- Aktive Missionen behalten die beim Start geltende Regelversion und Boni; historische Ergebnisse bleiben erhalten.
+- Kein Wiedereinführen eines militärischen Führungslimits, keine automatische Rekrutierung, kein Respec und keine zusätzliche Erfahrungsquelle.
+
+### Vorläufiger Regelsatz für den Review
+
+Diese Werte sind neue Arbeitsvorschläge des Planungschats bzw. greifen den bestehenden Vorschlag auf. Sie sind keine einzeln bestätigten Nutzerentscheidungen oder War2Glory-Originalwerte. Auftrag 10 ist der eigene Aktivierungsauftrag für diesen Prototyp; seine Regeln ersetzen im aktuellen Umfang die frühere Vorgabe, Skills nur deaktiviert vorzubereiten.
+
+- Der n-te insgesamt erworbene Punkt kostet 10 × n XP. Die ersten drei kosten 10 + 20 + 30 = 60; bei 75 verfügbaren XP bleiben 15. Bereits verteilte Punkte zählen für den nächsten Preis weiter.
+- Ein Skillpunkt erhöht eine Eigenschaft um eins. Gesamt-XP und Level bleiben beim Umrechnen unverändert; verwendete XP werden getrennt geführt.
+- Führung nutzt Grundwert plus bestätigte Zuweisung im bestehenden Bürgermeistermodell: ein Prozent Nahrungsbonus je Führungspunkt, maximal 50 Prozent.
+- Für militärische Boni zählt zunächst der verteilte Skillanteil, nicht ein bislang wirkungsloser Altgrundwert. Angriff: 2 Prozent zusätzliche Vergleichsstärke pro zugewiesenem Punkt, höchstens 50 Prozent. Verteidigung: 2 Prozent geringere eigene Kampfverluste je Punkt, höchstens 50 Prozent.
+- Neue Zuweisungen oberhalb der Wirkungsschranken blockieren; vorhandene Altgrundwerte erhalten. Maximal 25 zugewiesene Angriffspunkte und 25 Verteidigungspunkte im vorläufigen Regelsatz.
+- Neue Farmversion: Angriffsstärke S = lebende Angreifer N × (1 + Angriffsbonus). Sieg bei S > tatsächlichen Verteidigern D, Gleichstand bleibt Niederlage.
+- Sieg: alle D Verteidiger fallen; eigene Verluste = min(N, ceil((D/2) × (1 − Verteidigungsbonus))).
+- Niederlage: NPC-Verluste = min(D, floor(S/2)); eigene Verluste = min(N, ceil(N × (1 − Verteidigungsbonus))). Überlebende kehren ohne Beute zurück.
+- Ohne zugewiesene militärische Punkte sind die Ergebnisse identisch zur bisherigen Kampfversion. Leere Ziele, fehlende Angreifer, Hunger, Beute, XP und Punkte weiterhin nach ihren vorhandenen Regeln behandeln.
+- Bürgermeister-Führung wirkt ab Speicherzeitpunkt mit vorheriger korrekter Wirtschaftsabrechnung. Neue militärische Zuweisung wirkt erst auf anschließend gestartete Einsätze.
+- Beispiel: 10 Angreifer gegen 10 Verteidiger verlieren bisher; mit 5 Angriffspunkten beträgt die Vergleichsstärke 11 und sie gewinnen mit 5 eigenen Verlusten.
+- Beispiel: 10 Angreifer gegen 20 Verteidiger verlieren weiterhin; mit 10 Verteidigungspunkten gehen 8 statt 10 Angreifer verloren, 2 kehren ohne Beute zurück.
+- Die konkreten Formeln, Rundungen, Migrationsregeln und Tests stehen in CODEX_PROMPT.md und werden im PR zur Prüfung dokumentiert.
+
 ### Weitere Reihenfolge
 
-1. Auftrag 9: Nahrungsunterhalt, Schonfrist/Hungerverluste und Bürgermeister implementieren und prüfen.
-2. Skill-Kostenkurve, Umrechnungsart und weitere Bonuswirkungen entscheiden; vorhandenen Vorschlag nicht automatisch aktivieren.
-3. Universität/Forschung und Forschungsgeneral. Bürgermeister ist bereits in Auftrag 9 vorgezogen.
+1. Auftrag 10: Skillumrechnung, Verteilung und begrenzte Bürgermeister-/Kampfwirkungen umsetzen und prüfen.
+2. Universität und erste Wirtschafts-/Lagerforschung, einschließlich Forschungspunkten.
+3. Forschungsgeneral, weitere Forschungen/Freischaltungen und separate Regeln für zusätzliche Generäle.
 4. LKWs und Ölwirtschaft, zusätzliche Einheiten und Waffensysteme; Forschungsvoraussetzungen separat festlegen.
 5. Bündnisse, Handel, Unterstützung, PvP und aktive Matrix-Föderation gemäß bisherigen Zielen.
 
 ## Generalverwaltung und Skillpunkte: Ergänzung vom 28.09.2026
 
-Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung und Skillgrundlage sind mit Auftrag 7 laut Nutzer und Repository-Dokumentation umgesetzt; die Freischaltung von Skills bleibt eine separate Entscheidung. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
+Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht automatisch alle übrigen Teile von Auftrag 4. Die Generalverwaltung und Skillgrundlage sind mit Auftrag 7 laut Nutzer und Repository-Dokumentation umgesetzt; die Aktivierung als vorläufiger Regelsatz ist jetzt Gegenstand des eigenen Auftrags 10. Die Anforderungen aus Abschnitt E des vorherigen Auftrags 4 sind hier festgehalten und im Git-Verlauf von CODEX_PROMPT.md nachlesbar.
 
 ### Bestätigte Anforderungen
 
@@ -214,7 +244,7 @@ Laut Nutzer sind Generäle bereits angelegt. Diese Angabe bestätigt nicht autom
 
 - Bestehende Generäle verlustfrei als Sammlung mit stabilen IDs verwalten, im Militärbereich anzeigen und für Einsätze auswählen.
 - Namen bearbeiten und ein Modal mit Fortschritt, Eigenschaften und vorgesehener Punkteverteilung ergänzen.
-- Skillberechnung und Speicherung konfigurierbar vorbereiten und mit isolierten Testregeln prüfen. Echte Umrechnung und Bonusvergabe erst nach Festlegung der offenen Regeln aktivieren.
+- Skillgrundlage ist implementiert. Auftrag 10 aktiviert manuelle Umrechnung, Verteilung und begrenzte Effekte mit den dort ausdrücklich vorläufig festgelegten Regeln.
 - Mehrere Generäle mit Testdaten prüfen; keine frei verfügbare Rekrutierung oder zusätzlichen kostenlosen Generäle für bestehende Konten erfinden.
 - Bestehende Erfahrung, Level und aktive Einsätze erhalten; Änderungen über WebSocket mit serverseitiger Prüfung und privater JSON-Speicherung.
 - Eigenschaften und Einsatzrolle getrennt modellieren. Bürgermeister wird in Auftrag 9 mit führungsabhängiger Nahrungswirkung aktiviert; Forschungsgeneral bleibt später.
@@ -273,7 +303,7 @@ Nutzerergänzung vom 28.09.2026. Typabhängige Traglast ist laut Repository-Doku
 
 ## Geplanter Nahrungsunterhalt der Truppen
 
-Nutzeranforderung vom 28.09.2026, konkretisiert am 29.09.2026: Truppen gehen nach einer Schonfrist bei Nahrungsmangel verloren. Ein Bürgermeister erhöht anhand von Führung die Nahrungsproduktion. Auftrag 9 setzt dies mit ausdrücklich vorläufigen Verbrauchs-, Frist-, Verlust- und Bonuswerten um; noch nicht als implementiert bestätigt.
+Nutzeranforderung vom 28.09.2026, konkretisiert am 29.09.2026: Truppen gehen nach einer Schonfrist bei Nahrungsmangel verloren. Ein Bürgermeister erhöht anhand von Führung die Nahrungsproduktion. Auftrag 9 ist laut Nutzer am 08.10.2026 abgeschlossen; die implementierten Verbrauchs-, Frist-, Verlust- und Bonuswerte bleiben als Prototypregeln dokumentiert.
 
 ### Bestätigte Anforderungen und Berechnung
 
@@ -379,15 +409,15 @@ Diese bestätigten Anforderungen sind laut README und Projektstand mit Auftrag 5
 
 Auftrag 5 konkretisiert die Ausbauetappe mit ausdrücklich vorläufigen Arbeitsvorschlägen. Diese ersetzen keine endgültige Abstimmung der Balance und Altbestandsregeln.
 
-## Vorschlag für die spätere Skillentscheidung
+## Herkunft des Skillvorschlags und verbleibende Entscheidungen
 
-Die in Auftrag 7 vorbereiteten Funktionen aktivieren noch keine Spielregel. Als leicht prüfbarer **Vorschlag**, nicht als War2Glory-Originalwert, könnte der n-te Skillpunkt `10 × n` XP kosten: Punkt 1 kostet 10 XP, Punkt 2 weitere 20 XP und die ersten drei zusammen 60 XP. Rest-XP bleiben erhalten. Eine manuelle Umrechnung macht die Entscheidung sichtbar und vermeidet überraschenden XP-Verbrauch; eine automatische Umrechnung wäre einfacher, müsste aber eindeutig mit der Erfahrungsvergabe ausgelöst werden. Empfohlen wird daher zunächst die manuelle Variante.
+Der nach Auftrag 7 dokumentierte Vorschlag einer manuellen Umrechnung mit 10 × n XP wird in Auftrag 10 als vorläufiger Regelsatz aufgegriffen. Führung wirkt bereits seit Auftrag 9 beim Bürgermeister; Auftrag 10 ergänzt den Beitrag zugewiesener Punkte und begrenzte militärische Boni.
 
-Ein späterer Regelsatz sollte Grundwerte und Skillbeiträge getrennt halten. Führung wurde ursprünglich als mögliche Grenze der Truppenzahl vorgeschlagen; im aktuellen Stand besteht ausdrücklich kein solches Limit. Bestätigt ist jetzt ihre Produktionswirkung beim Bürgermeister in Auftrag 9. Angriff könnte den ausgeteilten und Verteidigung den vermiedenen Schaden beeinflussen. Konkrete Faktoren, Grenzen und Rundung müssen zusammen mit dem Kampfsystem beschlossen werden; aktuell verändert keine Verteilung Führungskapazität oder Kampfkraft.
+Noch offen bleiben endgültige Balance, Rücksetzung/Umverteilung, Rekrutierung zusätzlicher Generäle und Wirkungen zukünftiger Forschungs-/Waffensysteme. Das aufgehobene militärische Führungslimit wird nicht wiederhergestellt. Die ursprüngliche Vorschlagsfassung bleibt im Git-Verlauf erhalten.
 
 ## Bestätigte Forschungsanforderungen vom 27.09.2026
 
-Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Versorgungsauftrag 9.
+Forschung wird als spätere Ausbauetappe über den neuen Gebäudetyp Universität zugänglich. Sie ist noch nicht implementiert und gehört nicht zum aktuellen Skillauftrag 10.
 
 ### Universität und Forschungsbereiche
 
