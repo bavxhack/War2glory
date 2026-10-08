@@ -76,7 +76,7 @@ test('Migration und altes offenes Journal erhalten Rollen, Skillzähler, Hunger 
   await writeFile(storage.journalFile, JSON.stringify({ id: 'old-journal', world: null, players: [player] }));
   storage = await new WorldStorage(directory, 'test', () => now).initialize();
   const migrated = await storage.loadPlayer(player.playerId);
-  assert.equal(migrated.schemaVersion, 12); assert.equal(migrated.generalSkillRuleset, GENERAL_SKILL_RULES.version);
+  assert.equal(migrated.schemaVersion, 13); assert.equal(migrated.generalSkillRuleset, GENERAL_SKILL_RULES.version);
   assert.deepEqual(migrated.military.generals, preserved.military.generals);
   assert.equal(migrated.military.mayorGeneralId, mayor.id);
   assert.equal(migrated.military.missions[0].ruleset, MILITARY_RULES.raidRuleset);

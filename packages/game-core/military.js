@@ -204,13 +204,13 @@ export function enqueueTraining(previous, city, command, now) {
   if (!definition) throw new Error('Unbekannter Einheitentyp.');
   if (!Number.isInteger(command.amount) || command.amount < 1 || command.amount > MILITARY_RULES.maxTrainingAmount) throw new Error('Ungültige Ausbildungsmenge.');
   const trainingSlotId = command.trainingSlotId ?? command.barracksSlotId;
-  if (typeof trainingSlotId !== 'string') throw new Error('Eine eigene Kaserne muss ausgewählt werden.');
+  if (typeof trainingSlotId !== 'string') throw new Error('Ein eigenes Ausbildungsgebäude muss ausgewählt werden.');
   const barracks = city.militarySlots?.find(slot => slot.id === trainingSlotId && slot.building === definition.building && slot.level > 0);
   if (!barracks) throw new Error('Ein eigenes fertiges Ausbildungsgebäude des passenden Typs wird benötigt.');
   if (command.unit === 'truck' && !city.research?.levels.motorization) throw new Error('Motorisierung erforderlich.');
   const barracksQueue = trainingQueueForBarracks(military, barracks.id);
-  if (barracksQueue.length >= MILITARY_RULES.trainingQueueLength) throw new Error('Die Ausbildungswarteschlange dieser Kaserne ist voll.');
-  if (city.constructionQueue.some(job => job.slotId === barracks.id)) throw new Error('Die Kaserne wird gerade ausgebaut.');
+  if (barracksQueue.length >= MILITARY_RULES.trainingQueueLength) throw new Error('Die Ausbildungswarteschlange dieses Gebäudes ist voll.');
+  if (city.constructionQueue.some(job => job.slotId === barracks.id)) throw new Error('Das Ausbildungsgebäude wird gerade ausgebaut.');
   for (const [resource, unitCost] of Object.entries(definition.cost)) if (city.resources[resource] < unitCost * command.amount) throw new Error('Nicht genügend Rohstoffe.');
   const nextCity = structuredClone(city);
   for (const [resource, unitCost] of Object.entries(definition.cost)) nextCity.resources[resource] -= unitCost * command.amount;

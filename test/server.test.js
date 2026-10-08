@@ -150,10 +150,10 @@ test('WebSocket-Skills: Vorschau, Versionen, Besitz, atomare Buchung, Deduplizie
 
 test('Legacy-Migration erhält Stadt, Rohstoffe und laufenden Auftrag', () => {
   const result = migrateLegacyState({ schemaVersion: 1, ruleset: 'prototype-0.1', instanceId: 'old', worldName: 'old', city: {
-    name: 'Alte Stadt', resources: { wood: 12, stone: 34, food: 56 }, buildings: { sawmill: 2, quarry: 3, farm: 4 },
+    name: 'Alte Stadt', resources: { wood: 12, stone: 34, food: 56, oil: 0 }, buildings: { sawmill: 2, quarry: 3, farm: 4 },
     construction: { building: 'sawmill', level: 3, finishesAt: 9000 }, updatedAt: 1000,
   } });
-  assert.deepEqual(result.city.resources, { wood: 12, stone: 34, food: 56 });
+  assert.deepEqual(result.city.resources, { wood: 12, stone: 34, food: 56, oil: 0 });
   assert.deepEqual(result.city.buildingSlots.slice(0, 3).map(slot => slot.level), [2, 3, 4]);
   assert.equal(result.city.constructionQueue[0].slotId, 'plot-1');
   assert.throws(() => migrateLegacyState({ schemaVersion: 99 }), /Unbekannte/);
@@ -245,7 +245,7 @@ test('WebSocket: Abrissvorschau, Bestätigung und Deduplizierung sind serververb
     const syncId = client.send('city.sync'); await client.next('city.snapshot', syncId);
     const previewId = client.send('building.preview', { slotId: 'plot-4' });
     const preview = (await client.next('building.preview', previewId)).payload;
-    assert.deepEqual(preview.refund, { wood: 4, stone: 3, food: 0 });
+    assert.deepEqual(preview.refund, { wood: 4, stone: 3, food: 0, oil: 0 });
     const demolitionId = 'demolition-command-1'; const demolitionOk = client.next('command.ok', demolitionId);
     client.send('building.demolish', { slotId: preview.slotId, buildingId: preview.buildingId, version: preview.version }, demolitionId);
     assert.equal((await demolitionOk).payload.demolition.building, 'warehouse');
@@ -299,7 +299,7 @@ test('WebSocket research: private preview, two connections, deduplication, stora
   let p = await running.server.storage.loadPlayer(owner.snapshot.player.id);
   Object.assign(p.city.buildingSlots[3], { building: 'university', buildingId: 'owned-university', level: 1 });
   p.city.resources.wood = 1000; p.city.resources.stone = 1000; await running.server.storage.savePlayer(p);
-  const command = { technology: 'forestry', targetLevel: 1, universityId: 'owned-university', rulesetVersion: 'research-2-leadership-provisional' };
+  const command = { technology: 'forestry', targetLevel: 1, universityId: 'owned-university', rulesetVersion: 'research-3-logistics-provisional' };
   async function request(client, type, payload, responseType = 'command.ok', id) { const requestId = client.send(type, payload, id); return (await client.next(responseType, requestId)).payload; }
   assert.match((await request(other, 'research.preview', command, 'command.error')).message, /eigene/);
   const preview = await request(a, 'research.preview', command, 'research.preview'); assert.equal(preview.cost.wood, 100); assert.equal(preview.durationMs, 60000);
@@ -334,7 +334,7 @@ test('Auftrag 12: two candidate pools, atomic recruitment, three roles, research
   const owner = await authenticate(a, 'register', 'OfficersOwner'); await authenticate(b, 'login', 'OfficersOwner'); await authenticate(other, 'register', 'OfficersOther');
   async function request(client, type, body, responseType = 'command.ok', id) { const requestId = client.send(type, body, id); return (await client.next(responseType, requestId)).payload; }
   const load = () => running.server.storage.loadPlayer(owner.snapshot.player.id);
-  let p = await load(); p.city.resources = { wood: 20000, stone: 20000, food: 1000 };
+  let p = await load(); p.city.resources = { wood: 20000, stone: 20000, food: 1000, oil: 0 };
   Object.assign(p.city.militarySlots[0], { building: 'barracks', buildingId: 'barracks', level: 1 });
   Object.assign(p.city.buildingSlots[3], { building: 'university', buildingId: 'university', level: 2 });
   await running.server.storage.savePlayer(p); await request(a, 'city.sync', {}, 'city.snapshot'); p = await load();
@@ -367,8 +367,10 @@ test('Auftrag 12: two candidate pools, atomic recruitment, three roles, research
   assert.match((await request(a, 'general.mayor', { generalId: B.id, expectedRoleVersion: p.military.roleVersion }, 'command.error')).message, /freier/);
   p.military.units.infantry = 20; p.city.research.levels.forestry = 1; await running.server.storage.savePlayer(p);
   const target = running.server.storage.world.map.entities.find(e => e.kind === 'npc');
-  await request(a, 'raid.start', { generalId: C.id, targetId: target.id, infantry: 20 });
-  const researchCommand = { universityId: 'university', technology: 'forestry', targetLevel: 2, rulesetVersion: 'research-2-leadership-provisional' };
+  const raidPayload = { generalId: C.id, targetId: target.id, infantry: 20 };
+  const raidPreview = await request(a, 'raid.preview', raidPayload, 'raid.preview');
+  await request(a, 'raid.start', { ...raidPayload, preview: raidPreview });
+  const researchCommand = { universityId: 'university', technology: 'forestry', targetLevel: 2, rulesetVersion: 'research-3-logistics-provisional' };
   const researchPreview = await request(a, 'research.preview', researchCommand, 'research.preview');
   assert.equal(researchPreview.durationWithoutGeneralMs, 110000);
   await request(a, 'research.start', { ...researchCommand, expectedUniversityLevel: 2, researcher: researchPreview.researcher });

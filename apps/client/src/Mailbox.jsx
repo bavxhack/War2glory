@@ -5,18 +5,21 @@ const date = value => Number.isFinite(value) ? new Date(value).toLocaleString('d
 
 function Report({ report }) {
   return <><h2>{report.targetName}</h2><p>{report.generalName ?? 'General'} · {report.coordinates && `(${report.coordinates.x}, ${report.coordinates.y})`} · Rückkehr: {date(report.returnedAt)}</p>{report.type === 'raid' ? <>
-    <h3>{report.victory ? 'Sieg' : 'Niederlage'}</h3><dl className="mail-facts">
-      <dt>Angreifer</dt><dd>{report.infantry} Infanteristen</dd>
+    <h3>{report.cancelled ? 'Angriff ausgefallen' : report.victory ? 'Sieg' : 'Niederlage'}</h3>{report.initialUnits && <LogisticsReport report={report}/>}<dl className="mail-facts">
+      <dt>Angreifer</dt><dd>{report.initialUnits?.infantry ?? report.infantry} Infanteristen</dd>
       <dt>Eigene Verluste</dt><dd>{report.attackerLosses}</dd><dt>NPC-Verluste</dt><dd>{report.defenderLosses}</dd>
-      <dt>Nahrung geladen</dt><dd>{report.loadedFood}</dd><dt>Eingelagert</dt><dd>{report.storedFood}</dd><dt>Verfallen</dt><dd>{report.overflowFood}</dd>
+      <dt>Nahrung ursprünglich geladen</dt><dd>{report.originalLoadedFood ?? report.loadedFood}</dd><dt>Unterwegs verloren</dt><dd>{report.foodLostInTransit ?? 0}</dd><dt>Am Lager angekommen</dt><dd>{report.loadedFood}</dd><dt>Eingelagert</dt><dd>{report.storedFood}</dd><dt>Verfallen</dt><dd>{report.overflowFood}</dd>
       <dt>General-Erfahrung</dt><dd>{report.generalExperience} EP</dd><dt>Kampfpunkte</dt><dd>{report.combatScore}</dd>
-    </dl>{report.combatBonuses && <p>Angewandte Boni: Angriff +{report.combatBonuses.attackPercent}% · Verteidigung −{report.combatBonuses.defensePercent}%</p>}</> : <>
-    <h3>Aufklärung vom {date(report.capturedAt)}</h3><dl className="mail-facts">
+    </dl>{!report.initialUnits && <p>Historische Mission: Ölbuchung nicht erhoben.</p>}{report.combatBonuses && <p>Angewandte Boni: Angriff +{report.combatBonuses.attackPercent}% · Verteidigung −{report.combatBonuses.defensePercent}%</p>}</> : <>
+    {report.initialUnits && <LogisticsReport report={report}/>}<h3>Aufklärung vom {date(report.capturedAt)}</h3><dl className="mail-facts">
       <dt>Nahrung</dt><dd>{Math.floor(report.intelligence?.food?.amount ?? 0)} / {report.intelligence?.food?.capacity ?? '?'}</dd>
       <dt>Garnison</dt><dd>{report.intelligence?.garrison?.amount ?? 'Damals nicht modelliert'}{report.intelligence?.garrison?.capacity != null && ` / ${report.intelligence.garrison.capacity}`}</dd>
     </dl><p>Die Angaben zeigen den Zustand zum Zeitpunkt der Aufklärung.</p></>}</>;
 }
 
+function LogisticsReport({ report }) {
+  return <><p>Öl bezahlt für Hin- und Rückweg: {report.paidOil} · {report.distanceFields} Felder</p><table><thead><tr><th>Typ</th><th>Start</th><th>Kampfverlust</th><th>Hungerverlust</th><th>Rückkehr</th></tr></thead><tbody>{Object.entries(report.initialUnits).map(([unit, amount]) => <tr key={unit}><th>{{ infantry: 'Infanterie', truck: 'LKW', scout: 'Späher' }[unit]}</th><td>{amount}</td><td>{report.combatLossesByUnit?.[unit] ?? 0}</td><td>{report.hungerLossesByUnit?.[unit] ?? 0}</td><td>{report.returnedUnits?.[unit] ?? 0}</td></tr>)}</tbody></table>{report.finalCapacity != null && <p>Traglast nach Kampf: {report.capacity} · bei Rückkehr: {report.finalCapacity}</p>}</>;
+}
 export function Mailbox({ state, transport }) {
   const [folder, setFolder] = useState('inbox');
   const [page, setPage] = useState(0);

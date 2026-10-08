@@ -1,3 +1,4 @@
+import { missionQuote, startLogisticsMission } from '../../packages/game-core/logistics.js';
 import { RESEARCH_RULES, TECHNOLOGIES, researchOffers, researchQuote, startResearch } from '../../packages/game-core/research.js';
 import { markMailRead, unreadMail } from '../../packages/game-core/mailbox.js';
 import { createServer } from 'node:http';
@@ -8,7 +9,7 @@ import {
   BUILDINGS, buildingProductionRates, capacityBreakdown, cityOffers, commanderScore, demolishBuilding, demolitionPreview,
   enqueueConstruction, MAX_LEVEL, MAX_QUEUE_LENGTH, productionRates, resourceCapacities, RULESET, STORAGE_RULES,
 } from '../../packages/game-core/index.js';
-import { applySkillConversion, applySkillDistribution, checkedSkillGeneral, combatBonuses, effectiveAttributes, previewSkillConversion, skillLimits, skillSummary, barracksIsBusy, enqueueTraining, GENERAL_SKILL_RULES, MILITARY_RULES, renameGeneral, startRaidMission, startScoutMission, UNITS } from '../../packages/game-core/military.js';
+import { applySkillConversion, applySkillDistribution, checkedSkillGeneral, combatBonuses, effectiveAttributes, previewSkillConversion, skillLimits, skillSummary, barracksIsBusy, enqueueTraining, GENERAL_SKILL_RULES, MILITARY_RULES, renameGeneral, UNITS } from '../../packages/game-core/military.js';
 import { assignMayor, refreshSupplyAt, supplySummary } from '../../packages/game-core/supply.js';
 import { WorldStorage } from './storage.js';
 import { acceptWebSocket } from './websocket.js';
@@ -24,6 +25,7 @@ const clientDistRoot = resolve(clientRoot, 'dist');
 const staticFiles = new Map([
   ['/request-id.js', ['request-id.js', 'text/javascript; charset=utf-8']],
   ['/map-navigation.js', ['map-navigation.js', 'text/javascript; charset=utf-8']],
+  ...['truck', 'refinery', 'vehicleFactory'].map(key => [`/assets/${key}.svg`, [`assets/${key}.svg`, 'image/svg+xml']]),
   ['/assets/scout-aircraft.svg', ['assets/scout-aircraft.svg', 'image/svg+xml']],
   ['/assets/infantry.svg', ['assets/infantry.svg', 'image/svg+xml']],
 ]);
@@ -39,8 +41,8 @@ function commandFingerprint(type, payload) {
     return JSON.stringify([type, payload?.generalId, payload?.expectedVersion, payload?.rulesetVersion, payload?.points,
       changes && typeof changes === 'object' ? Object.entries(changes).sort(([a], [b]) => a.localeCompare(b)) : changes]);
   }
-  const allowed = type === 'research.start' ? ['universityId', 'technology', 'targetLevel', 'expectedUniversityLevel', 'rulesetVersion', 'researcher'] : type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'unit', 'amount'] :
-    type === 'scouting.start' ? ['targetId', 'generalId', 'scouts'] : type === 'raid.start' ? ['targetId', 'generalId', 'infantry'] : type === 'general.rename' ? ['generalId', 'name', 'expectedVersion'] : type === 'general.mayor' ? ['generalId', 'expectedRoleVersion'] : ['slotId', 'buildingId', 'version'];
+  const allowed = type === 'research.start' ? ['universityId', 'technology', 'targetLevel', 'expectedUniversityLevel', 'rulesetVersion', 'researcher'] : type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'trainingSlotId', 'unit', 'amount'] :
+    type === 'scouting.start' ? ['targetId', 'generalId', 'scouts', 'preview'] : type === 'raid.start' ? ['targetId', 'generalId', 'infantry', 'trucks', 'units', 'preview'] : type === 'general.rename' ? ['generalId', 'name', 'expectedVersion'] : type === 'general.mayor' ? ['generalId', 'expectedRoleVersion'] : ['slotId', 'buildingId', 'version'];
   return JSON.stringify(Object.fromEntries(allowed.map(key => [key, payload?.[key]])));
 }
 
@@ -70,7 +72,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ruleset: RULESET,
       player: { id: player.playerId, commanderName: account.displayName }, city, serverTime: now,
       mailbox: { readReportIds: current.mailbox.readReportIds, messages: current.mailbox.messages.map(({ commandId, fingerprint, ...message }) => message), unreadCount: unreadMail(current) },
-      military, score: { ...commanderScore(city), combat: military.combatScore ?? 0, total: Math.max(0, commanderScore(city).buildings + commanderScore(city).research + (military.combatScore ?? 0)) }, buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
+      military: { ...military, missions: military.missions.map(({ commandFingerprint, ...mission }) => mission) }, score: { ...commanderScore(city), combat: military.combatScore ?? 0, total: Math.max(0, commanderScore(city).buildings + commanderScore(city).research + (military.combatScore ?? 0)) }, buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
       capacityBreakdown: capacityBreakdown(city), productionRates: productionRates(city), buildingProductionRates: buildingProductionRates(city), researchOffers: researchOffers(city, { military, officerRules: storage.config.officers }), researchRules: RESEARCH_RULES, technologies: TECHNOLOGIES, storageRules: STORAGE_RULES,
       officerRules: storage.config.officers, researcher: researcherSnapshot(military, storage.config.officers), recruitment: (() => {
         let cost = null, nextCost = null, reason = null;
@@ -174,11 +176,18 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           await storage.advanceWorld(clock());
           const player = await storage.loadPlayer(peer.playerId); const now = clock();
           const slot = [...player.city.buildingSlots, ...(player.city.militarySlots ?? [])].find(item => item.id === message.payload.slotId);
-          if (slot?.building === 'barracks' && barracksIsBusy(player.military, slot.id)) throw new Error('Diese Kaserne ist durch Ausbildung belegt.');
+          if (['barracks', 'vehicleFactory'].includes(slot?.building) && barracksIsBusy(player.military, slot.id)) throw new Error('Dieses Ausbildungsgebäude ist durch Ausbildung belegt.');
           const { preview } = demolitionPreview(player.city, message.payload.slotId, now);
           return response(peer, 'building.preview', message.requestId, preview);
         });
       }
+      if (['raid.preview', 'scouting.preview'].includes(message.type)) return await storage.exclusive(async () => {
+        const now = clock(); await storage.advanceWorld(now);
+        const player = await storage.loadPlayer(peer.playerId);
+        const origin = storage.world.map.entities.find(e => e.playerId === peer.playerId);
+        const target = storage.world.map.entities.find(e => e.id === message.payload.targetId);
+        return response(peer, message.type, message.requestId, missionQuote(player, { ...message.payload, type: message.type === 'raid.preview' ? 'raid' : 'scout' }, origin, target, storage.config.logistics));
+      });
       if (message.type === 'research.preview') {
         return await storage.exclusive(async () => {
           await storage.advanceWorld(clock());
@@ -225,7 +234,8 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         await storage.advanceWorld(now);
         const player = await storage.loadPlayer(peer.playerId);
         player.processedCommands = (player.processedCommands ?? []).filter(item => item.acceptedAt + COMMAND_TTL_MS > now).slice(-MAX_PROCESSED_COMMANDS);
-        const existing = player.processedCommands.find(item => item.id === message.requestId);
+        const missionReceipt = ['raid.start', 'scouting.start'].includes(message.type) ? player.military.missions.find(m => m.id === message.requestId && m.commandFingerprint) : null;
+        const existing = player.processedCommands.find(item => item.id === message.requestId) ?? (missionReceipt ? { fingerprint: missionReceipt.commandFingerprint, result: {} } : null);
         const fingerprint = commandFingerprint(message.type, message.payload);
         if (existing && existing.fingerprint !== fingerprint) throw new Error('Diese Befehls-ID wurde bereits mit anderem Inhalt verwendet.');
         if (!existing) {
@@ -235,7 +245,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           if (message.type === 'research.start') player.city = startResearch(player.city, { ...message.payload, id: message.requestId }, now, { military: player.military, officerRules: storage.config.officers });
           if (message.type === 'construction.enqueue') {
             const slot = player.city.militarySlots?.find(candidate => candidate.id === message.payload.slotId);
-            if (slot?.building === 'barracks' && barracksIsBusy(player.military, slot.id)) throw new Error('Diese Kaserne ist durch Ausbildung belegt.');
+            if (['barracks', 'vehicleFactory'].includes(slot?.building) && barracksIsBusy(player.military, slot.id)) throw new Error('Dieses Ausbildungsgebäude ist durch Ausbildung belegt.');
             player.city = enqueueConstruction(player.city, { id: message.requestId, ...message.payload }, now);
           }
           if (message.type === 'training.enqueue') {
@@ -243,17 +253,13 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
             const result = enqueueTraining(player.military, player.city, { id: message.requestId, ...message.payload }, now);
             player.city = result.city; player.military = result.military;
           }
-          if (message.type === 'scouting.start') {
-            const origin = storage.world.map.entities.find(entity => entity.playerId === peer.playerId);
-            const target = storage.world.map.entities.find(entity => entity.id === message.payload.targetId);
-            player.military = startScoutMission(player.military, { id: message.requestId, ...message.payload }, now, origin, target);
-            player.military.missions.at(-1).type = 'scout';
-            player.military.missions.at(-1).eventSequence = storage.nextEventSequence();
-          }
-          if (message.type === 'raid.start') {
-            const origin = storage.world.map.entities.find(entity => entity.playerId === peer.playerId);
-            const target = storage.world.map.entities.find(entity => entity.id === message.payload.targetId);
-            player.military = startRaidMission(player.military, { id: message.requestId, ...message.payload }, now, origin, target, storage.nextEventSequence());
+          if (['scouting.start', 'raid.start'].includes(message.type)) {
+            const origin = storage.world.map.entities.find(e => e.playerId === peer.playerId);
+            const target = storage.world.map.entities.find(e => e.id === message.payload.targetId);
+            Object.assign(player, startLogisticsMission(player, { ...message.payload, id: message.requestId, type: message.type === 'raid.start' ? 'raid' : 'scout' }, now, origin, target, storage.config.logistics));
+            // Reserve the sequence in the same journal as payment and the request receipt.
+            player.military.missions.at(-1).commandFingerprint = fingerprint;
+            player.military.missions.at(-1).eventSequence = storage.world.nextEventSequence;
           }
           if (message.type === 'general.rename') player.military = renameGeneral(player.military, message.payload);
           if (message.type === 'general.mayor') {
@@ -273,15 +279,18 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           if (message.type === 'general.recruit') result.generalId = player.military.generals.at(-1).id;
           if (message.type === 'building.demolish') {
             const slot = [...player.city.buildingSlots, ...(player.city.militarySlots ?? [])].find(item => item.id === message.payload.slotId);
-            if (slot?.building === 'barracks' && barracksIsBusy(player.military, slot.id)) throw new Error('Diese Kaserne ist durch Ausbildung belegt.');
+            if (['barracks', 'vehicleFactory'].includes(slot?.building) && barracksIsBusy(player.military, slot.id)) throw new Error('Dieses Ausbildungsgebäude ist durch Ausbildung belegt.');
             const demolition = demolishBuilding(player.city, message.payload, now);
             player.city = demolition.city; result = { demolition: demolition.result };
             if (player.military.researcherGeneralId && !player.city.buildingSlots.some(s => s.building === 'university' && s.level > 0)) Object.assign(player, assignResearcher(player, { generalId: null, expectedRoleVersion: player.military.roleVersion }));
           }
           Object.assign(player, refreshSupplyAt(player, now));
           player.processedCommands.push({ id: message.requestId, fingerprint, acceptedAt: now, result });
-          if (message.type === 'scouting.start' || message.type === 'raid.start') await storage.saveWorld();
-          await storage.savePlayer(player);
+          if (['scouting.start', 'raid.start'].includes(message.type)) {
+            storage.world.nextEventSequence++;
+            try { await storage.commitPlayers([player], true); } catch (error) { storage.world.nextEventSequence--; throw error; }
+          }
+          else await storage.savePlayer(player);
         }
         response(peer, 'command.ok', message.requestId, { duplicate: Boolean(existing), ...(existing?.result ?? player.processedCommands.at(-1)?.result ?? {}) });
         broadcast(peer.playerId, 'city.updated', connection => snapshot(player, connection.account));

@@ -1,9 +1,10 @@
+import { missionUnits, clampMissionCargo } from './logistics.js';
 import { advanceCity, buildingProductionRates, productionRates } from './index.js';
 import { effectiveAttributes } from './military.js';
 
 export const SUPPLY_RULES = Object.freeze({
-  version: 'supply-1-provisional',
-  upkeepPerSecond: Object.freeze({ infantry: 0.1, scout: 0.05 }),
+  version: 'supply-2-logistics-provisional',
+  upkeepPerSecond: Object.freeze({ infantry: 0.1, scout: 0.05, truck: 0.05 }),
   graceMs: 30 * 60_000,
   lossIntervalMs: 5 * 60_000,
   lossRate: 0.05,
@@ -22,16 +23,17 @@ export function mayorBonus(military) {
 export function livingUnitGroups(military) {
   const groups = Object.entries(military.units).map(([unit, amount]) => ({ id: `stationed:${unit}`, kind: 'stationed', unit, amount }));
   for (const mission of military.missions.filter(item => item.status === 'outbound' || item.status === 'returning')) {
-    if (mission.type === 'raid') groups.push({ id: `mission:${mission.id}:infantry`, kind: 'mission', mission, unit: 'infantry', amount: mission.result?.survivors ?? mission.infantry });
-    else groups.push({ id: `mission:${mission.id}:scout`, kind: 'mission', mission, unit: 'scout', amount: mission.scouts });
+    for (const [unit, amount] of Object.entries(missionUnits(mission))) groups.push({ id: `mission:${mission.id}:${unit}`, kind: 'mission', mission, unit, amount });
   }
   return groups.filter(group => group.amount > 0);
 }
 
+function militaryUnitTypes(player) { return player.military.units; }
+
 export function supplySummary(player) {
   const rules = player.supply?.rules ?? SUPPLY_RULES;
   const groups = livingUnitGroups(player.military);
-  const unitCounts = Object.fromEntries(Object.keys(rules.upkeepPerSecond).map(unit => [unit,
+  const unitCounts = Object.fromEntries([...new Set([...Object.keys(militaryUnitTypes(player)), ...groups.map(g => g.unit)])].map(unit => [unit,
     groups.filter(group => group.unit === unit).reduce((sum, group) => sum + group.amount, 0),
   ]));
   const upkeep = groups.reduce((sum, group) => sum + group.amount * (rules.upkeepPerSecond[group.unit] ?? 0), 0);
@@ -65,7 +67,11 @@ function applyLossWave(player, at) {
     if (!amount) continue;
     losses[group.unit] = (losses[group.unit] ?? 0) + amount;
     if (group.kind === 'stationed') player.military.units[group.unit] -= amount;
-    else if (group.unit === 'infantry') {
+    else if (group.mission.units) {
+      group.mission.units[group.unit] -= amount;
+      group.mission.hungerLossesByUnit[group.unit] = (group.mission.hungerLossesByUnit[group.unit] ?? 0) + amount;
+      group.mission.hungerLosses = (group.mission.hungerLosses ?? 0) + amount;
+    } else if (group.unit === 'infantry') {
       if (group.mission.result) group.mission.result.survivors -= amount;
       else group.mission.infantry -= amount;
       group.mission.hungerLosses = (group.mission.hungerLosses ?? 0) + amount;
@@ -76,6 +82,7 @@ function applyLossWave(player, at) {
       }
     } else { group.mission.scouts -= amount; group.mission.hungerLosses = (group.mission.hungerLosses ?? 0) + amount; }
   }
+  for (const mission of player.military.missions.filter(m => m.units && m.status === 'returning')) clampMissionCargo(mission);
   player.supply.events.push({ id: `hunger-${at}`, at, type: 'hunger-loss', total: loss, losses });
   player.supply.events = player.supply.events.slice(-SUPPLY_RULES.maxEvents);
   return loss;

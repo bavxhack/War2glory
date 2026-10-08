@@ -22,6 +22,7 @@ export function SupplyStatus({ state }) {
       <div><dt>Bürgermeister</dt><dd>+{perHour(supply.mayorProduction)}/h</dd></div>
       <div><dt>{supply.unitCounts.infantry} Infanteristen × {perHour(state.supplyRules.upkeepPerSecond.infantry)} Nahrung/h</dt><dd>−{perHour((state.supplyRules.upkeepPerSecond.infantry ?? 0) * supply.unitCounts.infantry)}/h</dd></div>
       <div><dt>{supply.unitCounts.scout} Späher × {perHour(state.supplyRules.upkeepPerSecond.scout)} Nahrung/h</dt><dd>−{perHour((state.supplyRules.upkeepPerSecond.scout ?? 0) * supply.unitCounts.scout)}/h</dd></div>
+      <div><dt>{supply.unitCounts.truck ?? 0} LKW × {perHour(state.supplyRules.upkeepPerSecond.truck ?? 0)} Nahrung/h</dt><dd>−{perHour((state.supplyRules.upkeepPerSecond.truck ?? 0) * (supply.unitCounts.truck ?? 0))}/h</dd></div>
       <div className="supply-total"><dt>Gesamtunterhalt</dt><dd>−{perHour(supply.upkeep)}/h</dd></div>
     </dl>
     <p>Lebende stationierte und unterwegs befindliche Einheiten zählen; Ausbildung wird erst nach Abschluss versorgt.</p>
@@ -57,7 +58,7 @@ function TrainingQueue({ state }) {
       return <li key={job.id}>
         <span className="queue-position">{position + 1}</span>
         <strong>{job.amount} {state.units[job.unit].label}</strong>
-        <span>Kaserne {job.barracksSlotId.split('-').at(-1)} · {status}</span>
+        <span>Ausbildungsgebäude {(job.trainingSlotId ?? job.barracksSlotId).split('-').at(-1)} · {status}</span>
       </li>;
     }) : <li className="empty-queue">Keine Truppen in Ausbildung.</li>}</ol>
   </section>;

@@ -51,7 +51,7 @@ test('schema 10 migration saves random portraits once for all generals and open 
   delete player.military.generals[0].portraitId;
   for (const c of player.military.candidatePool.candidates) delete c.portraitId;
   const before = structuredClone(player); await storage.savePlayer(player);
-  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 12);
+  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 13);
   const compare = structuredClone(player); compare.schemaVersion = 10;
   for (const c of [...compare.military.generals, ...compare.military.candidatePool.candidates]) delete c.portraitId;
   assert.deepEqual(compare, before);

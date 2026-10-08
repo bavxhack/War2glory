@@ -98,7 +98,7 @@ test('native server loads dotenv, process precedence and CLI before world mutati
   });
   const world = JSON.parse(await readFile(join(dir, 'data/native-test/world.json'), 'utf8'));
   assert.deepEqual(world.map.config, { width: 9, height: 4, npcCount: 3, maxViewport: 15 });
-  assert.deepEqual(world.supplyRuleHistory.at(-1).rules.upkeepPerSecond, { infantry: 0.01, scout: 0.005 });
+  assert.deepEqual(world.supplyRuleHistory.at(-1).rules.upkeepPerSecond, { infantry: 0.01, scout: 0.005, truck: 0.05 });
   assert.match(output, /Nahrung\/Einheit\/Sekunde/);
   const exited = once(child, 'exit'); child.kill('SIGTERM'); await exited;
 });

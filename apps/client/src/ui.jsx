@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import gameArtwork from '../assets/game-art.png';
 
-export const resourceLabels = { wood: 'Holz', stone: 'Stein', food: 'Nahrung' };
+export const resourceLabels = { wood: 'Holz', stone: 'Stein', food: 'Nahrung', oil: 'Öl' };
 export const formatDuration = milliseconds => `${Math.max(0, Math.ceil(milliseconds / 1000))} s`;
 export const quoteText = quote => `${quote.cost.wood} Holz · ${quote.cost.stone} Stein · ${formatDuration(quote.durationMs)}`;
 export const canAfford = (state, quote) => Object.entries(quote.cost).every(([resource, amount]) => state.city.resources[resource] >= amount);
@@ -10,6 +10,7 @@ export const capacitySummary = capacities => Object.entries(capacities).map(([re
 export function ActionButton({ label, detail, disabled, onClick }) { return <button type="button" className="action" disabled={disabled} onClick={onClick}><strong>{label}</strong><span>{detail}</span></button>; }
 const artPositions = { university: [100, 100], sawmill: [0, 0], quarry: [50, 0], farm: [100, 0], warehouse: [0, 50], barracks: [50, 50], scout: [100, 50], infantry: [0, 100], general: [50, 100], town: [100, 100] };
 export function GameArt({ type, label, className = '' }) {
+  if (['truck', 'refinery', 'vehicleFactory'].includes(type)) return <img className={`game-art ${className}`} src={`/assets/${type}.svg`} alt={label ?? ''}/>;
   const [x, y] = artPositions[type] ?? artPositions.town;
   return <span className={`game-art ${className}`} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} style={{ backgroundImage: `url(${gameArtwork})`, backgroundPosition: `${x}% ${y}%` }}/>;
 }

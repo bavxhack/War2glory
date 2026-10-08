@@ -123,46 +123,42 @@ export function WorldView({ state, map, details, transport }) {
         <section className="card legend"><h3>Legende</h3><span><i className="marker own"/>Eigene Stadt</span><span><i className="marker player"/>Spielerstadt</span><span><i className="marker npc"/>NPC-Stadt</span><small>Entfernung: Luftlinie in Kartenfeldern.</small></section>
       </aside>
     </div>
-    <ScoutingDialog target={scouting} state={state} transport={transport} onClose={() => setScouting(null)}/>
-    <RaidDialog target={raiding} state={state} transport={transport} onClose={() => setRaiding(null)}/>
+    <ScoutingDialog key={scouting?.id ?? 'scout-closed'} target={scouting} state={state} transport={transport} onClose={() => setScouting(null)}/>
+    <RaidDialog key={raiding?.id ?? 'raid-closed'} target={raiding} state={state} transport={transport} onClose={() => setRaiding(null)}/>
   </section>;
 }
 function MapDetails({ selection, state, onScout, onRaid }) { if (!selection) return <section className="card"><p>Wähle ein Feld oder eine Stadt.</p></section>; const { entity, terrain } = selection; const distance = Number.isFinite(entity?.distance) ? entity.distance : 0; const general = state.military.generals.find(item => item.status === 'idle'); const scouts = state.military.units.scout; return <section className="card has-selection" tabIndex="-1" aria-live="polite"><span className="kicker">KOORDINATE {terrain.x}, {terrain.y}</span>{entity && <GameArt type="town" label={entity.name}/>}<h2>{entity?.name ?? 'Unbebautes Feld'}</h2><p>Gelände: {terrainLabels[terrain.type]}</p>{entity && <>{<p>{entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`}</p>}<p>Entfernung: {distance.toFixed(2)} Felder Luftlinie</p>{entity.type !== 'own-city' && <p className="notice">Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.</p>}{entity.type === 'npc' && <ActionButton label="Stadt ausspähen" detail={!general ? 'Kein freier General' : scouts < 1 ? 'Zuerst Aufklärungsflugzeuge ausbilden' : `Hinweg ca. ${Math.max(5, Math.ceil(distance) * 5)} s`} disabled={!general || scouts < 1} onClick={() => onScout(entity)}/>} {entity.type === 'npc' && <ActionButton label="NPC angreifen" detail={!general ? 'Kein freier General' : state.military.units.infantry < 1 ? 'Zuerst Infanterie ausbilden' : 'Vorläufige PvE-Regeln · Verluste möglich'} disabled={!general || state.military.units.infantry < 1} onClick={() => onRaid(entity)}/>} {entity.type === 'player-city' && <p className="notice">Spielerstädte können noch nicht ausgespäht werden.</p>}</>}</section>; }
-function ScoutingDialog({ target, state, transport, onClose }) {
-  const idle = state.military.generals.find(item => item.status === 'idle');
-  const [generalId, setGeneralId] = useState(idle?.id ?? '');
-  const [scouts, setScouts] = useState(1);
-  if (!target) return null;
-  const general = state.military.generals.find(item => item.id === generalId);
-  const missionLimit = state.militaryRules.maxMissionUnits;
-  const maxScouts = Math.min(state.military.units.scout, missionLimit);
-  const valid = general?.status === 'idle' && Number.isInteger(scouts) && scouts >= 1 && scouts <= maxScouts;
-  const seconds = Math.max(5, Math.ceil(target.distance ?? 0) * 5);
-  return <Dialog open title="Stadt ausspähen" kicker="EINSATZ PLANEN" onClose={onClose} actions={<button disabled={!valid} onClick={() => { transport.mutate('scouting.start', { targetId: target.id, generalId, scouts }); transport.setMessage(`${scouts} Aufklärungsflugzeuge wurden entsandt.`); onClose(); }}>Einsatz starten</button>}>
-    <GameArt type="scout" label="Aufklärungsflugzeug"/><p>{target.name} · Koordinate {target.x}, {target.y} · Entfernung {target.distance.toFixed(2)}</p>
-    <label>General<select value={generalId} onChange={event => setGeneralId(event.target.value)}>{state.military.generals.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'idle'}>{item.name} · Level {item.level}{item.status !== 'idle' && ' · nicht verfügbar'}</option>)}</select></label>
-    <label>Anzahl Aufklärungsflugzeuge<input type="number" min="1" max={maxScouts} value={scouts} onChange={event => setScouts(Number(event.target.value))}/></label>
-    <div className="mission-preview"><strong>{seconds} s Hinweg · {seconds} s Rückweg</strong><span>{state.military.units.scout} stationiert · Einsatzlimit insgesamt {missionLimit.toLocaleString('de-DE')} Einheiten · kein Führungslimit</span></div>
-  </Dialog>;
-}
-
-function RaidDialog({ target, state, transport, onClose }) {
-  const idle = state.military.generals.find(item => item.status === 'idle');
-  const [generalId, setGeneralId] = useState(idle?.id ?? '');
+function ScoutingDialog(props) { return <MissionDialog {...props} type="scout"/>; }
+function RaidDialog(props) { return <MissionDialog {...props} type="raid"/>; }
+function MissionDialog({ target, state, transport, onClose, type }) {
+  const [generalId, setGeneralId] = useState(state.military.generals.find(g => g.status === 'idle')?.id ?? '');
   const [infantry, setInfantry] = useState(1);
+  const [trucks, setTrucks] = useState(0);
+  const [scouts, setScouts] = useState(1);
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   if (!target) return null;
-  const general = state.military.generals.find(item => item.id === generalId);
-  const missionLimit = state.militaryRules.maxMissionUnits;
-  const maxInfantry = Math.min(state.military.units.infantry, missionLimit);
-  const valid = general?.status === 'idle' && Number.isInteger(infantry) && infantry >= 1 && infantry <= maxInfantry;
-  const seconds = Math.max(5, Math.ceil(target.distance ?? 0) * 5);
-  const freeFood = Math.max(0, state.capacities.food - state.city.resources.food);
-  return <Dialog open title="NPC-Stadt angreifen" kicker="VORLÄUFIGER FARMZUG" onClose={onClose} actions={<button disabled={!valid} onClick={() => { transport.mutate('raid.start', { targetId: target.id, generalId, infantry }); transport.setMessage(`${infantry} Infanteristen wurden entsandt.`); onClose(); }}>Angriff starten</button>}>
-    <GameArt type="infantry" label="Infanterie"/><p>{target.name} · {seconds} s Hinweg · {seconds} s Rückweg</p>
-    <p className="notice">Prototypregel: Infanterie kämpft deterministisch und trägt je Überlebendem 20 Nahrung. Der General überlebt. Verteidigung verringert Kampfverluste auch bei Niederlage; Überlebende kehren dann ohne Beute zurück. Gegner und Beute können sich bis zur Ankunft ändern.</p>
-    <label>General<select value={generalId} onChange={event => setGeneralId(event.target.value)}>{state.military.generals.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'idle'}>{item.name}{item.status !== 'idle' && ' · gebunden'}</option>)}</select></label>
-    <p>Beim Start festgeschrieben: Angriff +{Math.min(50, (general?.skills?.allocations?.attack ?? 0) * 2)} % Vergleichsstärke · Verteidigung −{Math.min(50, (general?.skills?.allocations?.defense ?? 0) * 2)} % eigene Kampfverluste. Grundwerte wirken im Kampf nicht. Sieg nur bei höherer Stärke; Gleichstand ist eine Niederlage.</p><label>Infanterie<input type="number" min="1" max={maxInfantry} value={infantry} onChange={event => setInfantry(Number(event.target.value))}/></label>
-    <p className="notice">Pro Einsatz dürfen insgesamt höchstens {missionLimit.toLocaleString('de-DE')} Einheiten entsendet werden. Es gilt derzeit kein Führungslimit; eine spätere Reichweitenbegrenzung durch Nahrung ist noch nicht aktiv.</p>
-    <div className="mission-preview"><strong>Maximale Traglast vor Verlusten: {Number.isInteger(infantry) ? infantry * 20 : 0} Nahrung</strong><span>Aktuell freier Lagerplatz: {Math.floor(freeFood)} (bei Rückkehr neu berechnet)</span></div>
+  const payload = { targetId: target.id, generalId, ...(type === 'raid' ? { units: { infantry, truck: trucks } } : { scouts }) };
+  const check = async () => {
+    setBusy(true); setError(''); setPreview(null);
+    try { setPreview(await transport.request(type === 'raid' ? 'raid.preview' : 'scouting.preview', payload)); }
+    catch (cause) { setError(cause.message); }
+    finally { setBusy(false); }
+  };
+  const confirm = async () => {
+    setBusy(true); setError('');
+    try { await transport.request(type === 'raid' ? 'raid.start' : 'scouting.start', { ...payload, preview }); onClose(); }
+    catch (cause) { setPreview(null); setError(`${cause.message} Bitte erneut prüfen.`); }
+    finally { setBusy(false); }
+  };
+  const edit = setter => event => { setter(event.target.type === 'number' ? Number(event.target.value) : event.target.value); setPreview(null); };
+  return <Dialog open title={type === 'raid' ? 'Gemischten Farmzug planen' : 'Aufklärung planen'} kicker="EINSATZ" onClose={() => { if (!busy) onClose(); }} actions={<><button disabled={busy} onClick={check}>Einsatz prüfen</button><button disabled={busy || !preview} onClick={confirm}>Öl bezahlen und starten</button></>}>
+    <p>{target.name} · Koordinate {target.x}, {target.y}</p>
+    <label>General<select disabled={busy} value={generalId} onChange={edit(setGeneralId)}>{state.military.generals.map(g => <option key={g.id} value={g.id} disabled={g.status !== 'idle'}>{g.name} · {g.status === 'idle' ? 'frei' : 'gebunden'}</option>)}</select></label>
+    {type === 'raid' ? <><label>Infanterie<input disabled={busy} type="number" min="1" max={state.military.units.infantry} value={infantry} onChange={edit(setInfantry)}/></label><label>LKW<input disabled={busy} type="number" min="0" max={state.military.units.truck} value={trucks} onChange={edit(setTrucks)}/></label><p>LKWs erhöhen die Traglast, geben keine Kampfkraft und können im Kampf oder durch Hunger verloren gehen. Starttraglast ist keine garantierte Beute. Infanterie begleitet den Angriff.</p></> : <label>Späher<input disabled={busy} type="number" min="1" max={state.military.units.scout} value={scouts} onChange={edit(setScouts)}/></label>}
+    <p>Maximal {state.militaryRules.maxMissionUnits} Einheiten insgesamt. Kein Führungslimit. Nahrung versorgt Truppen auch unterwegs.</p>
+    {preview && <div className="mission-preview"><strong>Traglast vor Verlusten: {preview.capacity} Nahrung</strong><span>{preview.travelMs / 1000} s Hinweg · {preview.travelMs / 1000} s Rückweg · {preview.distanceFields} Felder</span><span>Öl: {preview.outboundOil} Hinweg + {preview.returnOil} Rückweg · zusammen einmalig {preview.totalOil}</span><span>Unterhalt: {preview.upkeepPerHour.toLocaleString('de-DE')} Nahrung/h</span>{type === 'raid' && <span>Gespeicherte Boni aus Grundwerten und Skills: Angriff +{preview.combatBonuses.attackPercent} % · Verteidigung −{preview.combatBonuses.defensePercent} %</span>}</div>}
+    {error && <p role="alert">{error}</p>}
   </Dialog>;
 }
