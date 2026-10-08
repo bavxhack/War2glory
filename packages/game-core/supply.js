@@ -1,4 +1,5 @@
 import { advanceCity, productionRates } from './index.js';
+import { effectiveAttributes } from './military.js';
 
 export const SUPPLY_RULES = Object.freeze({
   version: 'supply-1-provisional',
@@ -14,7 +15,7 @@ export const SUPPLY_RULES = Object.freeze({
 
 export function mayorBonus(military) {
   const mayor = military.generals.find(general => general.id === military.mayorGeneralId);
-  const leadership = mayor?.attributes?.leadership ?? mayor?.leadership ?? 0;
+  const leadership = mayor ? effectiveAttributes(mayor).leadership : 0;
   return mayor ? Math.min(SUPPLY_RULES.mayorBonusCap, Math.max(0, leadership) * SUPPLY_RULES.mayorLeadershipBonus) : 0;
 }
 
@@ -155,4 +156,14 @@ export function assignMayor(previous, generalId) {
   if (current && current.id !== general.id) { current.status = 'idle'; current.version += 1; }
   general.status = 'mayor'; general.version += 1; military.mayorGeneralId = general.id;
   return military;
+}
+
+// Re-evaluate an instantaneous production change without consuming time or resetting hunger.
+export function refreshSupplyAt(player, at) {
+  const next = advanceSupply(player, at);
+  const supply = next.supply;
+  if (!supply.inShortage && supply.shortageMs > 0) supply.recoveryStartedAt ??= at;
+  if (supply.inShortage) supply.recoveryStartedAt = null;
+  for (const job of next.military.trainingQueue) job.pausedForSupply = supply.inShortage;
+  return next;
 }

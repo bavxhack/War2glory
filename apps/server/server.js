@@ -6,8 +6,8 @@ import {
   BUILDINGS, capacityBreakdown, cityOffers, commanderScore, demolishBuilding, demolitionPreview,
   enqueueConstruction, MAX_LEVEL, MAX_QUEUE_LENGTH, productionRates, resourceCapacities, RULESET, STORAGE_RULES,
 } from '../../packages/game-core/index.js';
-import { barracksIsBusy, enqueueTraining, GENERAL_SKILL_RULES, MILITARY_RULES, renameGeneral, startRaidMission, startScoutMission, UNITS } from '../../packages/game-core/military.js';
-import { advanceSupply, assignMayor, SUPPLY_RULES, supplySummary } from '../../packages/game-core/supply.js';
+import { applySkillConversion, applySkillDistribution, checkedSkillGeneral, combatBonuses, effectiveAttributes, previewSkillConversion, skillLimits, skillSummary, barracksIsBusy, enqueueTraining, GENERAL_SKILL_RULES, MILITARY_RULES, renameGeneral, startRaidMission, startScoutMission, UNITS } from '../../packages/game-core/military.js';
+import { advanceSupply, assignMayor, refreshSupplyAt, SUPPLY_RULES, supplySummary } from '../../packages/game-core/supply.js';
 import { WorldStorage } from './storage.js';
 import { acceptWebSocket } from './websocket.js';
 import { publicMap } from '../../packages/game-core/world.js';
@@ -26,6 +26,11 @@ const staticFiles = new Map([
 const mimeTypes = new Map([['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'], ['.css', 'text/css; charset=utf-8'], ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'], ['.woff2', 'font/woff2']]);
 
 function commandFingerprint(type, payload) {
+  if (['general.convert', 'general.distribute'].includes(type)) {
+    const changes = payload?.changes;
+    return JSON.stringify([type, payload?.generalId, payload?.expectedVersion, payload?.rulesetVersion, payload?.points,
+      changes && typeof changes === 'object' ? Object.entries(changes).sort(([a], [b]) => a.localeCompare(b)) : changes]);
+  }
   const allowed = type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'unit', 'amount'] :
     type === 'scouting.start' ? ['targetId', 'generalId', 'scouts'] : type === 'raid.start' ? ['targetId', 'generalId', 'infantry'] : type === 'general.rename' ? ['generalId', 'name', 'expectedVersion'] : type === 'general.mayor' ? ['generalId'] : ['slotId', 'buildingId', 'version'];
   return JSON.stringify(Object.fromEntries(allowed.map(key => [key, payload?.[key]])));
@@ -160,11 +165,24 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           return response(peer, 'building.preview', message.requestId, preview);
         });
       }
-      if (!['construction.enqueue', 'training.enqueue', 'scouting.start', 'raid.start', 'building.demolish', 'general.rename', 'general.mayor'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
+      if (message.type === 'general.preview') {
+        return await storage.exclusive(async () => {
+          await storage.advanceWorld(clock());
+          const player = await storage.loadPlayer(peer.playerId);
+          const general = checkedSkillGeneral(player.military, message.payload);
+          const summary = skillSummary(general);
+          const conversion = message.payload.points == null ? null : previewSkillConversion(general, message.payload.points);
+          const proposed = message.payload.changes == null ? general : applySkillDistribution(general, message.payload.changes);
+          return response(peer, 'general.preview', message.requestId, { generalId: general.id, expectedVersion: general.version,
+            rulesetVersion: GENERAL_SKILL_RULES.version, summary, conversion, nextPointCost: 10 * (summary.totalPoints + 1),
+            limits: skillLimits(general), effectiveAttributes: effectiveAttributes(proposed), combatBonuses: combatBonuses(proposed) });
+        });
+      }
+      if (!['construction.enqueue', 'training.enqueue', 'scouting.start', 'raid.start', 'building.demolish', 'general.rename', 'general.mayor', 'general.convert', 'general.distribute'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
       await storage.exclusive(async () => {
-        await storage.advanceWorld(clock());
-        const player = await storage.loadPlayer(peer.playerId);
         const now = clock();
+        await storage.advanceWorld(now);
+        const player = await storage.loadPlayer(peer.playerId);
         player.processedCommands = (player.processedCommands ?? []).filter(item => item.acceptedAt + COMMAND_TTL_MS > now).slice(-MAX_PROCESSED_COMMANDS);
         const existing = player.processedCommands.find(item => item.id === message.requestId);
         const fingerprint = commandFingerprint(message.type, message.payload);
@@ -194,6 +212,13 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           }
           if (message.type === 'general.rename') player.military = renameGeneral(player.military, message.payload);
           if (message.type === 'general.mayor') player.military = assignMayor(player.military, message.payload.generalId ?? null);
+          if (['general.convert', 'general.distribute'].includes(message.type)) {
+            const general = checkedSkillGeneral(player.military, message.payload);
+            const updated = message.type === 'general.convert' ? applySkillConversion(general, message.payload.points)
+              : applySkillDistribution(general, message.payload.changes);
+            player.military.generals[player.military.generals.findIndex(item => item.id === general.id)] = updated;
+            if (message.type === 'general.distribute') Object.assign(player, refreshSupplyAt(player, now));
+          }
           let result = {};
           if (message.type === 'building.demolish') {
             const slot = [...player.city.buildingSlots, ...(player.city.militarySlots ?? [])].find(item => item.id === message.payload.slotId);
@@ -208,7 +233,15 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         response(peer, 'command.ok', message.requestId, { duplicate: Boolean(existing), ...(existing?.result ?? player.processedCommands.at(-1)?.result ?? {}) });
         broadcast(peer.playerId, 'city.updated', connection => snapshot(player, connection.account));
       });
-    } catch (error) { errorResponse(peer, message.requestId, error); }
+    } catch (error) {
+      errorResponse(peer, message.requestId, error);
+      if (peer.playerId && ['general.preview', 'general.convert', 'general.distribute'].includes(message.type)) {
+        await storage.exclusive(async () => {
+          const player = await storage.loadPlayer(peer.playerId);
+          response(peer, 'city.snapshot', message.requestId, snapshot(player, peer.account));
+        }).catch(() => {});
+      }
+    }
   }
 
   const server = createServer(async (req, res) => {

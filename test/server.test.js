@@ -8,6 +8,7 @@ import { connect } from 'node:net';
 import { randomBytes } from 'node:crypto';
 import { createGameServer } from '../apps/server/server.js';
 import { migrateLegacyState } from '../apps/server/legacy.js';
+import { GENERAL_SKILL_RULES } from '../packages/game-core/military.js';
 
 async function start(worldDir, clock = Date.now, worldName = 'alpha') {
   const server = createGameServer({ worldDir, clock, worldName });
@@ -76,6 +77,74 @@ async function authenticate(client, mode, username, password = 'sicheres-passwor
   const successPromise = client.next('auth.success', requestId); const snapshotPromise = client.next('city.snapshot', requestId);
   return { success: await successPromise, snapshot: (await snapshotPromise).payload };
 }
+
+test('WebSocket-Skills: Vorschau, Versionen, Besitz, atomare Buchung, Deduplizierung und Neustart', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'skills-ws-'));
+  let running = await start(directory, () => 100_000);
+  const clients = [];
+  t.after(async () => { for (const client of clients) client.close(); await close(running.server); rmSync(directory, { recursive: true, force: true }); });
+  const a = await websocket(running.port), b = await websocket(running.port); clients.push(a, b);
+  const first = await authenticate(a, 'register', 'SkillOwner');
+  await authenticate(b, 'register', 'OtherOwner');
+  let player = await running.server.storage.loadPlayer(first.snapshot.player.id);
+  player.military.generals[0].experience = 175;
+  await running.server.storage.savePlayer(player);
+  let general = player.military.generals[0];
+  const payload = () => ({ generalId: general.id, expectedVersion: general.version, rulesetVersion: GENERAL_SKILL_RULES.version });
+  async function request(client, type, body, responseType = 'command.ok', id) {
+    const requestId = client.send(type, body, id); return (await client.next(responseType, requestId)).payload;
+  }
+  const quote = await request(a, 'general.preview', { ...payload(), points: 3 }, 'general.preview');
+  assert.equal(quote.conversion.cost, 60); assert.equal(quote.conversion.remainingExperience, 115);
+  assert.match((await request(a, 'general.preview', { ...payload(), points: 0 }, 'command.error')).message, /Ungültige/);
+  assert.match((await request(a, 'general.preview', { ...payload(), expectedVersion: -1, points: 1 }, 'command.error')).message, /inzwischen geändert/);
+  assert.equal((await running.server.storage.loadPlayer(player.playerId)).military.generals[0].skills.totalPoints, 0);
+  assert.match((await request(b, 'general.convert', { ...payload(), points: 3 }, 'command.error')).message, /Eigener/);
+  assert.match((await request(a, 'general.convert', { ...payload(), rulesetVersion: 'old', points: 3 }, 'command.error')).message, /Skillregelsatz/);
+  const oldPayload = { ...payload(), points: 3 };
+  await request(a, 'general.convert', oldPayload, 'command.ok', 'skill-buy-dedup');
+  assert.equal((await request(a, 'general.convert', oldPayload, 'command.ok', 'skill-buy-dedup')).duplicate, true);
+  assert.match((await request(a, 'general.convert', { ...oldPayload, points: 2 }, 'command.error', 'skill-buy-dedup')).message, /anderem Inhalt/);
+  assert.match((await request(a, 'general.convert', oldPayload, 'command.error')).message, /inzwischen geändert/);
+  player = await running.server.storage.loadPlayer(player.playerId); general = player.military.generals[0];
+  assert.equal(general.experience, 175); assert.equal(general.skills.totalPoints, 3); assert.equal(general.skills.experienceSpent, 60);
+  const distribute = { ...payload(), changes: { leadership: 1, defense: 1 } };
+  const preview = await request(a, 'general.preview', distribute, 'general.preview');
+  assert.equal(preview.effectiveAttributes.leadership, 21);
+  // Two sockets for the same identity compete with the same version.
+  const secondConnection = await websocket(running.port); clients.push(secondConnection);
+  await authenticate(secondConnection, 'login', 'SkillOwner');
+  const oneId = a.send('general.distribute', distribute, 'skill-concurrent-one');
+  const twoId = secondConnection.send('general.distribute', distribute, 'skill-concurrent-two');
+  const outcomes = await Promise.all([
+    Promise.race([a.next('command.ok', oneId), a.next('command.error', oneId)]),
+    Promise.race([secondConnection.next('command.ok', twoId), secondConnection.next('command.error', twoId)]),
+  ]);
+  assert.deepEqual(outcomes.map(event => event.type).sort(), ['command.error', 'command.ok']);
+  player = await running.server.storage.loadPlayer(player.playerId); general = player.military.generals[0];
+  assert.deepEqual(general.skills.allocations, { leadership: 1, attack: 0, defense: 1 });
+  assert.match((await request(a, 'general.distribute', { ...payload(), changes: { defense: -1 } }, 'command.error')).message, /Ungültige/);
+  const before = structuredClone(general);
+  const savePlayer = running.server.storage.savePlayer.bind(running.server.storage);
+  let fail = true;
+  running.server.storage.savePlayer = async candidate => {
+    if (fail && candidate.military.generals[0].skills.totalPoints > 3) { fail = false; throw new Error('Simulierter Speicherfehler'); }
+    return savePlayer(candidate);
+  };
+  const retryPayload = { ...payload(), points: 1 };
+  assert.match((await request(a, 'general.convert', retryPayload, 'command.error', 'skill-storage-retry')).message, /Speicherfehler/);
+  assert.deepEqual((await running.server.storage.loadPlayer(player.playerId)).military.generals[0], before);
+  await request(a, 'general.convert', retryPayload, 'command.ok', 'skill-storage-retry');
+  for (const client of clients) client.close();
+  await close(running.server);
+  running = await start(directory, () => 100_000);
+  const after = await websocket(running.port); clients.push(after);
+  const loggedIn = await authenticate(after, 'login', 'SkillOwner');
+  assert.equal(loggedIn.snapshot.military.generals[0].skills.experienceSpent, 100);
+  assert.equal(loggedIn.snapshot.military.generals[0].skills.totalPoints, 4);
+  assert.equal((await request(after, 'general.convert', retryPayload, 'command.ok', 'skill-storage-retry')).duplicate, true);
+  assert.equal((await running.server.storage.loadPlayer(player.playerId)).military.generals[0].skills.totalPoints, 4);
+});
 
 test('Legacy-Migration erhält Stadt, Rohstoffe und laufenden Auftrag', () => {
   const result = migrateLegacyState({ schemaVersion: 1, ruleset: 'prototype-0.1', instanceId: 'old', worldName: 'old', city: {
