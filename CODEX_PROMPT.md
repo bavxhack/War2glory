@@ -1,145 +1,193 @@
-# Codex-Auftrag 10: General-Skills aktivieren und wirksam einsetzen
+# Codex-Auftrag 11: Unterhalt prüfen, Serverkonfiguration per .env und erste Forschung
 
-## Ausgangspunkt und Ziel
+## Auftrag und Ausgangspunkt
 
-Der Nutzer bestätigt am 08.10.2026 Auftrag 9 als abgeschlossen. README und Protokolldokumentation beschreiben Versorgung, Hungerverluste und Bürgermeister als implementiert. Die General-Skillgrundlage existiert bereits, XP-Umrechnung und Verteilung sind bislang deaktiviert. Prüfe den tatsächlichen Code; der Planungschat hat keine eigenen Laufzeittests durchgeführt.
+Der Nutzer bestätigt Auftrag 10 am 08.10.2026 als weitgehend fertig und beauftragt die nächste Etappe. Zusätzlich sollen Einstellungen wie Weltkartengröße und Truppenunterhalt über Umgebungsvariablen konfigurierbar werden. Er vermutet zu hohen oder falsch berechneten Unterhalt.
 
-Arbeite vom aktuellen main in bavxhack/War2glory. Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md. Prüfe offene PRs und vorhandene Änderungen, bewahre fremde Arbeit. Dieser Auftrag ersetzt Auftrag 9 als aktuellen Arbeitsauftrag.
+Der Planungschat erstellt nur Anweisungen. Du implementierst diesen Auftrag, prüfst ihn und lieferst einen Pull Request ohne selbstständiges Merge/Deployment. Arbeite vom aktuellen main in bavxhack/War2glory, lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und docs/DEVELOPMENT.md. Bewahre fremde Änderungen und prüfe offene PRs.
 
-Der Planungschat schreibt ausschließlich Anweisungen. Du implementierst und prüfst Auftrag 10 und lieferst einen Pull Request ohne eigenständiges Merge oder Deployment.
+Reihenfolge innerhalb dieses Auftrags:
+1. Unterhalt anhand reproduzierbarer Fälle prüfen und bestätigte Fehler korrigieren.
+2. Validierte serverseitige Umgebungskonfiguration einschließlich sicherer zeitlicher Regelwechsel einführen.
+3. Universität, erste Wirtschafts-/Lagerforschungen und Forschungspunkte darauf aufbauen.
 
-Ziel: Erfahrung aus vorhandenen Einsätzen erhalten → im Generalmodal gezielt Skillpunkte kaufen → auf Führung, Angriff und Verteidigung verteilen → tatsächliche Wirkung verstehen → verbesserten Bürgermeister oder General einsetzen → Fortschritt nach Neustart wiederfinden.
+Ziel ist ein vollständiger gemeinsamer PR mit nachvollziehbaren Teilcommits. Forschung darf keinen Unterhaltsfehler verdecken. Bereits vorhandene React-Oberfläche, Bilder, Skills, Bürgermeister, Farmzüge und JSON-Journal erhalten. Keine Balanceänderung als Fehlerkorrektur ausgeben.
 
-Die konkreten Kosten- und Kampfformeln unten sind Vorschläge des Planungschats für einen spielbaren, reviewbaren Prototyp. Keine einzeln bestätigten Nutzerwerte und keine Originalregeln behaupten. Als zentralen, versionierten Regelsatz implementieren und im PR sichtbar zur Prüfung aufführen. Dieser eigene Aktivierungsauftrag ersetzt für seinen Umfang frühere Anweisungen, Skills lediglich als deaktivierte Grundlage vorzuhalten.
+„Feldgröße“ wird in diesem Auftrag als Zahl der Felder der Weltkarte verstanden: Breite × Höhe. Quadratische Einzelzellen bleiben erhalten; CSS-Zellgröße, Bauplatzanzahl und Marschdistanz pro Feld werden nicht damit vermischt.
 
-## A. Umfang und Erhaltung des Bestands
+## A. Vorprüfung und konkrete Hinweise aus der Codelektüre
 
-- Vorhandene reine Skillfunktionen, Generaldaten, React-Modal, zentralen WebSocket-Transport und JSON-Journal weiterverwenden. Keine parallele zweite Skillverwaltung.
-- Manuelle XP-Umrechnung und Verteilung jetzt als echte Spielaktionen aktivieren.
-- Führung verstärkt den bestehenden Bürgermeisterbonus. Angriff und Verteidigung erhalten begrenzte Wirkungen im bestehenden NPC-Infanteriekampf.
-- Kein militärisches Führungslimit wieder einführen. Das bestehende Gesamtmaximum von 10.000 Einheiten je Einsatz bleibt, ebenso die Exklusivität Bürgermeister/Missionsführer.
-- Rekrutierung weiterer Generäle, kostenlose Zusatzgeneräle, Respec/Rückerstattung verteilter Skills, Universität, Forschungsgeneral, Öl/LKWs und PvP bleiben spätere Aufgaben.
-- Bestehende XP-Quellen, Levelkurve, Ernährungswerte, Hungerverluste, NPC-Regeneration und Bau-/Lagerregeln nicht neu ausbalancieren.
-- Erhalte neue Illustrationen und bestehende mobile Gestaltung.
+Der Planungschat hat am 08.10.2026 den Quellcode gelesen, aber keine Anwendungstests ausgeführt. Verifiziere die folgenden Hinweise gegen deinen Arbeitsstand und dokumentiere bestätigte Ursachen, Korrekturen und ausgeschlossene Vermutungen.
 
-## B. Manuelle XP-Umrechnung
+Gelesene Stellen:
+- packages/game-core/supply.js: SUPPLY_RULES, livingUnitGroups, supplySummary, advanceSupply, lossIsDue.
+- packages/game-core/index.js: produce, advanceCity, productionRates.
+- apps/server/storage.js: advanceWorld und Abschlussverarbeitung.
+- apps/server/server.js: Zeitfortschreibung vor Befehlen, Snapshots und periodischer Verarbeitung.
+- apps/client/src/SidebarStatus.jsx: Umrechnung pro Stunde und Unterhaltsaufschlüsselung.
+- test/supply.test.js: vorhandene Tests.
 
-Vorläufiger Regelsatz:
-- Der n-te insgesamt erworbene Skillpunkt eines Generals kostet 10 × n XP; n beginnt bei 1.
-- Kostenbasis ist die Gesamtzahl jemals erworbener Skillpunkte dieses Generals, einschließlich bereits verteilter. Punkte verteilen macht den nächsten Punkt nicht günstiger.
-- Kosten für m neue Punkte bei bereits k erworbenen Punkten: 10 × Summe der Zahlen von k+1 bis k+m, gleich 5 × m × (2k+m+1).
-- Beispiel: erste drei Punkte kosten 10 + 20 + 30 = 60 XP. Bei 75 verfügbaren XP bleiben danach 15; der vierte Punkt kostet 40.
-- Bei bereits drei erworbenen Punkten kosten die nächsten zwei 40 + 50 = 90 XP.
-- Umrechnung nur nach bewusster Bestätigung. Kein automatischer XP-Verbrauch bei Login, Erfahrungsgewinn oder Levelaufstieg.
-- Vor Umrechnung Anzahl, Einzelpreis des nächsten Punktes, Gesamtkosten und verbleibende XP anzeigen. Optional „maximal bezahlbar“ serverseitig berechnen.
-- Insgesamt verdiente XP bleiben unverändert. Nur bereits verwendete XP erhöhen und freie Skillpunkte gutschreiben. Generallevel weiter aus der bisherigen Gesamt-XP-Regel ableiten, kein Levelverlust durch Ausgaben.
-- Prüfe positive ganze Anzahl, sichere numerische Grenzen und vorhandene XP. Kein negativer Rest, keine Teilbuchung und kein unbeschränktes Durchlaufen großer Clientzahlen.
-- Vorhandene Skillzähler berücksichtigen; keine doppelte Berechnung aus alten XP und bereits erworbenen Punkten.
-- Freie Skillpunkte dürfen zunächst aufgehoben werden. Keine Verfallsfrist und kein automatisches Verteilen.
+Feststellungen:
+- Aktuelle Raten stehen fest im Code: Infanterie 0,1 Nahrung/Sekunde, Späher 0,05.
+- Das entspricht 360 bzw. 180 je Einheit/Stunde. 100 Infanteristen benötigen 36.000 Nahrung/Stunde.
+- Ein Bauernhof Stufe 1 erzeugt ohne Boni 1 Nahrung/Sekunde = 3.600/Stunde und versorgt damit zehn Infanteristen. Das ist zunächst eine Balanceeigenschaft, kein nachgewiesener Rechenfehler.
+- Die Sidebar multipliziert Sekundenraten mit 3600. Zeige dieselben Einheiten für Ertrag und Verbrauch; Ausbildungs-Einmalkosten nicht mit laufendem Unterhalt verwechseln.
+- Im gelesenen advanceSupply wird vor Ablauf der Schonfrist der bereits verstrichene Mangel über den Fünf-Minuten-Modulo verrechnet. Beispiel bei 10 Minuten bestehendem Mangel: die Formel liefert weitere 30 statt 20 Minuten bis zum Ende einer 30-Minuten-Schonfrist. Das ist ein konkreter Verdacht auf schrittweitenabhängige Verlusttermine, nicht der Nachweis einer zu hohen Verbrauchsrate.
+- Reproduziere genau diesen Fall: durchgehend leerer Vorrat, keine Produktion, ausreichend Einheiten; Vergleich einer Abrechnung 0 → 31 Minuten mit Schritten 0 → 10 → 31 Minuten. Die erste Verlustwelle muss in beiden Fällen bei Minute 30 liegen. Prüfe zusätzlich 0 → 10 → 35 sowie den exakten Grenzfall 0 → 10 → 30; nur ein Test exakt auf der Grenze kann den Fehler verdecken. Die erste Schonfrist benötigt Rest = Schonfrist minus akkumulierte Mangelzeit; periodische Wellen erst danach.
+- Prüfe zusätzlich die exakte Modulo-/Gleichheitslogik bei gebrochenem Leerstandszeitpunkt. Keine künstlichen cursor-Epsilons verwenden, die ökonomische Zeit überspringen oder doppelte Verluste verdecken.
+- livingUnitGroups filtert aktuell über den Wahrheitswert einer Verbrauchsrate. Bei künftig erlaubtem Verbrauch 0 müssen sichtbarer Truppenbestand, Unterhaltsrechnung und hungerrelevante Gruppen bewusst getrennt werden.
+- advanceSupply, advanceWorld und der ältere advanceMilitary besitzen überlappende Abschlusswege. Mehrere Aufrufe sind allein kein Beweis doppelter Buchung: prüfe Zeitmarken und tatsächlich angewandte Ereignisse. Beseitige echte konkurrierende Abschlusswege, insbesondere für pausierte Ausbildung und Aufklärung.
 
-## C. Verteilung und Grenzen
+Unabhängige Abnahmerechnungen:
+- 10 Infanteristen, keine Produktion/Boni, 1000 Nahrung, 60 Sekunden: Verbrauch 60, Rest 940.
+- 10 Infanteristen, Bauernhof Stufe 1, keine Boni: Nettobilanz 0.
+- 30 Infanteristen, Grundproduktion 2/Sekunde, Bürgermeisterbonus 10 Prozent: Verbrauch 3, Ertrag 2,2, Netto −0,8; nach 60 Sekunden 48 weniger Nahrung.
+- 18 lebende Infanteristen und 7 lebende Späher: 18 × 0,1 + 7 × 0,05 = 2,15/Sekunde = 7740/Stunde. Stationär/unterwegs aufteilen, ohne die Summe zu verändern.
 
-- Ein freier Skillpunkt erhöht genau eine gewählte Eigenschaft um einen Punkt.
-- Grundwerte, verteilte Punkte und effektive Werte getrennt halten. Effektiver Eigenschaftswert = vorhandener Grundwert + entsprechende bestätigte Skillzuweisung; verifiziere die tatsächlichen bestehenden Felder.
-- Führung für den Bürgermeister nutzt diesen effektiven Führungswert. Verwende nicht das historische, deaktivierte Truppenführungslimit als Ersatz.
-- Für die neuen Kampfboni zählt ausschließlich der neu aktivierte verteilte Skillanteil bei Angriff/Verteidigung. Bestehende bisher wirkungslose Grundwerte werden nicht ungefragt zu einem zusätzlichen Kampfbonus. Diese Übergangsregel klar erklären.
-- Invariante: insgesamt erworbene Punkte = freie Punkte + Summe aller verteilten Punkte. Erhaltene Altbestände anhand ihrer vorhandenen Daten konsistent migrieren.
-- UI-Plus/Minus verändert zunächst nur einen lokalen Entwurf. Minus darf nur ungespeicherte Zuweisungen zurücknehmen. Speichern bestätigt alle Änderungen zusammen, Abbrechen verändert nichts.
-- Keine kostenlose Rücksetzung bereits gespeicherter Punkte, kein XP-Transfer zwischen Generälen und keine künstliche Kommandantenpunktebelohnung für Umrechnung oder Verteilung.
-- Wirkungsobergrenzen vor Bestätigung zeigen. Neue Zuweisungen, die eine unten festgelegte Obergrenze überschreiten, serverseitig ablehnen; bestehende überhöhte Altgrundwerte weder kürzen noch rückwirkend bestrafen.
-- Vorläufig maximal 25 verteilte Angriffspunkte und 25 verteilte Verteidigungspunkte, entsprechend jeweils 50 Prozent maximaler Wirkung. Führung nur soweit weiter steigerbar, wie ihr effektiver Wert unter der bestehenden Bürgermeister-Wirkungsgrenze 50 liegt.
-- Falls durch bestehende Daten eine Wirkungsgrenze bereits erreicht ist, diese Eigenschaft als ausgeschöpft anzeigen. Aufgehobene Skillpunkte bleiben erhalten; Käufer auf vollständig ausgeschöpfte Eigenschaften hinweisen.
-- Begrenzungen sind Prototypwerte, keine endgültige Vorgabe für das spätere Forschungs-/Waffensystem.
+Prüfe einzelne große gegen viele kleine Abrechnungen, mehrere Browserverbindungen, Login/Logout, Neustart, Truppenausbildung, Kampf-/Hungerverluste, Rückkehr, volle Lager, Überbestand und Bürgermeister-/Skilländerung. Bei unveränderten Ereignissen dürfen Abrufhäufigkeit und Verbindungszahl keinen Einfluss haben.
 
-## D. Führungswirkung auf Bürgermeister und Versorgung
+Erstelle im Implementierungs-PR docs/UPKEEP_AUDIT.md mit Ausgangswerten, Rechenfällen, reproduzierten Fehlern, Testbelegen und getrenntem Balancefazit. Keine pauschale Bestätigung „alles korrekt“ aus einzelnen Tests und keine erfundenen historischen Schadensersatzbuchungen.
 
-- Bestehende Bonusregel erhalten: b = min(0,50; max(0, effektive Führung) × 0,01). Nahrungsproduktion = landwirtschaftliche Grundproduktion × (1 + b).
-- Beispiel: Führung 10 → 12 durch zwei Skillpunkte erhöht den Bonus von 10 auf 12 Prozent. Bei 2 Nahrung/Sekunde Grundproduktion steigt der Ertrag von 2,20 auf 2,24. Dies sind zwei zusätzliche Prozentpunkte des Grundbonus, nicht 2 Prozent auf den bereits erhöhten Ertrag.
-- Skillverteilung bei einem amtierenden Bürgermeister ist zulässig. Vor Buchung alle fälligen Wirtschafts-/Versorgungsereignisse bis zum wirksamen Zeitpunkt mit dem alten Bonus verarbeiten.
-- Den neuen Ertrag erst ab diesem Zeitpunkt verwenden, Hunger-/Erholungszustand neu prüfen und gegebenenfalls pausierte Ausbildung nach den bestehenden Regeln fortsetzen.
-- Keine rückwirkend erzeugte Nahrung, kein Neustart der Schonfrist allein wegen einer Skillbuchung. Tatsächliche Versorgung entscheidet.
-- Skillverteilung bei einem nicht als Bürgermeister eingesetzten General verändert keine Stadtproduktion.
-- Bonus betrifft weder Lagerkapazität, Holz/Stein, Beutemenge noch NPC-Regeneration. Wiederholte Snapshots dürfen den Bonus nicht nochmals aufaddieren.
+## B. Zentrale serverseitige Umgebungskonfiguration
 
-## E. Vorläufige Kampfboni für neue Farmmissionen
+Führe einen einzigen validierten Konfigurationseinstieg ein. process.env und .env werden beim Serverstart gelesen; reine Spielkernfunktionen erhalten Konfiguration explizit. Keine verstreuten Zugriffe oder global veränderlichen Testkonfigurationen, die zwischen Welten überlaufen.
 
-Kapsle den erweiterten Kampf als neue Regelversion. Für einen neuen Einsatz werden zum Start die Skillboni des gewählten Generals festgeschrieben.
+Mindestens folgende Variablen bereitstellen; vorhandene Namen bevorzugen, falls gleichwertige schon existieren:
 
-Definitionen:
-- N = bei Kampfbeginn tatsächlich noch lebende angreifende Infanterie, nach bisherigen Hungerverlusten.
-- D = bei Kampfbeginn tatsächlich vorhandene NPC-Verteidiger.
-- a = min(0,50; 0,02 × verteilte Angriffspunkte).
-- v = min(0,50; 0,02 × verteilte Verteidigungspunkte).
-- Angriffsstärke S = N × (1 + a). Bonusstärke ist keine zusätzliche Einheit und erzeugt weder Traglast noch Unterhalt.
-- Verwende ganzzahlige Prozentrechnung bzw. exakte rationale Vergleiche, damit Rundungsfehler keine Siegschwellen verschieben.
+| Variable | Einheit / Bedeutung | Kompatibler Standard |
+| --- | --- | --- |
+| WORLD_WIDTH | Weltkartenbreite in Feldern | 24 |
+| WORLD_HEIGHT | Weltkartenhöhe in Feldern | 24 |
+| WORLD_NPC_COUNT | NPC-Anzahl bei Weltanlage | 18 |
+| UPKEEP_INFANTRY_PER_HOUR | Nahrung je Infanterist/Stunde | 360 |
+| UPKEEP_SCOUT_PER_HOUR | Nahrung je Späher/Stunde | 180 |
+| SUPPLY_GRACE_SECONDS | Schonfrist | 1800 |
+| SUPPLY_LOSS_INTERVAL_SECONDS | Abstand der Hungerwellen | 300 |
+| SUPPLY_LOSS_PERCENT | Verlustanteil in Prozent | 5 |
+| SUPPLY_RECOVERY_SECONDS | stabile Versorgung bis Erholung | 60 |
 
-Ausgang:
-- N = 0: bestehende Regel ohne Kampf/Beute anwenden.
-- D = 0 bei N > 0: bestehender unverteidigter Farmzug, keine Verluste oder Kampfbelohnung.
-- Bei D > 0 gewinnt der Angreifer genau dann, wenn S > D; Gleichstand bleibt Verteidigersieg.
+- Bestehende Laufzeitwerte ohne explizite Einstellung erhalten. Nicht allein wegen einer Vermutung die Standardkosten still senken.
+- Dokumentiere daneben ein optionales milderes Beispiel: 36 Nahrung/Stunde je Infanterist und 18 je Späher, also ein Zehntel der aktuellen Raten. Dieses Beispiel ist ein Balancevorschlag, keine Fehlerkorrektur und kein heimlich angewandter Standard.
+- Intern einmalig auf die vereinbarte Zeitbasis umrechnen. Beispielsweise 36/Stunde = 0,01/Sekunde. Keine zweite Multiplikation/Division in Verbrauch oder Frontend.
+- Nicht negative endliche Dezimalwerte für Unterhalt; 0 ist eine gültige bewusste Einstellung. Fehlende Variable nutzt Standard, explizites 0 niemals durch || mit Standard ersetzen.
+- Fristen/Intervalle als positive endliche Werte mit dokumentierten Grenzen; Verlustprozentsatz größer 0 und höchstens 100. Ganzzahlige Kartendimensionen/NPC-Zahl mit sinnvollen, explizit dokumentierten Obergrenzen passend zur vorhandenen Speicher-/Kartentechnik.
+- Ungültige Angaben, NaN, Infinity, negative Werte, leere explizite Werte und ungeeignete Dezimal-/Einheitenformate mit konkreter Fehlermeldung vor Spielstandänderung ablehnen.
+- Keine Obergrenze für massiv größere Welten behaupten, ohne Erzeugung, Koordinatenprüfung, Speicher und Navigation dafür geprüft zu haben.
+- .env.example mit Einheiten, Standards, milderem Beispiel und Kennzeichnung „nur neue Welt“ bzw. „ab Neustart“ liefern. Tatsächliche .env-Dateien ignorieren und nicht committen.
+- Native Node-Starts und npm-Skripte müssen .env nach dokumentierter Methode laden. Bereits gesetzte Prozessvariablen haben Vorrang vor .env; explizite bestehende CLI-Parameter haben Vorrang für ihre jeweiligen Optionen. Fehlende optionale .env-Datei ist kein Startfehler.
+- Docker Compose muss die vorgesehenen Spielvariablen wirklich an den Containerprozess übergeben. Eine Datei, die nur Compose-Portplatzhalter ersetzt, genügt nicht. Native und Containerstarts auf dieselben effektiven Werte testen.
+- Keine VITE_-Variablen für verbindliche Spielregeln und kein Client-Rebuild zum Ändern von Unterhalt. Server liefert nur freigegebene wirksame Regeln/Versionskennung an den Client, niemals die gesamte Umgebung oder Geheimnisse.
+- Konfiguration/Version/Einheit im Betreiberprotokoll und die nötige Unterhaltsaufschlüsselung im Spiel nachvollziehbar anzeigen.
 
-Verluste:
-- Bei Sieg: alle D Verteidiger fallen. Eigene Verluste = min(N, ceil((D / 2) × (1 − v))).
-- Bei Niederlage: NPC-Verluste = min(D, floor(S / 2)); eigene Verluste = min(N, ceil(N × (1 − v))).
-- Damit senkt Verteidigung eigene Kampfverluste auch bei Niederlage. Diese Änderung gegenüber dem bisherigen vollständigen Angreiferverlust ausdrücklich im PR und im Spielregeltext nennen.
-- Niederlage bleibt Niederlage: Überlebende kehren ohne neue Beute zurück. General überlebt entsprechend der bisherigen Regel.
-- Ohne verteilte Angriff-/Verteidigungspunkte muss das Modell für jeden Fall identische Ergebnisse wie die bisherige Kampfversion liefern.
-- Verteidigung reduziert ausschließlich Kampfverluste, nicht Hunger. Angriff steigert weder XP pro getötetem Gegner noch Geschwindigkeit oder Transportkapazität.
+## C. Bestehende Welten und zeitlich korrekte Konfigurationsänderung
 
-Abnahmerechnungen:
-- N = 10, D = 10, 0 Angriff/0 Verteidigung: bisherige Niederlage, 10 eigene Verluste und 5 NPC-Verluste.
-- N = 10, D = 10, 5 Angriffspunkte/0 Verteidigung: a = 10 Prozent, S = 11; Sieg, 5 eigene Verluste, 10 NPC-Verluste und 5 Überlebende.
-- N = 30, D = 20, 0 Angriff/10 Verteidigungspunkte: v = 20 Prozent; Sieg mit ceil(10 × 0,8) = 8 eigenen Verlusten statt 10.
-- N = 10, D = 20, 0 Angriff/10 Verteidigungspunkte: Niederlage, 8 eigene und 5 NPC-Verluste; 2 Überlebende kehren ohne Beute zurück.
-- Anschließende Traglast, Unterhalt, Hunger, XP und Kampfbeiträge anhand tatsächlicher Überlebender/Verluste nach ihren bestehenden Regeln berechnen.
+Kartengröße:
+- WORLD_WIDTH/HEIGHT/NPC_COUNT dienen zunächst der Erzeugung NEUER Welten. Bei bestehender Welt bleiben gespeicherte Dimensionen, Seed, NPC-IDs und Stadtpositionen verbindlich.
+- Abweichende Erzeugungsvariablen bei vorhandener Welt deutlich protokollieren: nicht angewandt, gespeicherte Karte bleibt. Keine stille Neugenerierung, Verkleinerung oder Umsiedlung.
+- Keine automatische Kartenvergrößerung in dieser Etappe. Sie benötigt später eine eigene Migration.
+- Variabel große Karten bis in Generator, Positionierung, Grenzen, Ausschnittsgröße, Suche, Zoom und mobile Navigation durchführen. Kleine Welten dürfen nicht an der bisher festen 15×15-Ausschnittsgröße scheitern.
+- Vor Speicherung prüfen, dass genug bebaubare Felder für NPCs und mindestens einen Spieler vorhanden sind. Unmögliche Einstellungen klar ablehnen statt teilweise erzeugte Welten speichern.
 
-## F. Laufende Missionen und Migration
+Laufende Unterhaltsregeln:
+- Jede Welt erhält eine dauerhafte wirksame Konfiguration/Regelversion mit Gültigkeitsbeginn. Bereits gespeicherte Regeln müssen für die Abrechnung früherer Zeiträume verfügbar bleiben.
+- Beim ersten Übergang das bisherige Regelsystem aus den bekannten alten Konstanten übernehmen. Fehlende alte Konfiguration bedeutet nicht, heutige ENV-Werte auf die gesamte Offlinezeit anzuwenden.
+- Beim Neustart mit geänderten Raten bis zum Übergangszeitpunkt mit vorher gültigen Raten und korrekten Ereignissen abrechnen; neue Raten erst ab gespeichertem Wechselzeitpunkt nutzen.
+- Übernahme/Wiederherstellung mit vorhandenem Journal absturzsicher machen. Absturz zwischen alter Abrechnung und neuem Regelsatz darf keine doppelte Gutschrift oder erneut ausgelösten Wechsel verursachen.
+- Keine rückwirkend veränderten Kampfberichte oder Missionsergebnisse. Stationierte und unterwegs lebende Truppen nutzen ab dem Ratenwechsel die neue laufende Versorgung; ihr Kampf-Snapshot bleibt unverändert.
+- Schonfrist/Verlustintervall/-anteil/Erholung eines bereits laufenden Mangelzyklus vorläufig mit dessen gespeicherter Regelversion zu Ende führen; neue Werte gelten für den nächsten Mangelzyklus. So entstehen keine rückwirkenden zusätzlichen Verlustwellen.
+- Ratenänderung darf die aktuelle Mangeldauer nicht einfach löschen. Neue tatsächliche Bilanz kann natürlich nach den bestehenden Erholungsregeln zur Versorgung führen.
+- Bei ausschließlich kostenlosen Einheiten bzw. Unterhalt 0 keinen Hunger auslösen; die Truppen bleiben trotzdem in Bestands-/Missionsübersichten sichtbar.
+- Konfigurationswechsel innerhalb desselben laufenden Prozesses ist nicht nötig; Änderungen werden beim Neustart geladen.
 
-- Generäle dürfen während eines Einsatzes XP umwandeln und Punkte verteilen; Wirkung auf militärische Einsätze jedoch erst ab dem nächsten Start.
-- Speichere für neue Missionen eine unveränderliche Aufnahme der wirksamen Kampfboni und Kampfregelversion. Nicht beim späteren Kampf aus dem dann aktuellen General neu ableiten.
-- Vor Aktivierung gestartete Farmmissionen behalten ihre bisherige Kampfversion ohne neue Boni, auch wenn der General vor Ankunft verbessert wird. Kein rückwirkender Vorteil oder Nachteil.
-- Bereits gespeicherte Kampfresultate und historische Berichte bleiben unverändert. Bei fehlender alter Versionskennung ausdrücklich der bisherigen Version zuordnen, nicht dem neuesten Standard.
-- Vorhandenes Journal muss auch ältere noch offene Transaktionen vor neuen Aktionen korrekt wiederherstellen können.
-- Migration erhält alle Generäle, Rollen, XP, freien/verteilten Punkte, aktive Einsätze, Ressourcen und Mangelzeitpunkte. Keine automatische Skillverteilung und kein Bonusgeschenk bei Anmeldung.
-- Regelsatz-/Datenversion dauerhaft speichern; Neustart und erneute Migration dürfen weder XP erneut freigeben noch Punkte duplizieren.
-- Kampfberichte der neuen Version zeigen tatsächlich angewandte Angriffs-/Verteidigungsboni und Verluste; alte Berichte dürfen keine nachträgliche neue Bonusdarstellung bekommen.
+## D. Universität als ziviles Gebäude
 
-## G. WebSocket, Vorschau und React-Modal
+Die folgenden Forschungsregeln sind vorläufige Vorschläge für den Review, keine endgültigen Nutzerentscheidungen:
 
-- Aktiviere/ergänze Skillbefehle gemäß bestehender Protokollkonvention. Vorher die schon vorhandenen Spielkernfunktionen und deaktivierten Befehle prüfen.
-- Ein authentifizierter Befehl identifiziert General, gewünschte Menge bzw. Zuweisungsdeltas, erwartete Generalversion und Regelsatzversion. Kosten, Eigenschaften, XP und Besitzer bestimmt der Server.
-- Vorschau und Bestätigung gegen veraltete General-/Regelstände prüfen. Konkurrierende Änderungen dürfen keine Punkte mehrfach ausgeben; bei Konflikt aktuellen Zustand liefern und erneute bewusste Bestätigung ermöglichen.
-- XP-Umrechnung und Eigenschaftsverteilung sind zwei klar getrennte Schritte. Ihre jeweiligen Abbuchungen und Gutschriften intern atomar speichern.
-- Deduplizierung beibehalten: gleiche requestId und gleicher Inhalt erzeugen keine weitere Wirkung, widersprüchlicher Inhalt wird abgewiesen.
-- Vor Erfolg dauerhaft konsistent speichern. Speicherfehler, Absturz oder verlorene Antwort dürfen keine verlorene XP-Buchung oder doppelte Skillpunkte verursachen.
-- Eigentumsprüfung, private Snapshots und Kontowechselabsicherung erhalten. Keine neue WebSocket-Verbindung je Modal und kein HTTP-Spielpolling.
-- Modal zeigt Gesamt-XP/Level, verfügbare/verwendete XP, erworbene/freie Punkte, Preis des nächsten Punktes, Grundwerte und zugewiesene Skillanteile.
-- Vorschau zeigt pro Eigenschaft ihre tatsächliche Wirkung und Obergrenze. Erkläre, dass kleine Änderungen durch Rundung nicht in jedem Kampf sofort eine weitere Einheit retten.
-- Keine Siegchance aus geheimen aktuellen NPC-Daten berechnen. Beispielrechnungen oder zeitgestempelte eigene Aufklärungsberichte dürfen als solche erkennbar verwendet werden.
-- Während Einsatz im Modal erklären: neu verteilte Kampfpunkte gelten ab nächster Entsendung. Bürgermeisteränderung wirkt ab erfolgreicher Speicherung.
-- Mobile/Tastaturbedienung, Fokusführung, verständliche Fehler- und Ladezustände erhalten. Entwürfe nicht bei jedem Push ungefragt überschreiben.
+- Ausbaubare Universität auf zivilen Bauplätzen, niemals auf Militärplätzen. Verwende vorhandene Bauangebote, gemeinsame Bauwarteschlange, Stufenobergrenze und als Testbasis die vorhandene zivile Baukosten-/Zeitkurve.
+- Universität produziert selbst keine Rohstoffe und erhöht keine Lagerkapazität. Sie zählt als Gebäude nach der bestehenden Punkteregel.
+- Erste Universität ohne Forschungsvoraussetzung bauen können. Keine kostenlose automatische Platzierung oder zusätzliche Bauplätze.
+- Mehrere Universitäten dürfen bestehen, aber pro Stadt läuft zunächst genau eine Forschung. Zusätzliche Gebäude eröffnen keine parallelen Forschungsplätze.
+- Forschung wird an einer ausgewählten eigenen fertigen Universität begonnen. Neue Zielstufe n benötigt Universitätsstufe mindestens n.
+- Keine Forschungswarteschlange in dieser ersten Fassung: ein laufender Auftrag, danach nächster Start. Keine Abbruch-/Erstattungsaktion.
+- Universität mit laufender Forschung nicht abreißen. Ausbau ist zulässig; er beschleunigt einen bereits gestarteten Forschungsauftrag nicht rückwirkend.
+- Investitionsnachweise, Abrissvorschau, Lagergrenzen und bestehenden Eigentumsschutz des Gebäudesystems weiterverwenden.
 
-## H. Prüfung und Lieferung
+## E. Erste Forschungen und Effekte
 
-Führe bestehende Tests und Frontend-Build aus; ergänze gezielte Prüfungen:
+Forschung gilt zunächst für die jeweilige Stadt. Keine Übertragung auf andere Städte/Server oder Vervielfachung je Universität.
 
-1. XP-Kosten aller genannten Beispiele, Rest-XP, Mehrfachkauf, bereits ausgegebene Punkte und numerische Grenzen.
-2. Manuelle Bestätigung, kein automatischer Kauf durch Login/XP-Ereignis; Gesamt-XP und Level bleiben bei Umrechnung erhalten.
-3. Verteilungsinvariante, kostenlose Rücksetzung ausgeschlossen, Effektschranken und unveränderte Altgrundwerte.
-4. Bürgermeister-Führung vor/nach Buchung bei laufender Produktion, Hunger/Erholung und pausierter Ausbildung.
-5. Exakte Kampfbeispiele, Siegschwellen/Gleichstand, leeres Ziel, vollständiger vorheriger Hungerabgang und identische alte Ergebnisse bei null Skills.
-6. Höherer Angriff darf unter sonst gleichen Bedingungen keine schlechtere Erfolgsbewertung, höhere Verteidigung keine höheren eigenen Kampfverluste bewirken.
-7. Keine Wirkung auf Traglast pro Einheit, Marschzeit, Nahrungsbedarf pro Einheit, Hungerverlustrate oder militärisches Führungslimit.
-8. Alte Missionen bleiben in alter Regelversion; neue Missionen verwenden den beim Start gespeicherten Bonus trotz späterer Verteilung.
-9. Rückkehr mit Überlebenden nach Niederlage, korrekte XP/Punkte aus echten Verlusten und keine Beute bei Niederlage.
-10. Doppelte/gleichzeitige Befehle, fremde General-ID, veraltete Vorschau, Speicherfehler und Neustart ohne doppelte XP-/Punktebuchung.
-11. Migration mit laufendem Einsatz, amtierendem Bürgermeister, vorhandenen Skillzählern und offenem Journal.
-12. Regression von Generalrollen, Farmzügen/Aufklärung, Ernährung/Hunger und Lager/Abriss.
+Vier Technologien, je Stufe 0 bis 5:
+- Forstwirtschaft: +5 Prozent Holzproduktion je abgeschlossener Stufe.
+- Steinverarbeitung: +5 Prozent Steinproduktion je abgeschlossener Stufe.
+- Landwirtschaft: +5 Prozent Nahrungsgrundproduktion je abgeschlossener Stufe.
+- Lagerlogistik: +5 Prozent Lagerkapazität aller aktuell aktiven Ressourcen je abgeschlossener Stufe.
 
-Browserprüfung mit zwei Konten, Desktop und Mobilansicht: Erfahrung anzeigen → Punkte kaufen → Entwurf abbrechen/speichern → Bürgermeisterertrag prüfen → neuen Farmzug starten → Bonus im privaten Bericht prüfen → erneut anmelden. Isolierte Testwelten für Kampfvergleiche nutzen; produktive Spielstände nicht verändern.
+Vorgeschlagene Testkosten/-zeiten für Zielstufe n:
+- 100 × n Holz und 100 × n Stein; keine Nahrung als zusätzliche Forschungskosten in dieser Etappe.
+- Dauer = aufgerundet 60 × n / (1 + 0,1 × (Universitätsstufe − 1)) Sekunden. Universitätsstufe beim Start festschreiben.
+- Beispiel: Zielstufe 2 an Universität Stufe 2 kostet 200 Holz und 200 Stein, dauert ceil(120 / 1,1) = 110 Sekunden.
+- Voraussetzung: vorige Forschungsstufe abgeschlossen, eigene Universität mit erforderlicher Stufe, keine andere aktive Forschung und genügend Ressourcen.
+- Preis, Dauer, Wirkung und Voraussetzungen ausschließlich aus serverseitigem Angebot. Beim Start Kosten einmalig abziehen und Auftrag dauerhaft speichern.
+- Forschungsparameter zentral in einem Regelsatz definieren; dieser Auftrag verlangt dafür keine zusätzlichen ENV-Schalter. Eine spätere Konfigurierbarkeit muss möglich bleiben.
 
-- Liefere nachvollziehbare Teilcommits und einen vollständigen Pull Request; nicht selbst mergen/deployen.
-- Aktualisiere README, docs/PROJECT.md und Protokoll-/Speicherdokumentation. Veraltete Aussagen „alle Skillfunktionen deaktiviert“ und „Niederlage vernichtet immer alle Angreifer“ für den neuen Regelsatz korrigieren, historische Regeln als solche erhalten.
-- Dokumentiere Rechenbeispiele und alle vorläufigen Werte: 10 × n XP, manuelle Umrechnung, ein Eigenschaftspunkt je Skillpunkt, 2 Prozent je militärischem Skillpunkt, 50-Prozent-Wirkungsgrenzen und Überlebende bei Niederlage.
-- Trenne umgesetzt/getestet/offen. Nicht ausführbare Prüfungen und reale Einschränkungen ausdrücklich benennen.
-- Danach Universität und erste Wirtschafts-/Lagerforschungen als eigener Auftrag. Forschungsgeneral und weitere Generalrekrutierung benötigen eigene Regeln; nicht automatisch implementieren.
+Verrechnung:
+- Grundproduktion je Ressource aus fertigen Produktionsgebäuden bestimmen. Passender Forschungsfaktor = 1 + 0,05 × Forschungsstufe.
+- Nahrungsertrag = Gebäudegrundproduktion × Landwirtschaftsfaktor × (1 + Bürgermeisterbonus). Davon den einmalig berechneten Truppenunterhalt abziehen.
+- Beispiel: Bauernhöfe liefern 2/Sekunde, Landwirtschaft Stufe 2 ergibt Faktor 1,10, Bürgermeister 20 Prozent ergibt 2 × 1,10 × 1,20 = 2,64/Sekunde. Bei unverändertem Bedarf 3/Sekunde ist Netto −0,36.
+- Forschungsbonus und Bürgermeister getrennt ausweisen; den Bürgermeister nicht doppelt anwenden.
+- Lagerkapazität je Ressource = floor((Grundkapazität + passende Gebäude-/Lagerhausbeiträge) × (1 + 0,05 × Lagerlogistikstufe)).
+- Beispiel: 2500 Kapazität vor Forschung und Lagerlogistik Stufe 2 ergeben 2750. Forschung erzeugt keine 250 zusätzlichen Ressourcen, nur Platz.
+- Bestehende Überbestände und Regeln bei Abriss/Beuterückkehr erhalten. Alle Kapazitätsprüfungen müssen dieselbe abgeleitete Kapazität verwenden.
+- Boni gelten ab dem tatsächlichen Forschungsabschluss. Ein wartender/laufender Auftrag hat noch keine Wirkung.
+- Abgeschlossene Forschung bleibt bei Universitätsabriss erhalten und wirksam; für weitere Forschung wird wieder eine geeignete Universität benötigt. Keine doppelte Wirkung durch Neubau.
+- Forschungspunkte als weiterer Kommandantenbereich aktivieren: vorläufig 10 × Summe abgeschlossener Forschungsstufen. Laufende Forschung zählt nicht.
+- Gesamtpunkte nach vorhandener Regel aus Gebäude-, Forschungs- und signiertem Kampfbeitrag berechnen, nur Gesamtanzeige unten auf null begrenzen. Abgeleitete Forschungspunkte nicht zusätzlich noch einmal als Ereignisbonus addieren.
+- Kein Forschungsgeneral, militärischer Technologiebaum, Ölbonus, Einheiten-/Waffenfreischaltung in dieser Etappe. Die spätere Erweiterbarkeit bleibt im Projektplan.
+
+## F. Zeit, Persistenz und Ereignisse
+
+- Forschungsstart, Vorschau, Fortschritt, Abschluss und neue Stadtzustände über den vorhandenen WebSocket-Transport.
+- Eigenen Stadt-/Universitätsbesitz, gültige Technologie, erwartete nächste Stufe und Ressourcen serverseitig prüfen. Freie Clientwerte für Kosten/Faktoren/Zeiten ignorieren bzw. ablehnen.
+- Startauftrag enthält stabile ID, Technologie/Zielstufe, Universität-ID, bezahlte Kosten, Regelversion, Start-/Endzeit und festgeschriebene Dauer.
+- Wiederholte requestId, zwei Verbindungen und gleichzeitige Startversuche dürfen weder doppelt abbuchen noch mehrere Stadtforschungen starten.
+- Versionierte Migration: bestehende Städte mit Forschungsstufe 0 und ohne erfundene historische Forschung versehen. Vorhandene Daten, falls die tatsächliche Implementierung schon etwas enthält, erhalten.
+- Forschungsabschlüsse in die bestehende globale Zeitverarbeitung einordnen: alte Wirtschaftsrate bis Abschluss, dann Forschung genau einmal fertigstellen, neue Produktion/Kapazität/Punkte ableiten und Versorgung neu prüfen.
+- Bürgermeisterwechsel/Skillverteilung, ENV-Regelwechsel, Forschung, Bau, Ausbildung, Kampf, Rückkehr und Hunger zeitlich korrekt zusammenführen. Keine getrennten Browser- oder Background-Timer als zweite Autorität.
+- Bei Forschung und Rückkehr zum gleichen Zeitpunkt eine deterministische, dokumentierte Ordnung verwenden. Empfohlene Regel: fällige Wirtschaftsabschlüsse einschließlich Forschung vor Missionseinlagerung, Hungerwelle nach rechtzeitiger Versorgung. Bestehende Missionsreihenfolge untereinander erhalten.
+- Forschung läuft während Abwesenheit und bei Nahrungsmangel weiter; Ausbildungspause nicht versehentlich auf Forschung übertragen.
+- Neue Produktionswirkung kann Hunger beenden, aber frühere Verluste nicht zurücknehmen oder aufgelaufene Mangelzeit eigenmächtig löschen.
+- Speichern vor Erfolgsbestätigung und Wiederherstellung aus Journal. Speicherung atomarer Einzeldateien allein nicht als Ersatz für konsistente Ereignisverarbeitung behandeln.
+
+## G. Oberfläche und Dokumentation
+
+- Universität in vorhandene Stadtdarstellung und Bauangebote integrieren; vorhandene Bild-/Designsprache erhalten.
+- Forschungsansicht über Universität oder klare Navigation erreichbar machen: vier Technologien, erreichte/nächste Stufe, Wirkung, Kosten, Voraussetzungen und laufender Fortschritt.
+- Keine scheinbar bedienbaren Platzhalter für kommende Militärforschung. Verständliche Sperrgründe, Vorschau und Bestätigung.
+- Ressourcenübersicht: Gebäudeertrag, Forschungsanteil, Bürgermeisteranteil, Gesamtproduktion, Verbrauch je Typ, Gesamtverbrauch und Netto in konsistenter Einheit.
+- Beim Unterhalt Anzahl × Kosten je Einheit/Stunde sichtbar machen, damit der Nutzer seine Rechnung nachvollziehen kann. Stationiert, lebend unterwegs und noch in Ausbildung sauber unterscheiden.
+- Lageraufschlüsselung enthält Forschungsfaktor, ohne Kapazität mit vorhandenem Vorrat zu verwechseln.
+- Forschungspunkte in bestehender Punkteansicht ergänzen. Private Forschungen anderer Spieler nicht über öffentliche Karte offenlegen.
+- README, .env.example, Container-/Entwicklungsanleitung, Protokoll-/Speicherdokumentation und Projektplan auf tatsächlichen Stand bringen.
+- Bestehende widersprüchliche Aussagen korrigieren: bereits vorhandene Konten, Farmzüge und Skills nicht weiter als fehlend beschreiben. Historische Regelstände erkennbar von aktuellen Regeln trennen.
+
+## H. Verbindliche Prüfung und Lieferung
+
+Zusätzlich zu bestehender Testsuite und Frontend-Build:
+1. Unabhängige Unterhaltsrechnungen aus Abschnitt A, Einmalkosten getrennt, keine Änderung durch Verbindungs-/Abrufanzahl.
+2. Schonfrist in großem und in vielen kleinen Schritten, über die erste Verlustwelle hinaus; gebrochener Leerstandszeitpunkt, Erholung, Offline-/Online-Gleichheit.
+3. Stations-/Missionszählung, Kampf-/Hungerverluste, Ausbildung und Rückkehr genau einmal.
+4. ENV-Standards, explizites 0, Dezimalwerte, ungültige Grenzen, fehlende/ungültige Datei, dokumentierte Prioritäten.
+5. Zwei isolierte Welten mit unterschiedlichen Konfigurationen ohne gegenseitige Beeinflussung.
+6. Neue rechteckige/kleine/größere Karten, unmögliche NPC-Anzahl und bestehende Welt mit abweichenden Erzeugungswerten.
+7. Native und Compose-Starts mit wirksamen Unterhaltswerten ohne Frontend-Neubuild.
+8. Neustart mit Ratenwechsel nach Offlinezeit: vorherige Regeln vor Übergang, neue Regeln danach; kein Rücksetzen laufender Mangelzyklen, korrekte Wiederherstellung nach Fehler.
+9. Universitätsbau/Ausbau/Abriss, militärische Plätze abweisen, kein Abriss bei aktiver Forschung, erhaltene Forschung nach Neubau.
+10. Forschungsstartkosten, Stufenvoraussetzungen, eine Forschung je Stadt trotz mehrerer Universitäten, Ende/Offlineabschluss und keine doppelte Zahlung/Wirkung.
+11. Alle Produktions-/Lagerformeln einschließlich Bürgermeister, Forschungspunkte, Hunger und Beuterückkehr.
+12. Manipulierte/fremde IDs, Parallelbefehle, Speicherfehler, Neustart und Regression von Skills, Farmzügen, Lager/Abriss.
+
+Browserprüfung mit zwei Konten und Desktop/Mobilansicht: nachvollziehbare Unterhaltsanzeige, Universität bauen, Forschung starten/abschließen, Wirkung prüfen, erneut anmelden. Isolierte Testwelten und kontrollierte Uhr für lange Zeiträume verwenden.
+
+Liefere einen vollständigen PR mit Teilcommits „Unterhaltsprüfung/Fixes“, „ENV-Konfiguration“, „Forschung“ und den nötigen Integrationstests. Fehlende Prüfungen ausdrücklich benennen. Balancesenkung getrennt von Fehlerkorrekturen ausweisen, keine behauptete Live-Ursache ohne Beleg. Nicht selbst mergen oder deployen.
+
+Danach Forschungsgeneral und weitere Forschung/Freischaltungen sowie Regeln für zusätzliche Generäle als eigene Etappe; Öl/LKWs und Föderation gemäß Projektplan.
