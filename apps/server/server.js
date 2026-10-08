@@ -1,4 +1,5 @@
 import { RESEARCH_RULES, TECHNOLOGIES, researchOffers, researchQuote, startResearch } from '../../packages/game-core/research.js';
+import { markMailRead, unreadMail } from '../../packages/game-core/mailbox.js';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, dirname, extname, relative } from 'node:path';
@@ -68,6 +69,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     return {
       world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ruleset: RULESET,
       player: { id: player.playerId, commanderName: account.displayName }, city, serverTime: now,
+      mailbox: { readReportIds: current.mailbox.readReportIds, messages: current.mailbox.messages.map(({ commandId, fingerprint, ...message }) => message), unreadCount: unreadMail(current) },
       military, score: { ...commanderScore(city), combat: military.combatScore ?? 0, total: Math.max(0, commanderScore(city).buildings + commanderScore(city).research + (military.combatScore ?? 0)) }, buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
       capacityBreakdown: capacityBreakdown(city), productionRates: productionRates(city), buildingProductionRates: buildingProductionRates(city), researchOffers: researchOffers(city, { military, officerRules: storage.config.officers }), researchRules: RESEARCH_RULES, technologies: TECHNOLOGIES, storageRules: STORAGE_RULES,
       officerRules: storage.config.officers, researcher: researcherSnapshot(military, storage.config.officers), recruitment: (() => {
@@ -200,6 +202,22 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       if (message.type === 'general.recruit.preview') return await storage.exclusive(async () => {
         await storage.advanceWorld(clock()); const player = await storage.loadPlayer(peer.playerId);
         return response(peer, message.type, message.requestId, recruitQuote(player, message.payload.candidateId, clock(), storage.config.officers));
+      });
+      if (['mail.send', 'mail.read'].includes(message.type)) return await storage.exclusive(async () => {
+        const now = clock();
+        await storage.advanceWorld(now);
+        let players, result;
+        if (message.type === 'mail.send') {
+          const sent = await storage.sendMail(peer.playerId, message.requestId, message.payload, now);
+          players = sent.players; result = { messageId: sent.messageId, duplicate: sent.duplicate };
+        } else {
+          const player = await storage.loadPlayer(peer.playerId);
+          markMailRead(player, message.payload, now);
+          await storage.savePlayer(player);
+          players = [player]; result = {};
+        }
+        response(peer, 'command.ok', message.requestId, result);
+        for (const player of players) broadcast(player.playerId, 'city.updated', connection => snapshot(player, connection.account));
       });
       if (!['general.recruit', 'general.researcher', 'construction.enqueue', 'training.enqueue', 'scouting.start', 'raid.start', 'building.demolish', 'general.rename', 'general.mayor', 'general.convert', 'general.distribute', 'research.start'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
       await storage.exclusive(async () => {

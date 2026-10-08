@@ -131,7 +131,7 @@ test('schema 9/8, larger counts, legacy research, eligibility timestamp and save
   let { player } = await storage.register('OfficersMigration', 'sicheres-passwort');
   player.schemaVersion = 8; delete player.city.research; delete player.military.acquiredCount;
   await storage.savePlayer(player); player = await storage.loadPlayer(player.playerId);
-  assert.equal(player.schemaVersion, 11); assert.equal(player.military.acquiredCount, 1); assert.equal(player.military.researcherGeneralId, null);
+  assert.equal(player.schemaVersion, 12); assert.equal(player.military.acquiredCount, 1); assert.equal(player.military.researcherGeneralId, null);
   player.schemaVersion = 9; player.military.acquiredCount = 9; await storage.savePlayer(player);
   player = await storage.loadPlayer(player.playerId); assert.equal(player.military.acquiredCount, 9); assert.equal(player.military.generals.length, 1);
   player.city = enqueueConstruction(player.city, { id: 'b', slotId: player.city.militarySlots[0].id, building: 'barracks' }, 0);
