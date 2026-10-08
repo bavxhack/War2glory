@@ -34,3 +34,9 @@ Lokaler AMD64-Container erfolgreich mit Node 24 aufgebaut. Nur für die verwalte
 Gestarteter isolierter Container: Healthcheck erfolgreich. Alle sieben absichtlich abweichenden Werte aus `docker compose config` an den Container übergeben und mit nativem `loadConfiguration` verglichen: Limit 5, Holz 700, Stein 800, Exponent 3, Intervall 2,5 h, Führungsbonus 2 %, Cap 60 %. Wirksame Werte und Regelversion identisch. Anschließend Testcontainer samt anonymem Spielstandvolume entfernt.
 
 Vorhandene `data/`-Spielstände wurden nicht verändert, gelöscht oder committed. Keine manuelle historischen Kosten-/XP-/Ressourcenkorrektur.
+
+## Ergänzung: individuelle Porträts
+
+20 erzeugte Charakterporträts visuell geprüft: 10 Frauen und 10 Männer im lokalen 5×4-Atlas. Schema 11 ergänzt zufällige `portraitId` für vorhandene Generäle und gespeicherte Bewerber, vor Auslieferung atomar gespeichert. Bestehende Kennungen bleiben erhalten. Neue Bewerber übernehmen ihre Kennung unverändert bei Verpflichtung. Kein Einfluss auf Spielwerte; neue Vergaben vermeiden bereits belegte Bilder, bis alle 20 Motive verwendet sind.
+
+Abschließende Prüfung dieser Ergänzung: `npm test` mit 101 bestandenen Tests, `npm run build` und `git diff --check` erfolgreich. Zusätzliche Tests prüfen Katalogverhältnis, erreichbare Motive, Vermeidung von Doppelbildern, unveränderte übrige Daten bei Migration, gespeicherten Bewerberpool, Neustart, Umbenennen/Skills und ignorierte Client-Porträtwerte. Browserablauf bei 1440/390 px mit neuen Porträts erneut erfolgreich ausgeführt; Bewerberkarten, Generalübersicht, ausgewähltes Modal und Tastaturbedienung geprüft. Diese Ergänzung führt keinen neuen Netzwerkdienst oder Containerparameter ein; der neue Bildatlas wird im bestehenden Vite-Build lokal mit ausgeliefert.

@@ -1,5 +1,6 @@
 import { normalizeResearch } from '../../packages/game-core/research.js';
 import { normalizeOfficers, syncCandidates } from '../../packages/game-core/officers.js';
+import { assignMissingPortraits } from '../../packages/game-core/portraits.js';
 import { parseConfiguration } from './config.js';
 import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { copyFile, mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
@@ -11,7 +12,7 @@ import { advanceSupplyHistory, refreshSupplyAt, SUPPLY_RULES, settleSupplyAt } f
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 10;
+export const PLAYER_SCHEMA_VERSION = 11;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -139,6 +140,7 @@ export class WorldStorage {
         military: newMilitary(playerId), generalSkillRuleset: GENERAL_SKILL_RULES.version, processedCommands: [], createdAt: now,
       };
       normalizeOfficers(player);
+      assignMissingPortraits(player, randomInt);
       const account = { playerId, displayName, normalized, password: credentials, createdAt: now };
       const entity = this.#allocatePlayerCity(player, account);
       await atomicWrite(this.worldFile, this.world);
@@ -256,6 +258,7 @@ export class WorldStorage {
       player.military.acquiredCount = Math.max(player.military.acquiredCount ?? 1, player.military.generals.length);
       normalizeOfficers(player); player.schemaVersion = 10;
     }
+    if (player.schemaVersion === 10) { migrated = true; assignMissingPortraits(player, randomInt); player.schemaVersion = 11; }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
     normalizeOfficers(player);
     if (migrated) await this.savePlayer(player);

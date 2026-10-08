@@ -105,7 +105,7 @@ test('schema migration preserves existing data and research/return ordering surv
   let now = 0; let storage = await new WorldStorage(directory, 'test', () => now).initialize();
   let { player } = await storage.register('ResearchState', 'long-test-password');
   player.schemaVersion = 8; delete player.city.research; await storage.savePlayer(player);
-  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 10); assert.deepEqual(player.city.research, newResearch());
+  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 11); assert.deepEqual(player.city.research, newResearch());
   player.city = cityAt(); player.city.buildingSlots[3].level = 1;
   player.city = startResearch(player.city, { ...command('logistics'), expectedUniversityLevel: 1 }, 0);
   player.city.resources.food = 2000;

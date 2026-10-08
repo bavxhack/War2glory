@@ -1,4 +1,5 @@
 import { effectiveAttributes, normalizeGeneral, validateGeneralName } from './military.js';
+import { randomPortraitId } from './portraits.js';
 
 export const OFFICER_RULES = Object.freeze({ version: 'officers-1-provisional', maxCount: 3, wood: 500, stone: 500, exponent: 2, refreshMs: 86400000, leadershipPercent: 1, bonusCapPercent: 50 });
 export const PROFILES = Object.freeze({ Organisator: { leadership: 20, attack: 5, defense: 5 }, Angreifer: { leadership: 10, attack: 15, defense: 5 }, Verteidiger: { leadership: 10, attack: 5, defense: 15 }, Allrounder: { leadership: 10, attack: 10, defense: 10 } });
@@ -58,9 +59,11 @@ export function syncCandidates(player, now, rules = OFFICER_RULES, randomIndex, 
   }
   const createdAt = anchor + Math.floor((now - anchor) / intervalMs) * intervalMs;
   const profiles = Object.keys(PROFILES);
+  const usedPortraits = m.generals.map(g => g.portraitId).filter(Boolean);
   const candidates = Array.from({ length: 3 }, () => {
     const profile = profiles.splice(randomIndex(profiles.length), 1)[0];
-    return { id: idFactory(), profile, name: names[randomIndex(names.length)], attributes: { ...PROFILES[profile] } };
+    const portraitId = randomPortraitId(randomIndex, usedPortraits); usedPortraits.push(portraitId);
+    return { id: idFactory(), profile, name: names[randomIndex(names.length)], portraitId, attributes: { ...PROFILES[profile] } };
   });
   m.candidatePool = { id: idFactory(), version: 1, ruleset: rules.version, intervalRuleset, intervalMs, createdAt, expiresAt: createdAt + intervalMs, state: 'open', candidates };
   return true;
@@ -81,7 +84,7 @@ export function recruitGeneral(previous, command, now, rules = OFFICER_RULES, id
   for (const key of ['poolId', 'poolVersion', 'expiresAt', 'acquiredCount', 'rosterVersion', 'rulesetVersion']) if (command[key] !== quote[key]) throw new Error('Rekrutierungsvorschau veraltet. Bitte erneut prüfen.');
   const c = m.candidatePool.candidates.find(c => c.id === command.candidateId);
   const name = validateGeneralName(command.name ?? c.name);
-  const general = normalizeGeneral({ id: idFactory(), ownerId: player.playerId, name, level: 1, experience: 0, leadership: c.attributes.leadership, attributes: { ...c.attributes }, status: 'idle', acquisition: { ...quote, profile: c.profile, attributes: { ...c.attributes }, acquiredAt: now, paidCost: quote.cost } });
+  const general = normalizeGeneral({ id: idFactory(), ownerId: player.playerId, name, portraitId: c.portraitId, level: 1, experience: 0, leadership: c.attributes.leadership, attributes: { ...c.attributes }, status: 'idle', acquisition: { ...quote, profile: c.profile, portraitId: c.portraitId, attributes: { ...c.attributes }, acquiredAt: now, paidCost: quote.cost } });
   for (const [r, n] of Object.entries(quote.cost)) player.city.resources[r] -= n;
   if (!Number.isSafeInteger(m.acquiredCount + 1)) throw new Error('Erwerbszähler überschreitet den sicheren Zahlenbereich.');
   m.generals.push(general); m.acquiredCount++; m.rosterVersion++; m.candidatePool.state = 'consumed'; m.candidatePool.version++;

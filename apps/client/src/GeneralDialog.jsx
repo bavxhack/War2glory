@@ -1,5 +1,6 @@
+import { GeneralPortrait } from './GeneralPortrait.jsx';
 import { useState } from 'react';
-import { Dialog, GameArt } from './ui.jsx';
+import { Dialog } from './ui.jsx';
 
 const emptyDraft = () => ({ leadership: 0, attack: 0, defense: 0 });
 const labels = { leadership: 'Führung', attack: 'Angriff', defense: 'Verteidigung' };
@@ -58,7 +59,7 @@ export function GeneralDialog({ general, rules, supply, roleVersion, isMayor, tr
       setBaseVersion(general.version + 1); setPreview(null);
     })}>Namen speichern</button>
   </>}>
-    <GameArt type="general" label="Generalporträt"/>
+    <GeneralPortrait portraitId={general.portraitId} name={general.name}/>
     <label>Name<input maxLength="80" value={name} onChange={event => setName(event.target.value)}/></label>
     <div className="general-facts">
       <span>Level <strong>{general.level}</strong></span><span>Gesamt-XP <strong>{general.experience}</strong></span>

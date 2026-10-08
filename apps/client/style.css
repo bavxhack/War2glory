@@ -194,3 +194,6 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 .research-help summary { cursor: pointer; color: #d5e59b; }
 .research-help p { margin: .5rem 0 0; line-height: 1.5; }
 .research-grid { margin-top: .75rem; }
+
+.general-portrait, .general-card .general-portrait, .mission-dialog .general-portrait { aspect-ratio: 1; }
+.mission-dialog .general-portrait { max-width: 300px; margin-inline: auto; }
