@@ -2,6 +2,35 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequestId } from '../apps/client/request-id.js';
 import { dragToPan, finishMapPointer, mapSelectionCoordinate } from '../apps/client/map-navigation.js';
+import { forceSummary } from '../apps/client/force-summary.js';
+
+test('Truppenbestand trennt Stationierung, lebende Einsatztruppen und Ausbildung', () => {
+  const military = {
+    units: { scout: 4, infantry: 12 },
+    trainingQueue: [{ unit: 'infantry', amount: 30 }, { unit: 'scout', amount: 2 }],
+    missions: [
+      { status: 'outbound', type: 'raid', infantry: 20 },
+      { status: 'returning', type: 'raid', infantry: 10, result: { survivors: 7 } },
+      { status: 'returning', type: 'raid', infantry: 5, result: { survivors: 0 } },
+      { status: 'completed', type: 'raid', infantry: 50, result: { survivors: 48 } },
+      { status: 'outbound', scouts: 3 },
+      { status: 'returning', type: 'scout', scouts: 2 },
+    ],
+  };
+  assert.deepEqual(forceSummary(military, ['scout', 'infantry']), {
+    scout: { stationed: 4, deployed: 5, training: 2, total: 9 },
+    infantry: { stationed: 12, deployed: 27, training: 30, total: 39 },
+  });
+  military.units.infantry += 7;
+  military.missions[1].status = 'completed';
+  assert.equal(forceSummary(military, ['infantry']).infantry.total, 39);
+});
+
+test('leere Truppenbestände zeigen Null', () => {
+  assert.deepEqual(forceSummary({ units: {}, missions: [], trainingQueue: [] }, ['scout']), {
+    scout: { stationed: 0, deployed: 0, training: 0, total: 0 },
+  });
+});
 
 test('Anfrage-IDs funktionieren ohne crypto.randomUUID', () => {
   const generated = createRequestId({

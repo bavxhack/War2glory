@@ -105,3 +105,49 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .message { min-height:24px;color:#e6e7a7;margin:12px 4px 0; }
 .auth-message { color:#efaa98;min-height:22px;margin-top:14px; }
 .mission-dialog .dialog-content { display:grid;gap:1rem;padding:1.25rem; }
+
+/* Shared cinematic artwork: one local atlas, fingerprinted by Vite. */
+.game-art { display:block; width:100%; aspect-ratio:1; background-size:300% 300%; background-repeat:no-repeat; border-radius:12px; background-color:#263329; }
+.building-art { width:100%; height:auto; aspect-ratio:1.35; filter:none; margin-bottom:10px; border-radius:10px; }
+.city-scene { min-height:650px; padding:24px; background:linear-gradient(145deg,#293e32,#14241e); border-color:#45584c; }
+.city-scene .river,.city-scene .road { opacity:.2; }
+.city-grid { gap:18px; }
+.plot { border-radius:16px; border:1px solid #607564; background:#203329; padding:10px; overflow:hidden; text-shadow:none; box-shadow:0 8px 20px #0003; }
+.plot.empty { background:linear-gradient(145deg,#2a4033,#1b2d24); }
+.plot strong { line-height:1.4; }
+.plot-number { z-index:2; background:#111d16cc; padding:4px 7px; border-radius:6px; color:#e4eddd; }
+.plot.selected { outline:2px solid #e0cb8b; outline-offset:3px; }
+.plot.building .building-art::after { content:none; }
+.queued-badge { z-index:2; }
+.city-grid.compact { gap:18px; align-content:start; }
+.plot.barracks { background:#1e3028; }
+.unit-card .game-art { border-radius:0; aspect-ratio:1.2; }
+.unit-card .unit-total { font-size:1.15rem; font-weight:800; color:#ead8ad; padding-top:.3rem; }
+.force-total { color:#b9c9ba; }
+.force-total strong { font-size:2rem; color:#f4e5bf; }
+.force-breakdown { margin:0; padding:0 .7rem .8rem; }
+.force-breakdown div { display:flex; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px solid #ffffff12; font-size:.78rem; }
+.force-breakdown dt { color:#b6c5b8; }
+.force-breakdown dd { margin:0; font-weight:750; font-variant-numeric:tabular-nums; }
+.general-card { padding:10px; overflow:hidden; }
+.general-card .game-art { aspect-ratio:1.35; margin-bottom:6px; }
+.general-card strong,.general-card span:not(.game-art) { padding-inline:5px; }
+.building-option { display:grid; grid-template-columns:74px minmax(0,1fr); align-items:stretch; gap:8px; }
+.building-option .building-art { margin:0; aspect-ratio:1; height:100%; }
+.selection>.building-art { max-height:220px; }
+.mission-dialog .game-art { aspect-ratio:1.7; }
+.world-tile .game-art { position:absolute; inset:0; height:100%; border-radius:0; opacity:.75; }
+.world-tile strong { position:absolute; bottom:0; left:0; right:0; z-index:1; background:#0d1714cc; padding:4px 2px; }
+.world-tile .coordinates { z-index:1; background:#0d1714aa; padding:2px; border-radius:3px; }
+.world-tile.own-city { box-shadow:inset 0 0 0 3px #fff49a; }
+.world-tile.player-city { box-shadow:inset 0 0 0 3px #98d9ff; }
+.world-tile.npc { box-shadow:inset 0 0 0 3px #efaa70; }
+.world-tile .game-art { inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); }
+.map-sidebar .game-art { margin:12px 0; aspect-ratio:1.4; }
+.card,.general-card { background:linear-gradient(145deg,#1c2b24,#16231d); border-color:#45584c; }
+@media(max-width:560px) { .city-scene { padding:12px; min-height:0; } .city-grid { gap:10px; } .plot { padding:6px; min-height:125px; } .building-art { transform:none; margin-bottom:6px; } .city-grid.compact { grid-template-columns:repeat(2,minmax(0,1fr)); } .force-total strong { font-size:1.6rem; } }
+@media(prefers-reduced-motion:reduce) { .plot { transition:none; } .plot:hover { transform:none; } }
+.auth-card .login-art { aspect-ratio:1.6; margin-bottom:24px; }
+.training-form .training-art { aspect-ratio:1.8; }
+.general-grid { grid-template-columns:repeat(auto-fill,minmax(190px,260px)); }
+.city-grid.compact .building-art { aspect-ratio:1.8; }

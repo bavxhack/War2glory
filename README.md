@@ -63,7 +63,7 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 
 ## Implementierter Stand 0.9
 
-- Responsive Stadtlandschaft mit eigenen CSS-Grafiken für Gebäude, Wege, Grün und sichtbare Baustellen.
+- Responsive Stadtlandschaft mit modernen, lokal ausgelieferten Illustrationen für alle Gebäude, Infanterie, Aufklärungsflugzeuge, Generäle und Städte. Die eigene KI-generierte Bildtafel liegt in `apps/client/assets/game-art.png`; Details in `apps/client/assets/README.md`.
 - React-19-Oberfläche mit Vite-Build, zentralem WebSocket-Transport und unverändertem serverseitigem Spielmodell.
 - Registrierung, Anmeldung, Abmeldung und Sitzungswiederaufnahme; jeder Kommandant besitzt eine getrennte Stadt.
 - Ereignisbasierte Spielkommunikation über WebSocket statt privater HTTP-Spielendpunkte.
@@ -80,6 +80,7 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Ein idempotent vergebener kostenloser Startgeneral, eine auf mehrere Generäle ausgelegte Verwaltung mit sicherer Namensänderung und verlustfreie NPC-Aufklärung mit gezielter Generalwahl, Hin-/Rückmarsch, privaten historischen Berichten und einmaliger Erstziel-Erfahrung.
 - Führung, Angriff, Verteidigung sowie getrennte Erfahrungs-/Skillzähler sind als persistente und getestete Grundlage vorhanden. XP-Umrechnung, Skillverteilung und deren Boni sind im regulären Spiel bewusst noch deaktiviert, bis ein Regelsatz beschlossen ist.
 - Vollständige NPC-Farmzüge mit reserviertem General und Infanterie, chronologischem Kampf, begrenzter Nahrungsbeute, Rückkehr, privaten Berichten, General-XP und vorzeichenbehaftetem Kampfbeitrag.
+- Truppenübersicht je Einheitentyp: Gesamtbestand, stationiert, lebend unterwegs und separat in Ausbildung. Zurückkehrende Farmzüge zählen nur Überlebende; abgeschlossene Einsätze werden nicht doppelt gezählt.
 - Gemeinsame NPC-Garnisonen und Nahrung regenerieren zeitbasiert. Ein wiederaufnehmbares Transaktionsjournal schützt Welt-/Spieleränderungen; fällige Einsätze werden auch offline und nach Neustarts stabil geordnet verarbeitet.
 - Laufender Nahrungsunterhalt erfasst stationierte und marschierende Truppen genau einmal. Nach einer Schonfrist verursacht anhaltender Mangel nachvollziehbare Hungerverluste; Ausbildung pausiert dabei, und verringerte Traglast kann Beute auf dem Rückweg kosten.
 - Ein freier General kann serverseitig geprüft als Bürgermeister eingesetzt, gewechselt oder abberufen werden. Seine Führung erhöht ausschließlich die laufende Nahrungsproduktion.
