@@ -7,6 +7,7 @@ export const MILITARY_RULES = Object.freeze({
   maxGeneralLevel: 10,
   raidRuleset: 'npc-pve-1-provisional',
   skillRaidRuleset: 'npc-pve-2-skills-provisional',
+  baseRaidRuleset: 'npc-pve-3-general-bases-provisional',
   infantryFoodCapacity: 20,
   maxMissionUnits: 10_000,
 });
@@ -30,13 +31,13 @@ export function effectiveAttributes(general) {
 export function skillLimits(general) {
   const normalized = normalizeGeneral(general);
   return { leadership: Math.max(0, GENERAL_SKILL_RULES.maxEffectiveLeadership - normalized.attributes.leadership),
-    attack: GENERAL_SKILL_RULES.maxMilitaryPoints, defense: GENERAL_SKILL_RULES.maxMilitaryPoints };
+    attack: Math.max(0, GENERAL_SKILL_RULES.maxMilitaryPoints - normalized.attributes.attack), defense: Math.max(0, GENERAL_SKILL_RULES.maxMilitaryPoints - normalized.attributes.defense) };
 }
 
 export function combatBonuses(general) {
-  const { allocations } = skillSummary(general);
-  return { attackPercent: Math.min(50, allocations.attack * GENERAL_SKILL_RULES.militaryPercentPerPoint),
-    defensePercent: Math.min(50, allocations.defense * GENERAL_SKILL_RULES.militaryPercentPerPoint) };
+  const attributes = effectiveAttributes(general);
+  return { attackPercent: Math.min(50, attributes.attack * GENERAL_SKILL_RULES.militaryPercentPerPoint),
+    defensePercent: Math.min(50, attributes.defense * GENERAL_SKILL_RULES.militaryPercentPerPoint) };
 }
 
 export function checkedSkillGeneral(military, command) {
@@ -217,7 +218,7 @@ export function enqueueTraining(previous, city, command, now) {
 
 export function startScoutMission(previous, command, now, origin, target) {
   const military = structuredClone(previous); const general = military.generals.find(item => item.id === command.generalId);
-  if (!general || general.status !== 'idle') throw new Error('Kein eigener freier General ausgewählt.');
+  if (!general || general.status !== 'idle' || previous.mayorGeneralId === general.id || previous.researcherGeneralId === general.id || previous.missions.some(m => m.generalId === general.id && m.status !== 'completed')) throw new Error('Kein eigener freier General ausgewählt.');
   validateMissionUnits({ scout: command.scouts });
   if (command.scouts > military.units.scout) throw new Error('Nicht genügend verfügbare Späher.');
   if (!target || target.kind !== 'npc') throw new Error('Nur NPC-Städte können aufgeklärt werden.');
@@ -243,7 +244,7 @@ export function resolveNpcCombat(attackers, defenders) {
 
 export function resolveMissionCombat(mission, attackers, defenders) {
   if (!mission.ruleset || mission.ruleset === MILITARY_RULES.raidRuleset) return resolveNpcCombat(attackers, defenders);
-  if (mission.ruleset !== MILITARY_RULES.skillRaidRuleset) throw new Error('Unbekannte Kampfregelversion.');
+  if (![MILITARY_RULES.skillRaidRuleset, MILITARY_RULES.baseRaidRuleset].includes(mission.ruleset)) throw new Error('Unbekannte Kampfregelversion.');
   const { attackPercent, defensePercent } = mission.combatBonuses ?? {};
   if (![attackPercent, defensePercent].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 50)) throw new Error('Ungültige gespeicherte Kampfboni.');
   if (!Number.isSafeInteger(attackers) || attackers <= 0 || !Number.isSafeInteger(defenders) || defenders < 0) throw new Error('Ungültige Kampftruppen.');
@@ -261,7 +262,7 @@ export function resolveMissionCombat(mission, attackers, defenders) {
 export function startRaidMission(previous, command, now, origin, target, eventSequence) {
   const military = structuredClone(previous);
   const general = military.generals.find(item => item.id === command.generalId);
-  if (!general || general.status !== 'idle') throw new Error('Kein eigener freier General ausgewählt.');
+  if (!general || general.status !== 'idle' || previous.mayorGeneralId === general.id || previous.researcherGeneralId === general.id || previous.missions.some(m => m.generalId === general.id && m.status !== 'completed')) throw new Error('Kein eigener freier General ausgewählt.');
   validateMissionUnits({ infantry: command.infantry });
   if (command.infantry > military.units.infantry) throw new Error('Nicht genügend verfügbare Infanterie.');
   if (!target || target.kind !== 'npc') throw new Error('Nur NPC-Städte können angegriffen werden.');
@@ -270,7 +271,7 @@ export function startRaidMission(previous, command, now, origin, target, eventSe
   military.units.infantry -= command.infantry;
   general.status = 'raiding';
   general.version += 1;
-  military.missions.push({ id: command.id, type: 'raid', ruleset: MILITARY_RULES.skillRaidRuleset, combatBonuses: combatBonuses(general), eventSequence, targetId: target.id,
+  military.missions.push({ id: command.id, type: 'raid', ruleset: MILITARY_RULES.baseRaidRuleset, effectiveAttributes: effectiveAttributes(general), combatBonuses: combatBonuses(general), eventSequence, targetId: target.id,
     targetName: target.name, coordinates: { x: target.x, y: target.y }, generalId: general.id, generalName: general.name,
     infantry: command.infantry, initialInfantry: command.infantry, status: 'outbound', startedAt: now, arrivesAt: now + travelMs, returnsAt: now + 2 * travelMs });
   return military;

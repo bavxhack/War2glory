@@ -9,9 +9,10 @@ import { randomBytes } from 'node:crypto';
 import { createGameServer } from '../apps/server/server.js';
 import { migrateLegacyState } from '../apps/server/legacy.js';
 import { GENERAL_SKILL_RULES } from '../packages/game-core/military.js';
+import { parseConfiguration } from '../apps/server/config.js';
 
-async function start(worldDir, clock = Date.now, worldName = 'alpha') {
-  const server = createGameServer({ worldDir, clock, worldName });
+async function start(worldDir, clock = Date.now, worldName = 'alpha', config) {
+  const server = createGameServer({ worldDir, clock, worldName, config });
   await server.ready;
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -297,12 +298,12 @@ test('WebSocket research: private preview, two connections, deduplication, stora
   let p = await running.server.storage.loadPlayer(owner.snapshot.player.id);
   Object.assign(p.city.buildingSlots[3], { building: 'university', buildingId: 'owned-university', level: 1 });
   p.city.resources.wood = 1000; p.city.resources.stone = 1000; await running.server.storage.savePlayer(p);
-  const command = { technology: 'forestry', targetLevel: 1, universityId: 'owned-university', rulesetVersion: 'research-1-provisional' };
+  const command = { technology: 'forestry', targetLevel: 1, universityId: 'owned-university', rulesetVersion: 'research-2-leadership-provisional' };
   async function request(client, type, payload, responseType = 'command.ok', id) { const requestId = client.send(type, payload, id); return (await client.next(responseType, requestId)).payload; }
   assert.match((await request(other, 'research.preview', command, 'command.error')).message, /eigene/);
   const preview = await request(a, 'research.preview', command, 'research.preview'); assert.equal(preview.cost.wood, 100); assert.equal(preview.durationMs, 60000);
   const before = await running.server.storage.loadPlayer(p.playerId); assert.equal(before.city.resources.wood, 1000);
-  const payload = { ...command, expectedUniversityLevel: preview.expectedUniversityLevel, cost: { wood: 0 }, durationMs: 1 };
+  const payload = { ...command, researcher: preview.researcher, expectedUniversityLevel: preview.expectedUniversityLevel, cost: { wood: 0 }, durationMs: 1 };
   const save = running.server.storage.savePlayer.bind(running.server.storage);
   running.server.storage.savePlayer = async () => { throw new Error('simulated research disk failure'); };
   assert.match((await request(a, 'research.start', payload, 'command.error')).message, /disk failure/);
@@ -321,4 +322,84 @@ test('WebSocket research: private preview, two connections, deduplication, stora
   assert.equal(logged.snapshot.city.resources.wood, 991.5);
   const replay = await request(resumed, 'research.start', payload, 'command.ok', id); assert.equal(replay.duplicate, true);
   const synced = await request(resumed, 'city.sync', {}, 'city.snapshot'); assert.equal(synced.city.resources.wood, 991.5);
+});
+
+test('Auftrag 12: two candidate pools, atomic recruitment, three roles, research/restart and demolition', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'officers-ws-')); let now = 100000;
+  const config = parseConfiguration({ GENERAL_CANDIDATE_REFRESH_HOURS: String(1 / 60) });
+  let running = await start(directory, () => now, 'alpha', config); const clients = [];
+  t.after(async () => { clients.forEach(c => c.close()); await close(running.server); rmSync(directory, { recursive: true, force: true }); });
+  const a = await websocket(running.port), b = await websocket(running.port), other = await websocket(running.port); clients.push(a, b, other);
+  const owner = await authenticate(a, 'register', 'OfficersOwner'); await authenticate(b, 'login', 'OfficersOwner'); await authenticate(other, 'register', 'OfficersOther');
+  async function request(client, type, body, responseType = 'command.ok', id) { const requestId = client.send(type, body, id); return (await client.next(responseType, requestId)).payload; }
+  const load = () => running.server.storage.loadPlayer(owner.snapshot.player.id);
+  let p = await load(); p.city.resources = { wood: 20000, stone: 20000, food: 1000 };
+  Object.assign(p.city.militarySlots[0], { building: 'barracks', buildingId: 'barracks', level: 1 });
+  Object.assign(p.city.buildingSlots[3], { building: 'university', buildingId: 'university', level: 2 });
+  await running.server.storage.savePlayer(p); await request(a, 'city.sync', {}, 'city.snapshot'); p = await load();
+  const pool = structuredClone(p.military.candidatePool);
+  const quote = await request(a, 'general.recruit.preview', { candidateId: pool.candidates[0].id }, 'general.recruit.preview');
+  assert.deepEqual(quote.cost, { wood: 500, stone: 500 });
+  assert.match((await request(other, 'general.recruit', quote, 'command.error')).message, /Bewerberauswahl/);
+  const save = running.server.storage.savePlayer.bind(running.server.storage);
+  running.server.storage.savePlayer = async () => { throw new Error('simulated recruit write failure'); };
+  assert.match((await request(a, 'general.recruit', quote, 'command.error')).message, /write failure/);
+  running.server.storage.savePlayer = save;
+  p = await load(); assert.equal(p.city.resources.wood, 20000); assert.equal(p.military.generals.length, 1); assert.equal(p.military.acquiredCount, 1); assert.deepEqual(p.military.candidatePool, pool);
+  const quote2 = await request(b, 'general.recruit.preview', { candidateId: pool.candidates[1].id }, 'general.recruit.preview');
+  const id1 = a.send('general.recruit', quote, 'officer-first-one'), id2 = b.send('general.recruit', quote2, 'officer-first-two');
+  const results = await Promise.all([Promise.race([a.next('command.ok', id1), a.next('command.error', id1)]), Promise.race([b.next('command.ok', id2), b.next('command.error', id2)])]);
+  assert.deepEqual(results.map(r => r.type).sort(), ['command.error', 'command.ok']);
+  const winner = results.find(r => r.type === 'command.ok'), winningQuote = winner.requestId === id1 ? quote : quote2;
+  assert.equal((await request(a, 'general.recruit', winningQuote, 'command.ok', winner.requestId)).duplicate, true);
+  assert.match((await request(a, 'general.recruit', { ...winningQuote, name: 'different' }, 'command.error', winner.requestId)).message, /anderem Inhalt/);
+  p = await load(); assert.equal(p.military.generals.length, 2); assert.equal(p.military.acquiredCount, 2); assert.equal(p.city.resources.wood, 19500);
+  const oldAttributes = structuredClone(p.military.generals[1].attributes);
+  now = pool.expiresAt; await request(a, 'city.sync', {}, 'city.snapshot'); p = await load();
+  assert.match((await request(a, 'general.recruit', quote, 'command.error')).message, /Bewerberauswahl|veraltet/);
+  const thirdQuote = await request(a, 'general.recruit.preview', { candidateId: p.military.candidatePool.candidates[0].id }, 'general.recruit.preview'); assert.equal(thirdQuote.cost.wood, 2000);
+  await request(a, 'general.recruit', thirdQuote); p = await load(); assert.equal(p.military.generals.length, 3); assert.equal(p.city.resources.wood, 17500);
+  assert.deepEqual(p.military.generals[1].attributes, oldAttributes);
+  const [A, B, C] = p.military.generals;
+  await request(a, 'general.mayor', { generalId: A.id, expectedRoleVersion: p.military.roleVersion }); p = await load();
+  await request(a, 'general.researcher', { generalId: B.id, expectedRoleVersion: p.military.roleVersion }); p = await load();
+  assert.match((await request(a, 'general.mayor', { generalId: B.id, expectedRoleVersion: p.military.roleVersion }, 'command.error')).message, /freier/);
+  p.military.units.infantry = 20; p.city.research.levels.forestry = 1; await running.server.storage.savePlayer(p);
+  const target = running.server.storage.world.map.entities.find(e => e.kind === 'npc');
+  await request(a, 'raid.start', { generalId: C.id, targetId: target.id, infantry: 20 });
+  const researchCommand = { universityId: 'university', technology: 'forestry', targetLevel: 2, rulesetVersion: 'research-2-leadership-provisional' };
+  const researchPreview = await request(a, 'research.preview', researchCommand, 'research.preview');
+  assert.equal(researchPreview.durationWithoutGeneralMs, 110000);
+  await request(a, 'research.start', { ...researchCommand, expectedUniversityLevel: 2, researcher: researchPreview.researcher });
+  assert.match((await request(a, 'general.researcher', { generalId: null, expectedRoleVersion: (await load()).military.roleVersion }, 'command.error')).message, /laufender/);
+  p = await load(); const job = structuredClone(p.city.research.active);
+  await request(a, 'general.rename', { generalId: B.id, name: 'Research leader', expectedVersion: p.military.generals[1].version });
+  assert.equal((await load()).city.research.active.finishesAt, job.finishesAt);
+  clients.forEach(c => c.close()); await close(running.server); now = job.finishesAt;
+  running = await start(directory, () => now, 'alpha', config);
+  const resumed = await websocket(running.port); clients.push(resumed); await authenticate(resumed, 'login', 'OfficersOwner');
+  p = await load(); assert.equal(p.city.research.levels.forestry, 2); assert.equal(p.city.research.active, null); assert.equal(p.military.researcherGeneralId, B.id); assert.equal(p.military.generals[1].status, 'researcher');
+  assert.equal((await request(resumed, 'general.recruit', winningQuote, 'command.ok', winner.requestId)).duplicate, true);
+  assert.equal(p.military.acquiredCount, 3); assert.equal(p.military.generals[1].name, 'Research leader');
+  const demolition = await request(resumed, 'building.preview', { slotId: p.city.buildingSlots[3].id }, 'building.preview');
+  await request(resumed, 'building.demolish', demolition); p = await load(); assert.equal(p.military.researcherGeneralId, null); assert.equal(p.military.generals[1].status, 'idle');
+});
+
+test('research appointment and mission compete for the same binding; stale removal cannot replace newer office', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'officer-role-race-')); const running = await start(directory, () => 100000); const clients = [];
+  t.after(async () => { clients.forEach(c => c.close()); await close(running.server); rmSync(directory, { recursive: true, force: true }); });
+  const a = await websocket(running.port), b = await websocket(running.port); clients.push(a, b);
+  const owner = await authenticate(a, 'register', 'RoleRace'); await authenticate(b, 'login', 'RoleRace');
+  let p = await running.server.storage.loadPlayer(owner.snapshot.player.id);
+  Object.assign(p.city.buildingSlots[3], { building: 'university', buildingId: 'uni', level: 1 }); p.military.units.infantry = 10; await running.server.storage.savePlayer(p);
+  const generalId = p.military.generals[0].id, targetId = running.server.storage.world.map.entities.find(e => e.kind === 'npc').id;
+  const first = a.send('general.researcher', { generalId, expectedRoleVersion: p.military.roleVersion }), second = b.send('raid.start', { generalId, targetId, infantry: 10 });
+  const outcomes = await Promise.all([Promise.race([a.next('command.ok', first), a.next('command.error', first)]), Promise.race([b.next('command.ok', second), b.next('command.error', second)])]);
+  assert.deepEqual(outcomes.map(e => e.type).sort(), ['command.error', 'command.ok']);
+  p = await running.server.storage.loadPlayer(p.playerId);
+  assert.equal(p.military.researcherGeneralId === generalId, p.military.missions.length === 0);
+  if (p.military.researcherGeneralId) {
+    const requestId = a.send('general.researcher', { generalId: null, expectedRoleVersion: p.military.roleVersion - 1 }); assert.match((await a.next('command.error', requestId)).payload.message, /veraltet/);
+    assert.equal((await running.server.storage.loadPlayer(p.playerId)).military.researcherGeneralId, generalId);
+  }
 });

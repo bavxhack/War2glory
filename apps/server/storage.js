@@ -1,4 +1,5 @@
 import { normalizeResearch } from '../../packages/game-core/research.js';
+import { normalizeOfficers, syncCandidates } from '../../packages/game-core/officers.js';
 import { parseConfiguration } from './config.js';
 import { createHash, randomBytes, randomInt, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { copyFile, mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
@@ -10,7 +11,7 @@ import { advanceSupplyHistory, refreshSupplyAt, SUPPLY_RULES, settleSupplyAt } f
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 9;
+export const PLAYER_SCHEMA_VERSION = 10;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -95,6 +96,12 @@ export class WorldStorage {
     }
     await this.#assignMissingLocations();
     const transitionAt = this.clock();
+    const interval = this.config.officers;
+    this.world.officerIntervalHistory ??= [];
+    if (this.world.officerIntervalHistory.at(-1)?.refreshMs !== interval.refreshMs) {
+      this.world.officerIntervalHistory.push({ effectiveAt: transitionAt, refreshMs: interval.refreshMs, version: interval.version });
+      await this.#commitTransaction([], true);
+    }
     const players = await this.advanceWorld(transitionAt);
     if (JSON.stringify(this.supplyRules) !== JSON.stringify(this.config.supply)) {
       this.world.supplyRuleHistory.push({ effectiveAt: transitionAt, rules: structuredClone(this.config.supply) });
@@ -131,6 +138,7 @@ export class WorldStorage {
         city: { ...newCity(now), name: typeof cityName === 'string' && cityName.trim().length >= 3 && cityName.trim().length <= 32 ? cityName.trim() : `${displayName}s Stadt` },
         military: newMilitary(playerId), generalSkillRuleset: GENERAL_SKILL_RULES.version, processedCommands: [], createdAt: now,
       };
+      normalizeOfficers(player);
       const account = { playerId, displayName, normalized, password: credentials, createdAt: now };
       const entity = this.#allocatePlayerCity(player, account);
       await atomicWrite(this.worldFile, this.world);
@@ -241,8 +249,15 @@ export class WorldStorage {
       player.generalSkillRuleset = GENERAL_SKILL_RULES.version;
       player.schemaVersion = 8;
     }
-    if (player.schemaVersion === 8) { migrated = true; normalizeResearch(player.city); player.schemaVersion = PLAYER_SCHEMA_VERSION; }
+    if (player.schemaVersion === 8) { migrated = true; normalizeResearch(player.city); player.schemaVersion = 9; }
+    if (player.schemaVersion === 9) {
+      migrated = true;
+      if (player.military.acquiredCount != null && (!Number.isSafeInteger(player.military.acquiredCount) || player.military.acquiredCount < 1)) throw new Error('Inkonsistenter General-Erwerbszähler.');
+      player.military.acquiredCount = Math.max(player.military.acquiredCount ?? 1, player.military.generals.length);
+      normalizeOfficers(player); player.schemaVersion = 10;
+    }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
+    normalizeOfficers(player);
     if (migrated) await this.savePlayer(player);
     return player;
   }
@@ -329,6 +344,7 @@ export class WorldStorage {
     for (const player of players.values()) {
       const before = JSON.stringify([player.city, player.military, player.supply]);
       Object.assign(player, this.advanceSupply(player, now));
+      syncCandidates(player, now, this.config.officers, randomInt, randomUUID, this.world.officerIntervalHistory);
       if (before !== JSON.stringify([player.city, player.military, player.supply])) changed.add(player.playerId);
     }
     if (worldChanged || changed.size) await this.#commitTransaction([...changed].map(id => players.get(id)), worldChanged);
