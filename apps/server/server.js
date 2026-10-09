@@ -1,3 +1,4 @@
+import { operatingFuel } from '../../packages/game-core/cargo.js';
 import { missionQuote, startLogisticsMission } from '../../packages/game-core/logistics.js';
 import { RESEARCH_RULES, TECHNOLOGIES, researchOffers, researchQuote, startResearch } from '../../packages/game-core/research.js';
 import { markMailRead, unreadMail } from '../../packages/game-core/mailbox.js';
@@ -72,7 +73,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ruleset: RULESET,
       player: { id: player.playerId, commanderName: account.displayName }, city, serverTime: now,
       mailbox: { readReportIds: current.mailbox.readReportIds, messages: current.mailbox.messages.map(({ commandId, fingerprint, ...message }) => message), unreadCount: unreadMail(current) },
-      military: { ...military, missions: military.missions.map(({ commandFingerprint, ...mission }) => mission) }, score: { ...commanderScore(city), combat: military.combatScore ?? 0, total: Math.max(0, commanderScore(city).buildings + commanderScore(city).research + (military.combatScore ?? 0)) }, buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
+      military: { ...military, missions: military.missions.map(({ commandFingerprint, ...mission }) => ({ ...mission, ...(mission.cargo ? { operatingFuel: operatingFuel(mission, now) } : {}) })) }, score: { ...commanderScore(city), combat: military.combatScore ?? 0, total: Math.max(0, commanderScore(city).buildings + commanderScore(city).research + (military.combatScore ?? 0)) }, buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
       capacityBreakdown: capacityBreakdown(city), productionRates: productionRates(city), buildingProductionRates: buildingProductionRates(city), researchOffers: researchOffers(city, { military, officerRules: storage.config.officers }), researchRules: RESEARCH_RULES, technologies: TECHNOLOGIES, storageRules: STORAGE_RULES,
       officerRules: storage.config.officers, researcher: researcherSnapshot(military, storage.config.officers), recruitment: (() => {
         let cost = null, nextCost = null, reason = null;

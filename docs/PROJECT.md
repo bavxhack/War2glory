@@ -21,7 +21,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft, stationärer Unterhalt und verzögerte Ankunft mit proportionalem Ölbedarf | Auftrag 13 vom Nutzer am 09.10.2026 als abgeschlossen bestätigt |
-| 4d | Freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite | Auftrag 14 spezifiziert; Verbrauchsmodell bestätigt, Umsetzung ausstehend |
+| 4d | Freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite | Auftrag 14 als getesteter Prototyp implementiert; neue Balancewerte vorläufig |
 | Luft/Militär | Kampfflugzeuge, Raketenwerfer und Generalfähigkeiten für Luftvorteile | Nutzeranforderung vom 09.10.2026; spätere Phase, nicht Auftrag 13 |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -37,6 +37,12 @@ Auf Basis der Präzisierung vom 09.10.2026 implementiert und getestet: Ölverarb
 Stadtunterhalt erfasst ab gespeichertem weltweitem Regelwechsel ausschließlich stationierte Truppen. Reise-Hunger-/Ladungsverluste vergangener Intervalle bleiben erhalten; neue Reisen verbrauchen keine Stadt- oder Beutenahrung. Schema 14 erhält alle früheren Ketten einschließlich Schema-13-Vorarbeit, Porträts und Postbox. Prüfbelege: [LOGISTICS_VALIDATION.md](LOGISTICS_VALIDATION.md). Die nachfolgenden Anforderungsabschnitte bleiben als Spezifikation/Historie erhalten; Implementation ist ein vorläufiger Prototyp im Review.
 
 Kampfflugzeuge, Raketenwerfer und Luftfähigkeiten sind ausschließlich für später vorgemerkt. PvP, Handel und aktive Föderation bleiben geplant.
+
+## Implementierungsstand Auftrag 14
+
+Eigene Ressourcenladung, mitgeführtes Betriebsöl und Beute sind getrennt bilanziert. Serverseitige Vorschau/Start prüfen gemeinsame Startbelegung, Stadtbestände, Spähertanks und konservative Rückwegreserve je Raid-Typ. Verbrauch wird aus gespeicherten Zeiten und exakten rationalen Grundlagen abgeleitet; Rundungsrest gehört zum Hinweg. Kampfverluste begrenzen eigene Rückfracht und neue NPC-Nahrungsbeute. Rückkehr lagert eigene Güter vor Beute ein und berichtet beide Überläufe separat.
+
+Schema 15 migriert ohne Änderung alter Missionsfracht, Termine, Zahlungen oder Berichte. Neue Regeln gelten ausschließlich für neue Einsätze. React-Dialog, laufende Einsätze und Postbox zeigen die getrennten Bilanzen; mobile Ansicht und Tastaturablauf wurden mit realem Browser geprüft. Nachweise, ausgeführte Tests und Grenzen: [CARGO_VALIDATION.md](CARGO_VALIDATION.md). Unterstützung/Spielerlieferungen, Handel und weitere Militärtechnik bleiben separate Folgeaufträge.
 
 ## Implementierter Stand von Etappe 1
 

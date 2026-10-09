@@ -1,3 +1,4 @@
+import { CARGO_RAID_RULESET, resolveCargoArrival, unloadCargo, operatingFuel, validateMissionCargo } from '../../packages/game-core/cargo.js';
 import { LOGISTICS_RAID_RULESET, missionUnits, missionCapacity, truckCombatLosses } from '../../packages/game-core/logistics.js';
 import { normalizeResearch } from '../../packages/game-core/research.js';
 import { normalizeOfficers, syncCandidates } from '../../packages/game-core/officers.js';
@@ -14,7 +15,7 @@ import { advanceSupplyHistory, refreshSupplyAt, SUPPLY_RULES, settleSupplyAt } f
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 14;
+export const PLAYER_SCHEMA_VERSION = 15;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -285,7 +286,9 @@ export class WorldStorage {
       for (const mission of player.military.missions) mission.delayMinutes ??= 0;
       player.schemaVersion = 14;
     }
+    if (player.schemaVersion === 14) { migrated = true; player.schemaVersion = 15; }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
+    for (const mission of player.military.missions) validateMissionCargo(mission);
     if (!Number.isFinite(player.city.resources.oil) || player.city.resources.oil < 0 || !Number.isSafeInteger(player.military.units.truck) || player.military.units.truck < 0) throw new Error('Inkonsistente Öl- oder LKW-Bestände in Schema 13.');
     normalizeResearch(player.city);
     normalizeOfficers(player);
@@ -351,7 +354,7 @@ export class WorldStorage {
           npc.garrison.amount -= combat.defenderLosses;
           npc.garrison.updatedAt = at;
           let truckLosses = 0;
-          if (mission.ruleset === LOGISTICS_RAID_RULESET) {
+          if ([LOGISTICS_RAID_RULESET, CARGO_RAID_RULESET].includes(mission.ruleset)) {
             const before = { ...mission.units };
             truckLosses = truckCombatLosses(before.truck ?? 0, combat.attackerLosses, attackers);
             mission.units.infantry = combat.survivors;
@@ -361,10 +364,11 @@ export class WorldStorage {
             combat.cancelled = attackers === 0;
           }
           const raidCapacity = mission.units ? missionCapacity(mission) : combat.survivors * 20;
+          const cargoArrival = mission.cargo ? resolveCargoArrival(mission, raidCapacity) : null;
           const availableFood = Math.floor(npc.resources.food.amount);
-          const loadedFood = combat.victory ? Math.min(raidCapacity, availableFood) : 0;
+          const loadedFood = combat.victory ? Math.min(cargoArrival?.lootCapacity ?? raidCapacity, availableFood) : 0;
           npc.resources.food.amount -= loadedFood;
-          mission.result = { ...combat, loadedFood, capacity: raidCapacity, generalExperience: combat.defenderLosses * 2,
+          mission.result = { ...combat, loadedFood, capacity: raidCapacity, ...(cargoArrival ?? {}), generalExperience: combat.defenderLosses * 2,
             combatScore: combat.defenderLosses - combat.attackerLosses - truckLosses, defenders: combat.defenderLosses + npc.garrison.amount, hungerLosses: mission.hungerLosses ?? 0 };
         } else {
           mission.intelligence = missionUnits(mission).scout > 0
@@ -384,8 +388,9 @@ export class WorldStorage {
           for (const [unit, amount] of Object.entries(missionUnits(mission))) player.military.units[unit] = (player.military.units[unit] ?? 0) + amount;
           const capacity = resourceCapacities(player.city).food;
           const free = Math.max(0, capacity - player.city.resources.food);
-          const storedFood = Math.min(free, result.loadedFood);
-          player.city.resources.food += storedFood;
+          const delivery = mission.cargo ? unloadCargo(mission, player.city.resources, resourceCapacities(player.city)) : null;
+          const storedFood = delivery ? delivery.storedLoot.food : Math.min(free, result.loadedFood);
+          if (!delivery) player.city.resources.food += storedFood;
           general.experience += result.generalExperience;
           general.level = generalLevel(general.experience); general.leadership = general.level * 20;
           general.version += 1;
@@ -395,12 +400,13 @@ export class WorldStorage {
             arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, infantry: mission.initialUnits?.infantry ?? mission.initialInfantry ?? mission.infantry + (mission.hungerLosses ?? 0), ...result,
             hungerLosses: mission.hungerLosses ?? 0, originalLoadedFood: result.loadedFood + (mission.foodLostInTransit ?? 0), foodLostInTransit: mission.foodLostInTransit ?? 0,
             storedFood, overflowFood: result.loadedFood - storedFood, ruleset: mission.ruleset,
+            ...(mission.cargo ? { cargo: structuredClone(mission.cargo), operatingFuel: operatingFuel(mission, at) } : {}),
             ...(mission.units ? { initialUnits: mission.initialUnits, returnedUnits: { ...mission.units }, hungerLossesByUnit: mission.hungerLossesByUnit, paidOil: mission.paidOil, fuelCalculation: mission.fuelCalculation, normalOneWayOil: mission.normalOneWayOil, outboundTravelMs: mission.outboundTravelMs, travelMs: mission.travelMs, delayMinutes: mission.delayMinutes, baseOil: mission.baseOil, delayOil: mission.delayOil, outboundOil: mission.outboundOil, returnOil: mission.returnOil, logistics: mission.logistics, distanceFields: mission.distanceFields, combatBonuses: mission.combatBonuses, finalCapacity: missionCapacity(mission) } : {}) });
         } else {
           player.military.units.scout += missionUnits(mission).scout;
           if (mission.intelligence && !player.military.rewardedNpcIds.includes(mission.targetId)) { player.military.rewardedNpcIds.push(mission.targetId); general.experience += 10; general.level = generalLevel(general.experience); general.leadership = general.level * 20; }
           general.version += 1;
-          if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'scout', missionId: mission.id, targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, coordinates: mission.coordinates, capturedAt: mission.intelligence?.capturedAt, returnedAt: mission.returnsAt, intelligence: mission.intelligence, ...(mission.units ? { initialUnits: mission.initialUnits, returnedUnits: { ...mission.units }, hungerLossesByUnit: mission.hungerLossesByUnit, paidOil: mission.paidOil, logistics: mission.logistics, distanceFields: mission.distanceFields } : {}) });
+          if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'scout', missionId: mission.id, targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, coordinates: mission.coordinates, capturedAt: mission.intelligence?.capturedAt, startedAt: mission.startedAt, arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, intelligence: mission.intelligence, ...(mission.cargo ? { cargo: structuredClone(mission.cargo), operatingFuel: operatingFuel(mission, at), travelMs: mission.travelMs } : {}), ...(mission.units ? { initialUnits: mission.initialUnits, returnedUnits: { ...mission.units }, hungerLossesByUnit: mission.hungerLossesByUnit, paidOil: mission.paidOil, logistics: mission.logistics, distanceFields: mission.distanceFields } : {}) });
         }
       } else continue;
       changed.add(player.playerId);

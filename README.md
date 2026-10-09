@@ -6,7 +6,19 @@ Repository: https://github.com/bavxhack/War2glory
 
 **Weiterentwicklung mit Codex:** Der Startauftrag steht in [CODEX_PROMPT.md](CODEX_PROMPT.md). Projektregeln stehen in [AGENTS.md](AGENTS.md).
 
+## Ressourcenladung und Betriebsöl (Auftrag 14)
+
+Neue NPC-Einsätze nutzen eine gemeinsame Kapazität für eigene Holz-/Stein-/Nahrungs-/Ölladung und das gesamte beim Start bezahlte Betriebsöl. Jede Ressourceneinheit wiegt vorläufig einen Platz. Freiwilliges Öl bleibt Güterladung; nur Betriebsöl wird verbrannt. Nahrung erzeugt keinen Reiseunterhalt. Vorschau und Start prüfen dieselben Bestände, Truppen, Generalversion, Reichweitenbedingungen und Regeln.
+
+Bei exaktem Einwegbedarf E und Gesamtzahlung F = ceil(E × (2T+D)/T) verbraucht der Hinweg F−E einschließlich Rundungsrest, am Ziel bleiben E. Kampfverluste verlieren ihren Anteil an der Rückwegreserve; überlebende Einheiten verbrauchen die verbleibende Reserve auf normalem Rückweg vollständig. Kein Refund oder zweiter Stadtabzug. Jede beteiligte Raid-Einheit muss ihre eigene normale Rückwegreserve tragen können. Späher behalten Gütertraglast 0, erhalten ausschließlich Betriebsöltanks (vorläufig 20 je Späher, `SCOUT_FUEL_CAPACITY`).
+
+Nach Kampf: Rückwegöl vor eigener Ladung vor neuer Beute. Güterplätze sind floor(Überlebendenkapazität − Rückwegöl); zu große eigene Ladung wird proportional mit stabilen Restplatzregeln gekürzt. Beispiel 20 Infanteristen/4 LKW, fünf Felder: 1200 Traglast/60 Startöl; nach 5 Infanterie-/1 LKW-Verlust bleiben 900 Traglast, 22,5 Rückwegöl und 877 Güterplätze. Bei 300 eigener Ladung sind höchstens 577 neue Nahrung möglich. Rückkehr lagert eigene Güter je Ressource zuerst ein, dann Beute; Verluste und Überläufe werden getrennt berichtet.
+
+Spielerschema 15 führt die gesamte Kette über Schema 14 weiter. Alte Einsätze erhalten keine rückwirkende Fracht, Reichweitensperre oder Ölzahlung. Neue Missionsversionen sind `npc-pve-5-cargo-provisional` und `npc-scout-3-cargo-provisional`. Prüfbelege und Grenzen: [CARGO_VALIDATION.md](docs/CARGO_VALIDATION.md). Spielerlieferungen/Handel und weitere Militärtechnik bleiben geplant. Alle neuen Balancewerte sind eigene vorläufige Projektentscheidungen.
+
 ## Ölwirtschaft und LKW-Farmzüge (Auftrag 13)
+
+Dieser Abschnitt beschreibt den abgeschlossenen Auftrag 13. Für neue Frachtmissionen gelten zusätzlich die Kapazitäts- und Beuteregeln aus Auftrag 14 oben.
 
 Implementiert mit vorläufigen eigenen Balancewerten: Universität 2 und Forschungsleitung → Ölverarbeitung → zivile Ölraffinerie → Lagerlogistik 1 und Motorisierung → militärische Fahrzeugfabrik → LKW-Herstellung → gemischter NPC-Farmzug → Nahrung und Bericht in der Postbox. Der [vollständige geprüfte Spielablauf](docs/LOGISTICS_VALIDATION.md) beschreibt Voraussetzungen, Zeitpunkte, Browserdurchlauf und Grenzen.
 

@@ -81,7 +81,7 @@ test('WebSocket mixed convoy: fuel/roles/troops atomic, journal failure recovery
   assert.match((await request(b, 'raid.start', { ...payload, preview: q, units: { infantry: 20, truck: 3 } }, 'command.error', retryId)).message, /anderem Inhalt/);
   const sync = await request(a, 'city.sync', {}, 'city.snapshot'); assert.equal(sync.military.missions[0].commandFingerprint, undefined); assert.equal(sync.supply.unitCounts.truck, 0); assert.equal(sync.supply.deployedUnits, 24);
   now += 50000; await request(a, 'city.sync', {}, 'city.snapshot');
-  p = await storage.loadPlayer(p.playerId); assert.equal(p.military.reports[0].paidOil, 60); assert.equal(p.military.reports[0].combatScore, 4); assert.equal(p.military.reports[0].originalLoadedFood, 900);
+  p = await storage.loadPlayer(p.playerId); assert.equal(p.military.reports[0].paidOil, 60); assert.equal(p.military.reports[0].combatScore, 4); assert.equal(p.military.reports[0].originalLoadedFood, 877);
   assert.equal((await request(a, 'city.sync', {}, 'city.snapshot')).mailbox.unreadCount, 1);
   await request(a, 'mail.read', { kind: 'report', id: p.military.reports[0].id });
   await request(b, 'raid.start', { ...payload, preview: q }, 'command.ok', retryId); assert.equal((await storage.loadPlayer(p.playerId)).military.reports.length, 1);

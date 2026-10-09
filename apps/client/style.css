@@ -245,3 +245,8 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 .logistics-table { max-width:100%; overflow-x:auto; }
 .logistics-table table { min-width:480px; }
 .logistics-table th,.logistics-table td { overflow-wrap:normal; white-space:nowrap; }
+
+.cargo-inputs { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
+.cargo-inputs p { grid-column: 1 / -1; }
+.cargo-inputs input { width: 100%; min-width: 0; }
+@media (max-width: 480px) { .cargo-inputs { grid-template-columns: 1fr; } }

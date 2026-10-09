@@ -12,6 +12,7 @@ const definitions = {
   WORLD_WIDTH: [24, 2, 64, true], WORLD_HEIGHT: [24, 2, 64, true], WORLD_NPC_COUNT: [18, 0, 4095, true],
   UPKEEP_TRUCK_PER_HOUR: [180, 0, 3600000],
   OIL_INFANTRY_PER_FIELD: [LOGISTICS_RULES.oilMilliPerField.infantry / 1000, 0.001, 100000], OIL_SCOUT_PER_FIELD: [LOGISTICS_RULES.oilMilliPerField.scout / 1000, 0.001, 100000], OIL_TRUCK_PER_FIELD: [LOGISTICS_RULES.oilMilliPerField.truck / 1000, 0.001, 100000],
+  SCOUT_FUEL_CAPACITY: [20, 1, 1000000, true],
   TRUCK_CARGO_CAPACITY: [200, 1, 1000000, true],
   MAX_ATTACK_DELAY_MINUTES: [1440, 0, 10080, true],
   UPKEEP_INFANTRY_PER_HOUR: [360, 0, 3600000], UPKEEP_SCOUT_PER_HOUR: [180, 0, 3600000],
@@ -40,8 +41,8 @@ export function parseConfiguration(env = {}) {
     exponent: numbers.GENERAL_RECRUIT_COST_EXPONENT, refreshMs: Math.round(numbers.GENERAL_CANDIDATE_REFRESH_HOURS * 3600000),
     leadershipPercent: numbers.RESEARCH_LEADERSHIP_PERCENT, bonusCapPercent: numbers.RESEARCH_BONUS_CAP_PERCENT };
   officers.version = `officers-1-${createHash('sha256').update(JSON.stringify(officers)).digest('hex').slice(0, 16)}`;
-  const logistics = { ...LOGISTICS_RULES, maxAttackDelayMinutes: numbers.MAX_ATTACK_DELAY_MINUTES, oilMilliPerField: Object.fromEntries(['infantry', 'scout', 'truck'].map(unit => [unit, Math.round(numbers[`OIL_${unit.toUpperCase()}_PER_FIELD`] * 1000)])), cargoPerUnit: { ...LOGISTICS_RULES.cargoPerUnit, truck: numbers.TRUCK_CARGO_CAPACITY } };
-  logistics.version = `fuel-2-ratio-${createHash('sha256').update(JSON.stringify(logistics)).digest('hex').slice(0, 16)}`;
+  const logistics = { ...LOGISTICS_RULES, scoutFuelCapacity: numbers.SCOUT_FUEL_CAPACITY, maxAttackDelayMinutes: numbers.MAX_ATTACK_DELAY_MINUTES, oilMilliPerField: Object.fromEntries(['infantry', 'scout', 'truck'].map(unit => [unit, Math.round(numbers[`OIL_${unit.toUpperCase()}_PER_FIELD`] * 1000)])), cargoPerUnit: { ...LOGISTICS_RULES.cargoPerUnit, truck: numbers.TRUCK_CARGO_CAPACITY } };
+  logistics.version = `fuel-3-cargo-${createHash('sha256').update(JSON.stringify(logistics)).digest('hex').slice(0, 16)}`;
   return { logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
 }
 
