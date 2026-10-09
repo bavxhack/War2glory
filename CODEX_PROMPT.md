@@ -1,150 +1,160 @@
-# Codex-Auftrag 15: Ressourcenlieferungen zwischen Spielerstädten
+# Codex-Auftrag 15: Bis zu fünf Städte, Felderkundung, Eroberung und Stadtgründung
 
-## Arbeitsauftrag und Ausgangspunkt
+## Auftrag und Priorität
 
-Der Nutzer bestätigt Auftrag 14 am 09.10.2026 als abgeschlossen und beauftragt den nächsten Ausbauschritt. Implementiere Ressourcenlieferungen innerhalb derselben Spielwelt auf dem bestehenden Frachtmodell. Der Planungschat erstellt ausschließlich Anweisungen.
+Diese Fassung ersetzt den bisherigen Auftrag 15 „Ressourcenlieferungen“. Lieferungen werden Auftrag 16 und jetzt nicht implementiert. Der Nutzer bestätigt Auftrag 14 als abgeschlossen und legt fest:
+- Maximal fünf eigene Städte insgesamt, einschließlich der ersten Stadt.
+- Zwischen eigenen Städten wechseln können.
+- Für eine neue Stadt zunächst ein freies Feld aufklären und erobern.
+- Die Anzahl der dortigen Verteidiger variiert; genaue Informationen erst durch Aufklärung.
+- Nach erfolgreicher Eroberung gegen eine Gebühr eine Stadt errichten.
 
-Lies zuerst AGENTS.md und die vorhandenen Projekt-, Entwicklungs- und WebSocket-Dokumentationen. Prüfe aktuellen main, offene Änderungen und vorhandene Tests; erhalte fremde Arbeit. Liefere einen getesteten PR ohne automatisches Merge oder Deployment.
+Implementiere den vollständigen Ablauf auf aktuellem main. Lies AGENTS.md sowie vorhandene Projekt-, Entwicklungs- und WebSocket-Dokumentation. Erhalte fremde Arbeit. Falls Lieferarbeiten bereits begonnen wurden, nicht löschen: kompatibel erhalten, diesen Auftrag priorisieren und Abweichungen im PR erklären. Liefere einen getesteten PR ohne automatisches Merge/Deployment. Der Planungschat ändert ausschließlich Anweisungen.
 
-Statisch gelesener Ausgangspunkt: Spielerschema 15; packages/game-core/logistics.js und cargo.js implementieren NPC-Fracht und Treibstoff, apps/server/storage.js besitzt eine exklusive Weltqueue und ein Recovery-Journal für mehrere Spielerzustände. Bestehende Missionen sind bislang auf NPC-Ziele beschränkt. Prüfe diese Grundlagen im aktuellen Checkout. Die Planung hat keine Anwendungstests ausgeführt.
+Statisch gelesene Grundlagen: Spielerschema 15 nach Auftrag 14; world.js mit WORLD_SCHEMA_VERSION=3 und bislang einer per find ermittelten eigenen Stadt; getrennte Fracht-/Treibstoffrechnung; Weltqueue und Recovery-Journal. Aktuellen Stand prüfen, keine Versionsnummer blind wiederverwenden. Neue Zahlen/Regeln unten sind ausdrücklich vorläufige Projektentscheidungen.
 
-Die folgenden neuen Lieferregeln sind vorläufige Projektentscheidungen für diesen Auftrag, keine belegten Originalspielwerte.
+## 1. Mehrstadt-Datenmodell und Zuständigkeiten
 
-## 1. Spielbarer Ablauf und Grenzen
+Eine kanonische Sammlung eigener Städte mit stabilen cityIds statt einer zweiten parallel gepflegten Kopie von player.city einführen. Weiterhin serverseitige JSON-Persistenz; kein Datenbankwechsel erforderlich.
 
-Spielerstadt auf Weltkarte auswählen → „Ressourcen liefern“ → LKWs, freien General und Ressourcen wählen → serverseitige Vorschau bestätigen → Hinreise → automatische Einlagerung im Ziel → Rückreise mit nicht angenommenen Gütern → Heimkehr und Bericht.
+Stadtbezogen:
+- Name, Position, Gebäude und getrennte zivile/militärische Bauplätze;
+- eigene Ressourcen, Lagergrenzen, Produktion, Bauqueues;
+- stationierte Einheiten, Ausbildungsqueues, Versorgung und Hungerverlauf;
+- zugewiesener Bürgermeister und zugehöriger Führungsbonus.
 
-- Neuer eigenständiger Missionstyp für Lieferungen, kein als Angriff verkleideter NPC-Auftrag.
-- Nur andere existierende Spielerstädte derselben Welt/Instanz. Eigene Ausgangsstadt, NPCs, unbekannte Ziele und fremde Instanzen ablehnen.
-- Mindestens ein verfügbarer LKW und mindestens eine Ressourceneinheit als Ladung.
-- In dieser ersten Lieferstufe ausschließlich LKWs als Transporttruppen. Keine Infanteriepflicht aus Raid-Validierung übernehmen, keine Späher oder Begleitkämpfe.
-- Ein eigener freier General begleitet den Transport und bleibt bis zur Heimkehr gebunden. Bürgermeister, Forschungsleiter und bereits eingesetzte Generäle sind ausgeschlossen.
-- Transporttruppen und General bleiben Eigentum des Absenders. Keine Stationierung beim Empfänger.
-- Automatische, unentgeltliche Lieferung ohne Gegenleistung oder Annahmedialog. Empfänger darf offline sein.
-- Normale Hin- und Rückfahrt nach bestehenden Entfernungs-/Zeitregeln. Lieferungen unterstützen vorerst keine zusätzliche Ankunftsverzögerung; nicht-null Verzögerung serverseitig ablehnen.
-- Kein Kampf, keine Überfälle, keine Beute und keine XP, Skillpunkte oder Kommandantenpunkte für Lieferungen. Auch wiederholtes Hin-und-her-Senden belohnt niemanden.
-- Kein Rückruf oder Ändern von Ziel/Ladung nach Start in diesem Auftrag. Bedienoberfläche erklärt dies vor Bestätigung.
-- Keine automatische Verbrauchsversorgung anderer Armeen; Nahrung wird gewöhnlicher Stadtbestand des Empfängers.
+Spielerweit als vorläufige Festlegung:
+- Konto, Generäle/Skills/Porträts, Bewerber und steigende Rekrutierungskosten;
+- Forschung und genau eine bestehende Forschungsqueue mit Forschungsleitung;
+- Punkte, Postbox und Aufklärungsberichte.
+Gebäudepunkte über eigene Städte summieren; Forschungspunkte und Kampfwertung nur einmal zählen. Kein Punktbonus allein durch Stadtgründung.
 
-## 2. Fracht und Betriebsöl wiederverwenden
+Generäle bleiben ein gemeinsamer Pool. Ein General hat höchstens eine Rolle: idle, Bürgermeister einer konkreten cityId, Forschungsleiter oder Mission. Pro Stadt höchstens ein Bürgermeister; derselbe General nie in zwei Städten gleichzeitig. Freie Generäle dürfen vorläufig ohne neue Reiseaktion einer Rolle/einem Einsatz zugeordnet werden; das ist eine Verwaltungsregel, kein Einheitentransport.
 
-Keine zweite Preis-, Zeit-, Reichweiten- oder Kapazitätsrechnung entwickeln. Gemeinsame Funktionen aus Auftrag 14 für Lieferungen nutzbar machen, während Raid-/Scout-Regeln erhalten bleiben.
+Forschungskosten aus explizit ausgewählter eigener Stadt bezahlen; dort muss die erforderliche Universität stehen. Forschung wirkt spielerweit, soweit ihre bestehende Definition dies vorsieht. Aktuelle Forschungsqueue speichert finanzierende/ausführende cityId. Vorhandene Abriss-/Belegungsregeln auf diese Universität anwenden. Stadtwechsel erzeugt weder weitere Queues noch mehrfachen Forschungsleiterbonus. Rekrutierungskosten ebenfalls aus expliziter eigener Stadt, Rekrutierungszähler bleibt spielerweit.
 
-- Ladung: frei gewählte sichere ganze Mengen Holz, Stein, Nahrung und Öl; unbekannte Schlüssel und ungültige Werte ablehnen.
-- Gewichte und LKW-Kapazität aus bestehenden Regeln übernehmen.
-- Betriebskosten bleiben positive typabhängige Ölraten.
-- E = normaler exakter Einwegölbedarf; bei Verzögerung 0 gilt Gesamtstartöl F=ceil(2E).
-- Gesamte Ladung plus F muss beim Start in die Transportkapazität passen. Bestehende Reichweiten-/Rückwegreserveprüfung erhalten.
-- Hinwegverbrauch F−E einschließlich Rundungsrest, normale Rückfahrt verbraucht E. Keine Rückerstattung und keine Neubetankung beim Ziel.
-- Freiwillige Ölladung und Betriebsöl getrennt halten. Ausschließlich freiwilliges Öl ist lieferbar.
-- Start bucht Ladung sowie Betriebsöl einmalig ab und reserviert LKWs/General atomar.
-- Reisende LKWs verursachen keinen Stadt-Nahrungsunterhalt, weder beim Absender noch beim Empfänger. Bei Heimkehr beginnt ihr bisheriger stationärer Unterhalt wieder.
-- Alle Parameter und Regelversionen je Mission speichern; ENV-Änderungen verändern keine laufende Fahrt.
-- Zeitfortschritt und Ölverbrauch weiterhin exakt aus gespeicherten Zeitpunkten ableiten.
+Alle Städte schreiten auch inaktiv/offline fort. Umschalten darf keine Produktion, Hungerfrist oder Queue zurücksetzen. Nahrung wird ausschließlich von stationierten Einheiten in ihrer Stadt verbraucht. Alle bestehenden Vorgänge auf bisher versteckte Ein-Stadt-Annahmen prüfen.
 
-Rechenbeispiel mit aktuellen Defaultwerten: 5 LKW mit je 200 Traglast und 1 Öl je Feld, Distanz 10 Felder → Traglast 1000, E=50 und F=100. Maximal 900 Ressourcen können geladen werden. Bei 600 Holz und 300 Nahrung ist die Startkapazität genau ausgeschöpft. 50 Hinwegöl werden verbraucht, 50 bleiben für die Rückfahrt reserviert.
+## 2. Stadtwechsel und cityId in jedem relevanten Befehl
 
-## 3. Ankunft und Teilannahme
+React erhält einen gut erreichbaren Stadtwähler mit Name, Koordinaten und „N/5 Städte“. Stadtansicht, Militärseite, Ressourcenleiste, Bürgermeister und Warteschlangen zeigen ausschließlich die gewählte Stadt. Weltkarte zeigt sämtliche eigenen Städte und zentriert/ermittelt Entfernungen relativ zur ausgewählten Ausgangsstadt.
 
-Ankunft ist ein serverseitiges, dauerhaft gespeichertes Ereignis. Empfängerstadt zunächst exakt bis zum Ankunftszeitpunkt fortschreiben: Produktion, Bau-/Forschungsabschlüsse, Versorgung und vorher fällige Ereignisse berücksichtigen.
+Stadtauswahl ist Ansichtszustand, keine globale Servervariable, die Aktionen anderer Tabs umlenkt. Auswahl pro Tab speichern; nach Reconnect vorhandene Auswahl wiederherstellen, andernfalls erste eigene Stadt. Jeder stadtbezogene Befehl und jede Vorschau enthält cityId. Server prüft Besitz und Gültigkeit. Kein stiller Fallback auf eine andere Stadt bei ungültiger ID.
 
-Pro Ressource:
-- Freier Lagerraum = max(0, aktuelle Kapazität − aktueller Bestand).
-- Angenommen = min(gelieferte ganze Menge, floor(freier Lagerraum)).
-- Restladung = gelieferte Menge − angenommen.
-- Angenommene Menge dem Empfänger einmalig gutschreiben und gleichzeitig aus der Missionsladung entfernen.
-- Nicht angenommene Güter bleiben beim Absender und fahren automatisch zurück. Am Ziel keinen Überlauf vernichten.
-- Keine zukünftigen Lagerplätze reservieren; allein der tatsächliche Zustand bei Ankunft zählt.
-- Sind alle Ziellager voll, fährt die vollständige Ladung zurück.
-- Ist das Ziel nicht mehr gültig oder gehört es bei Ankunft nicht mehr zum gespeicherten Empfänger, keine Gutschrift: gesamte Ladung kehrt zurück, mit begründetem Ergebnis.
-- Vorübergehende Speicher-/Lesefehler nicht als „Ziel verschwunden“ behandeln; zuverlässig wiederholen/recovern.
-- Kein Warten am Ziel auf später frei werdenden Lagerraum. Sofortige normale Rückfahrt zum bereits gespeicherten Termin.
+Verspätete Antworten/Events für Stadt A dürfen nach Wechsel zu B nicht deren Anzeige überschreiben. Ereignisse mit cityId und vorhandenen Revisionen eindeutig zuordnen. Laufende Missionen speichern originCityId und kehren immer dorthin zurück, unabhängig von aktueller Ansicht.
 
-Im Beispiel aus Abschnitt 2 hat das Ziel bei Ankunft 250 Holzplätze und 200 Nahrungsplätze frei: 250 Holz und 200 Nahrung werden zugestellt. 350 Holz und 100 Nahrung fahren zurück. 50 Betriebsöl bleiben reserviert und werden auf dem Rückweg verbraucht.
+Truppen bleiben stadtgebunden. Ein Stadtwechsel versetzt keine Armee. Keine Stadt-zu-Stadt-Truppenverlegung in diesem Auftrag. Spielerweite Generalsverwaltung und Postbox dürfen Stadtbezüge anzeigen, aber keine Duplikate erzeugen.
 
-Die Rückreise erzeugt keine zweite Lieferung und keine zusätzliche Rechnung. In der Heimat verbliebene Ladung nach bestehenden Regeln einlagern; dortigen Überlauf getrennt berichten. LKWs und General genau einmal wieder freigeben. Bei normaler Heimkehr Betriebsöl 0.
+## 3. Freie Felder und variable Verteidiger
 
-## 4. Dauerhafte Buchungen über zwei Spieler
+„Frei“ bedeutet ohne Stadt oder bestehende Reservierung, nicht unverteidigt. Nicht-Wasser-Terrain innerhalb der Welt ist grundsätzlich gründbar. NPC-Städte, Spielerstädte und reservierte Felder nicht als freie Ziele akzeptieren.
 
-Wichtigste technische Abnahme: Empfängergutschrift und Reduktion der Transportladung bilden eine gemeinsame Transaktion. Eine Einzeldatei atomar umzubenennen reicht dafür nicht.
+Karte bleibt vollständig sichtbar. Öffentliche Daten dürfen Terrain, freie/belegte Felder, Städte und Reservierungsstatus zeigen, aber keine exakten Verteidigerzahlen oder verborgene Schwierigkeitswerte.
 
-Vorhandene exklusive Weltqueue und das Mehrspieler-Recovery-Journal verwenden und falls nötig erweitern. Kein separater ungeordneter Schreibpfad für den Empfänger. Bei parallelen Ereignissen auch Gebäudekosten, Versorgung und weitere Lieferungen konsistent serialisieren.
+Verteidigung serverseitig je Feldzustand erzeugen und dauerhaft speichern, spätestens bei erster relevanter Erkundung. Vorläufig 5–30 Infanterie-Verteidiger, ganze Anzahl, über validierte ENV-Min/Max konfigurierbar. Feldwerte variieren zwischen Koordinaten und sind für alle Spieler derselben Welt identisch. Kein neues Würfeln beim Öffnen, wiederholten Aufklären, Angriff oder Neustart. Keine öffentliche Zufallsgrundlage, aus der der Client exakte Verteidiger errechnen kann.
 
-Persistiere unter stabiler Missions-/Transaktionskennung:
-- Absender-, Ausgangsstadt-, Zielstadt- und erwartete Empfänger-ID;
-- Einheiten, General, Zeiten und Regelsnapshot;
-- anfängliche Ladung, tatsächlich zugestellte Mengen, verbleibende Rückfracht;
-- Zustellstatus und Zeitpunkt, Ergebnisgrund, Heimlagerung/Überlauf;
-- Treibstoffbilanz separat.
+Feld besitzt stabile Identität aus Instanz/Koordinate sowie eine Zustandsrevision. Freie Felder nicht als plünderbare NPC-Städte anlegen. Keine Ressourcenbeute bei ihrer Eroberung.
 
-Pro Ressource muss gelten:
-Startladung = zugestellt + aktuell unterwegs + zuhause wieder eingelagert + dokumentierter Heimlagerüberlauf.
-Kein Güterverlust am Ziel bei bloßem Platzmangel. Betriebsöl hat seine separate Bilanz.
+## 4. Aufklärung als Voraussetzung
 
-- Startbefehle per vorhandener requestId idempotent behandeln. Identische Wiederholung liefert dasselbe Ergebnis; gleiche ID mit abweichendem Inhalt ablehnen.
-- Ankunft und Rückkehr ebenfalls idempotent; Commit-Marker und Ressourcenänderung gemeinsam dauerhaft speichern.
-- Nach Crash Journal vor Verarbeitung weiterer Befehle wiederherstellen.
-- WebSocket-Meldungen erst nach erfolgreichem Commit. Reconnect rekonstruiert Zustand aus persistierten Daten.
-- Ergebnisnachrichten für beide Spieler über vorhandene Postbox zuverlässig genau einmal erstellen bzw. über stabile Ereignis-IDs deduplizieren. Client-Wiederholung darf keine zweite Benachrichtigung erzeugen.
-- Mehrere Lieferungen an dasselbe Ziel nach deterministischer Reihenfolge verarbeiten: Ankunftszeit, dann stabile Missions-ID als Gleichstandsregel.
+Bestehenden Scout-Ablauf um freie Felder erweitern: eigene Späher und freier General, normale Reisezeit, positives Öl, Tankgrenze aus Auftrag 14, kein Reiseunterhalt. Keine kostenlose sofortige Aufklärung beim Anklicken.
 
-Offline-Fortschritt weltübergreifend innerhalb dieser Instanz in Ereignisreihenfolge abarbeiten: Ein Ziel darf nicht erst bis „jetzt“ fortgeschrieben und dann rückwirkend mit Nahrung versorgt werden. Beispiel: Nahrung trifft um 12:05 ein und verhindert späteren Hunger; bei Serverstart um 12:20 muss sie vor den späteren Versorgungsschritten wirken. Das gilt unabhängig davon, welcher Spieler sich zuerst anmeldet. Bereits vorhandene Regeln zu Schonfrist und Hungerverlusten unverändert anwenden.
+Erfolgreicher Bericht enthält Zielkoordinate, genaue beobachtete Verteidigung, Zeitpunkt und Feldrevision. Vorläufig erst nach Rückkehr der Späher zum Spieler freigeben und für Eroberung verwendbar machen. Der Bericht gilt spielerweit, sodass eine andere eigene Stadt einen Angriff starten darf.
 
-## 5. WebSocket, Datenschutz und React
+Eroberungsstart erfordert einen eigenen abgeschlossenen Bericht für genau das noch freie Feld und dessen aktuelle Revision. Fremde/gefälschte Berichts-IDs ablehnen. Bei geänderter Revision vor Start erneut aufklären lassen. Keine Zeitablaufpflicht für einen weiterhin unveränderten Zustand hinzufügen.
 
-Bestehende Event-Konventionen erweitern, keine neue REST-Spiel-API oder Polling einführen. Vorschau und verbindlicher Start verwenden dieselbe zentrale Berechnung. Authentifizierten Absender aus Sitzung bestimmen; Eigentumsdaten nicht vom Client übernehmen.
+Nach Abfahrt können andere Spieler das Feld verändern. Angriff bei Ankunft gegen dann vorhandene Verteidiger auflösen, sofern noch frei; alte Aufklärung garantiert keinen unveränderten Kampf. Wenn inzwischen Stadt/reserviert: kein PvP, keine Doppelbelegung, normaler Rückweg mit verständlichem Bericht.
 
-Im Lieferdialog:
-- Zielstadt, Kommandantenname, Entfernung;
-- verfügbare LKWs und freie Generäle;
-- vier Ressourcenfelder;
-- Ladungsgewicht, Kapazität, Betriebsöl für beide Wege;
-- Abfahrt/Ankunft/Rückkehr und verständliche Ablehnungsgründe;
-- Hinweis: Zustellung ohne Gegenleistung, nicht passende Mengen kommen zurück.
+Neue freie-Feld-Aufklärung gewährt vorläufig keine XP. Bestehende NPC-Aufklärungsbelohnungen bleiben unverändert; neue Erkundungen dürfen keine unbegrenzte XP-Quelle eröffnen.
 
-Keinen aktuellen Bestand, Ausbau, freie Lagerplätze oder Nahrungsbilanz des Empfängers in der Vorschau offenlegen. Lieferung ist kein Aufklärungsersatz. Keine Garantie über die Annahmemenge aus einer clientseitigen Momentaufnahme.
+## 5. Eroberungsmission und Stadtplatz-Reservierung
 
-Absender sieht seinen vollständigen Transportzustand und Bilanz. Empfänger sieht eingehende Lieferungen mit Absender, angekündigter Ressourcenladung und Ankunftszeit sowie später tatsächlich erhaltene Mengen. Keine Generalattribute, übrigen Stadtbestände oder andere privaten Missionsdaten des Absenders übertragen. Unbeteiligte Spieler erhalten keine privaten Transportdetails.
+Neuer Missionstyp mit eigener Regelversion, bestehende Kampf-/General-/Traglast-/Öllogik wiederverwenden. Mindestens ein Infanterist, optionale LKWs und eigener freier General. Verzögerung darf dieselben Grenzen und proportionalen Ölregeln wie Raids nutzen. Eigene Ressourcenladung bleibt möglich und kehrt nach bestehenden Verlust-/Lagerregeln zurück; sie wird nicht zur Gründungsgebühr.
 
-Postbox/Ergebnisanzeige:
-- Absender: geladen, zugestellt, zurückgeführt, zuhause eingelagert/verfallen, Betriebsölverbrauch und Ergebnisgrund.
-- Empfänger: tatsächlich erhaltene Ressourcen, Absender, Zeitpunkt.
-- Angenommene Mengen dürfen als unvermeidliches Lieferergebnis sichtbar sein; daraus keine exakten Restlagerwerte ergänzen.
-- Bereits vorhandene private Nachrichten erhalten. Keine neue verpflichtende Freitext-/Chatfunktion.
+Vorläufig höchstens eine laufende Eroberung oder ungenutzte Feldreservierung pro Spieler. Beim Start einen seiner maximal fünf Stadtplätze reservieren:
+bestehende Städte + aktive Eroberungs-/Gründungsreservierungen <= 5.
+Start, Siegerermittlung und Gründung jeweils erneut prüfen. Kein sechster Stadtplatz durch mehrere Tabs oder parallele Requests. Ein laufender Angriff reserviert nur den persönlichen Stadtplatz, nicht exklusiv das Weltfeld; andere Spieler dürfen dasselbe freie Feld angreifen.
 
-Mobile Ansicht, Tastaturbedienung, Lade-/Fehlerzustände und erneute Vorschau bei geänderten Startbedingungen prüfen. Lageränderungen am Ziel machen eine Absendervorschau nicht ungültig, da Annahme erst bei Ankunft entschieden wird.
+Bei Ankunft:
+- Noch freies Ziel: vorhandenen Kampfalgorithmus gegen aktuelle Feldverteidigung anwenden.
+- Überlebende Verteidiger nach Niederlage dauerhaft speichern und Revision erhöhen. Vorläufig keine zeitliche Regeneration freier Feldverteidiger; NPC-Regeneration bleibt unverändert.
+- Erfolgreiche Eroberung nur bei besiegter Verteidigung und mindestens einem überlebenden Infanteristen. Gleichzeitige Vernichtung ergibt keinen Anspruch.
+- Sieg erzeugt genau einen exklusiven Feldanspruch des Spielers mit Ablaufzeit, gebunden an Ausgangsstadt und persönliche Platzreservierung.
+- Verluste, Rückwegöl, eigene Ladung und normale Rückkehr gemäß Auftrag 14. Keine Beute; XP/Kampfpunkte nur nach bestehenden Regeln für tatsächlich besiegte Gegner/eigene Verluste, keine zusätzliche Eroberungsprämie.
+- Niederlage oder inzwischen ungültiges Ziel gibt persönlichen Stadtplatz frei. LKWs/Infanterie/General kehren nach bestehenden Regeln zurück.
 
-## 6. Migration, Dokumentation und Umfang
+Gleichzeitige Ankünfte in stabiler Reihenfolge (Zeit, dann Missions-ID) unter Weltqueue verarbeiten. Nur erster berechtigter Sieger erhält den Anspruch. Verlierende Konkurrenzmission greift keinen Spieleranspruch an und erhält keine Kampfbelohnung ohne Kampf.
 
-Neue Missions-/Regelversion einführen, nächste freie Spielerschemaversion prüfen; Ausgangsschema ist 15, daher 16 nur falls noch frei. Bestehende Raid-/Scout-Missionen, Fracht, bezahltes Öl, Termine und Berichte nicht umdeuten. Identifikatoren so strukturieren, dass spätere Instanzzuordnung ergänzt werden kann, aber jetzt keine Matrix-Kommunikation implementieren.
+Vorläufiger Feldanspruch: 24 Stunden ab Sieg, ENV CITY_CLAIM_TTL_HOURS=24. Sofortige Gründung nach Sieg ist möglich; die Armee fährt dennoch in ihre Ausgangsstadt zurück und wird nicht teleportiert.
 
-Keine neue Balancekonfiguration ohne konkreten Bedarf: bestehende LKW-, Öl-, Welt- und Zeitparameter wiederverwenden. Falls neue Limits technisch nötig sind, begründen, validieren und in .env.example dokumentieren.
+Anspruch nur vom Eigentümer nutzbar, nicht übertragbar. Bei Ablauf ohne Gründung Feld und persönlichen Platz freigeben. Verteidigung auf das gespeicherte ursprüngliche Feldkontingent zurücksetzen, Revision erhöhen, alte Aufklärung ungültig machen. Neue Verteidigerzahlen dabei nicht erneut würfeln. Kein manuelles Stadtaufgeben oder Anspruchshandel in dieser Stufe.
 
-README, docs/PROJECT.md und docs/WEBSOCKET.md anpassen. Einen Nachweis docs/DELIVERY_VALIDATION.md mit wirklich ausgeführten Tests, Ergebnis und bekannten Grenzen erstellen. Auftrag 14 als abgeschlossen erhalten.
+## 6. Stadtgründung gegen Gebühr
 
-In diesem Auftrag ausgeschlossen: Tauschhandel/Marktplatz, Bündnissystem, stationierte Unterstützungstruppen, PvP/Transportüberfälle, Luft-/Raketenwaffen und Serverföderation. Keine Belohnungen für Transfers einführen.
+Eigener aktiver Feldanspruch zeigt Aktion „Stadt gründen“, Namensfeld und verbindliche serverseitige Kostenübersicht. Gebühr vorläufig:
+- Basis je 500 Holz, 500 Stein, 500 Nahrung, kein zusätzliches Gründungsöl.
+- Für die neue Stadt Nummer n (2 bis 5): je Basis × (n−1).
+- Damit je Ressource 500/1000/1500/2000 für zweite/dritte/vierte/fünfte Stadt.
+- Basiswerte als validierte ENV-Parameter dokumentieren. Grenze von fünf Städten ist verbindlich und nicht durch ENV erhöhbar.
 
-## 7. Tests und Abnahme
+Gebühr aus der beim Eroberungsstart gespeicherten Ausgangsstadt abbuchen; nicht aus zusammengerechneten Stadtbeständen. Reiseöl wurde separat bezahlt. Ist Bestand unzureichend, Anspruch bis Ablauf erhalten und keine Teilzahlung ausführen. Kostenquote mit Regelversion/Anspruch/aktueller Stadtanzahl binden, bei Änderung neue Vorschau verlangen.
 
-Gezielte Kern-, Speicher- und WebSocket-Tests:
-1. Beispiel mit 5 LKW, Distanz 10, 900 Ladung + 100 Öl; korrekte Abbuchung und Kapazitätsgrenze.
-2. Vollständige, teilweise und vollständig abgelehnte Annahme wegen vollen Lagern; Rest fährt zurück.
-3. Alle vier Ressourcen einschließlich freiwilligem Öl; kein Betriebsöl beim Empfänger gutgeschrieben.
-4. Während Reise veränderte Zielkapazitäten; Ankunftszustand entscheidet.
-5. Unbekanntes/NPC/eigenes/fremdinstanzliches Ziel, ungültige Zahlen, leere Ladung, keine LKWs, gebundener/fremder General, unerlaubte Einheit oder Verzögerung.
-6. Nicht mehr gültiges Ziel: normale Rückkehr statt Verlust; Speicherfehler korrekt recovern.
-7. Zwei Absender gleichzeitig an fast volles Ziellager, deterministische Reihenfolge ohne Überfüllung.
-8. Doppelte Requests und Crash-Injektion nach Journal-Schreiben, zwischen Spielerdateien und vor/nach Journal-Löschung: keine doppelte Gutschrift oder verlorene Ladung.
-9. Wiederholte Ankunft/Rückkehr und Reconnect ohne doppelte Ressourcen, Truppen, Generäle oder Postboxberichte.
-10. Offline-Ankunft vor späteren Hungerereignissen; Ergebnis unabhängig von Login-Reihenfolge und Serverneustart.
-11. Heimlager voll: Überlauf bilanziert; kein Reiseunterhalt, ab Heimkehr stationärer Unterhalt.
-12. Keine XP/Punkte aus Lieferung; keine fremden Privatdaten über Vorschau oder Events.
-13. Bestehende NPC-Raids, Aufklärung, Schema-Migration und Konfigurationswechsel regressionsfrei.
+Gründung atomar: Anspruch prüfen/verbrauchend entfernen, Gebühren abbuchen, neue stabile cityId erzeugen, Weltfeld in Stadt umwandeln, Stadtsammlung und öffentliche Karte aktualisieren. Nur einmal je requestId/Anspruch. Bei abgelaufenem Anspruch oder fünfter bereits vorhandener Stadt ohne Zahlung ablehnen. Bei exakter Ablaufzeit gewinnt Ablauf (now >= expiresAt).
 
-Bestehende Tests und Build ausführen. Mit zwei tatsächlichen Spielerzuständen den UI-Ablauf von Weltkarte bis beidseitigem Bericht prüfen, einschließlich offline Empfänger und Teilannahme. Tatsächliche Befehle und Ergebnisse dokumentieren.
+Neue Stadt als vorläufiges Startpaket:
+- Eigene Standard-Bauplätze, getrennt zivil/militärisch.
+- Je ein Sägewerk, Steinbruch und Bauernhof auf Stufe 1.
+- Ressourcen anfangs 0; normale Produktion beginnt ab Gründungszeit.
+- Keine Gratisarmee, kein neuer General, keine zusätzliche Bewerberauswahl oder Forschung.
+- Bestehende globale Forschungswirkungen berücksichtigen; lokale Gebäudevoraussetzungen weiter prüfen.
+So kann die Stadt ohne bereits implementierte Lieferungen selbstständig anlaufen. Erste vorhandene Stadt/Neuspieler-Startpaket nicht rückwirkend verändern.
 
-Abgenommen ist Auftrag 15, wenn Ressourcen genau einmal zwischen zwei Städten übertragen werden, überschüssige Ziel-Ladung zurückkehrt, Öl/Kapazität/Unterhalt aus Auftrag 14 erhalten bleiben und Neustart sowie parallele Lieferungen die Bilanzen nicht verändern.
+Stadtnamen serverseitig trimmen/validieren, 1–40 Unicode-Codepoints, keine Steuerzeichen; als Text sicher rendern. Gleiche Namen sind erlaubt, cityId ist maßgeblich.
 
-## Anschließende Planung
+## 7. Persistenz, Migration und Konkurrenz
 
-Auf Basis funktionierender Lieferungen als nächstes Bündnisse und gemeinsame Versorgung spezifizieren. Danach geregelten Tauschhandel mit verbindlicher Gegenleistung planen. Weitere Forschung/Militärtechnik sowie Matrix-Föderation bleiben eigene Ausbauschritte; Reihenfolge nach diesem Auftrag mit dem Nutzer abstimmen.
+Spieler-/Weltschemata jeweils auf nächste freie Version erhöhen. Altspieler erhält seine bestehende Stadt mit stabiler ID und unveränderten Koordinaten, Gebäuden, Ressourcen, Truppen und Queues. Laufende alte Missionen bekommen eindeutig diese originCityId; Fracht, Termine, bereits bezahltes Öl und historische Regeln nicht neu berechnen.
+
+Generäle/Forschung/Postbox/Bewerber nicht vervielfachen. Alten Bürgermeister der bisherigen Stadt zuordnen. Alte Forschungsqueue bindet die bisherige Stadt. Historische Berichte weiter darstellen. Migration idempotent und mit Testfixtures absichern; kompatible Ansichtsadapter sind erlaubt, doppelte autoritative Stadtbestände nicht.
+
+Weltregister muss mehrere Städte desselben Spielers unterstützen. Spielerregistrierung/zufällige Platzierung müssen Ansprüche respektieren. Stabile cityId zusätzlich zur playerId verwenden; playerId allein bezeichnet keinen Zielort mehr. Alte NPC-IDs erhalten.
+
+Weltqueue und bestehendes Recovery-Journal nutzen. Feldverteidigung, Kampfergebnis, Anspruch, Spielerplatz, Gebühren und neue Stadt jeweils in ihren zusammengehörigen Zustandsübergängen atomar buchen. Nach Crash keine doppelte Stadt, Zahlung, XP, Armee oder Anspruch.
+
+Offlineereignisse aller Städte und Missionen chronologisch mit stabiler Gleichstandsregel abarbeiten. Inaktive Städte produzieren/verbrauchen nicht abhängig von Ansicht oder Login-Reihenfolge. Globale Forschung zu ihrem tatsächlichen Abschlusszeitpunkt wirksam machen, nicht rückwirkend für einen ganzen Offlinezeitraum. Feldanspruch-Ablauf und Gründungsbefehl unter derselben Zeit-/Queue-Ordnung verarbeiten.
+
+## 8. Oberfläche und WebSocket-Verträge
+
+Spielkommunikation weiter vollständig über vorhandene WebSocket-Konventionen; keine zweite REST-Spiel-API.
+
+- Stadtwähler und Übersicht bis fünf Städte, lokale Bestände und Baustatus.
+- Freies Feld: „Aufklären“; ohne Bericht unbekannte Verteidiger.
+- Nach eigenem Bericht: Verteidigerzahl, Berichtszeit, Zustand und „Erobern“, soweit Voraussetzungen erfüllt.
+- Eigener Anspruch: verbleibende Zeit, Gründungskosten, Ausgangsstadt für Zahlung und Aktion „Stadt gründen“.
+- Missionen/Berichte zeigen Ausgangsstadt, Zielkoordinaten und Ergebnisse.
+- Nach Gründung neue Stadt auswählbar, kein ungefragtes Umleiten anderer Tabs.
+- Ablehnungen verständlich: fünfte Stadt, laufender Anspruch/Eroberungszug, fehlende Aufklärung, ungültiger Bericht, besetztes Feld, fehlende Einheiten/Öl/Gebühr, abgelaufener Anspruch.
+- Öffentliche Kartendaten verraten keine versteckte Verteidigung, privaten Bestände oder Generalskills. Besitzprüfungen für alle cityIds und claims serverseitig.
+
+## 9. Tests, Dokumentation und Abnahme
+
+Gezielt testen:
+1. Migration einer bestehenden Stadt einschließlich Bürgermeister, Forschung, Frachtmissionen, Produktion und Hungerstand; wiederholte Migration ohne Duplikate.
+2. Stadtwechsel zwischen mindestens zwei Städten, getrennte Lager/Queues/Truppen, parallele Tabs und verspätete Events ohne Fehlbuchung.
+3. Offlinefortschritt sämtlicher Städte, spielerweite Forschung nur einmal und zeitlich korrekt, lokale Bürgermeister-/Unterhaltswirkung.
+4. Unbekannte/fremde cityId, gefälschter Bericht/Anspruch, manipulierte Kosten und General-Doppelbelegung abgelehnt.
+5. Variable persistierte Feldverteidigung; gleicher Stand für verschiedene Spieler, keine Änderung durch Neustart oder erneute Aufklärung.
+6. Eroberung ohne abgeschlossene eigene Aufklärung abgelehnt; geänderte Revision verlangt vor Start neue Erkundung.
+7. Sieg, Niederlage, gegenseitige Vernichtung, Überlebendenrückkehr, Öl-/Ladungsbilanz und keine Feldbeute.
+8. Zwei Spieler am selben Feld, zwei Startbefehle desselben Spielers und Konkurrenz zur Neuspielerplatzierung ohne Doppelbesitz.
+9. Anspruchsablauf inklusive exakter Grenze, Rücksetzung gespeicherter Verteidiger, veralteter Bericht und wieder freier Stadtplatz.
+10. Gründung mit ausreichender/fehlender Gebühr, sichere Namensbehandlung und selbstständig produzierendem Startpaket.
+11. Von einer bis genau fünf Städte; sechste Stadt sowie sechster reservierter Platz auch parallel unmöglich.
+12. Crash-Injektion an Journal-/Dateischreibgrenzen für Sieg und Gründung, doppelte requestId, Reconnect: weder doppelte Zahlung noch Stadt/XP/Truppen.
+13. Bestehende NPC-Aufklärung, Raids, Forschung, Bewerber, Postbox und Punkte regressionsfrei.
+
+Build und bestehende Tests ausführen. UI-Ablauf Aufklären → Bericht → Erobern → Anspruch → Gründung → Stadtwechsel mit getrennten Beständen tatsächlich prüfen, auch mobil/Tastatur. Ergebnisse mit ausgeführten Befehlen in docs/MULTICITY_VALIDATION.md dokumentieren; keine ungetesteten Erfolge behaupten.
+
+README, docs/PROJECT.md, docs/WEBSOCKET.md und .env.example aktualisieren. Auftrag 14 abgeschlossen erhalten, Auftrag 15 nach tatsächlicher Implementierung markieren. Ressourcenlieferungen als Auftrag 16 planen, einschließlich eigener und fremder Städte und expliziter Ausgangs-/Ziel-cityIds.
+
+Abnahme: Bis fünf Städte sind unabhängig spielbar; neue Städte ausschließlich nach eigener Aufklärung, erfolgreicher Eroberung und Gebührenzahlung; Daten bleiben bei Stadtwechsel, Parallelzugriff und Neustart konsistent.
