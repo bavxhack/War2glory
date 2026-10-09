@@ -21,7 +21,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft, stationärer Unterhalt und verzögerte Ankunft mit proportionalem Ölbedarf | Auftrag 13 vom Nutzer am 09.10.2026 als abgeschlossen bestätigt |
-| 4d | Freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite | Für Auftrag 14 aufgenommen; Detailregel zur Ölbelegung vor Umsetzung abstimmen |
+| 4d | Freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite | Auftrag 14 spezifiziert; Verbrauchsmodell bestätigt, Umsetzung ausstehend |
 | Luft/Militär | Kampfflugzeuge, Raketenwerfer und Generalfähigkeiten für Luftvorteile | Nutzeranforderung vom 09.10.2026; spätere Phase, nicht Auftrag 13 |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -468,66 +468,46 @@ Verbindliche Präzisierung vom 09.10.2026: Keine pauschale Verzögerungsrate je 
 
 Zunächst Logistikkreislauf, stationären Unterhalt und verzögerte Ankünfte bewerten. Weitere Rohstoffbeute, Handel/Unterstützung, PvP und zusätzliche militärische Technologien einschließlich Flugzeugen/Raketenwerfern separat spezifizieren. Matrix-Föderation bleibt Kernziel; Identitäten, Regeln und Vertrauen benötigen weiterhin eine eigene Etappe.
 
-## Geplanter Auftrag 14 vom 09.10.2026: Ressourcenladung, Betriebsöl und Einsatzreichweite
+## Beauftragter Auftrag 14 vom 09.10.2026: Ressourcenladung, Betriebsöl und Einsatzreichweite
 
-Der Nutzer bestätigt Auftrag 13 als fertig und ergänzt die folgenden Anforderungen für die nächsten Projektschritte. Sie sind aufgenommen, noch nicht als implementiert bestätigt. Die genaue Belegung durch verbrauchtes Betriebsöl wird vor dem ausführbaren Implementierungsauftrag abgestimmt; die darunter genannten Alternativen sind keine bereits beschlossene Spielregel.
+Status: zur Umsetzung spezifiziert, noch nicht als implementiert bestätigt. Auftrag13 ist laut Nutzer abgeschlossen. Das Verbrauchsmodell ist bestätigt: Betriebsöl wird auf der Reise verbraucht und gibt dadurch Transportplatz frei. Freiwillige Ölladung bleibt normale Ressource. Der vollständige ausführbare Auftrag steht in CODEX_PROMPT.md.
 
-### Verbindliche Anforderungen
+### Bestätigte Anforderungen
 
-- Truppen können eigene Ressourcen auf Einsätze mitnehmen: frei gewählte nicht negative Mengen Holz, Stein, Nahrung und Öl innerhalb verfügbarer Stadtbestände und gemeinsamer Transportgrenze.
-- Mitgeführte Ressourcen belegen Platz und reduzieren die zusätzlich mögliche Plünderung. Kapazität nicht für jeden Rohstoff getrennt vollständig vergeben.
-- Das für den Auftrag erforderliche Öl muss mitgeführt werden und zählt ebenfalls gegen die Transportkapazität.
-- Erforderlicher Treibstoff plus freiwillige Ressourcenladung dürfen beim Start die Transportkapazität nicht überschreiten. Ein zu schwerer Einsatz wird serverseitig ohne Teilbuchung abgelehnt.
-- Reichweite wird dadurch vom konkreten Truppenmix, dessen Transportkapazität, den positiven typabhängigen Ölraten, der gewählten Verzögerung und der übrigen Ladung begrenzt.
-- LKWs können zusätzliche Transportkapazität beisteuern, benötigen selbst ebenfalls Öl. Mehr Truppen erhöhen nicht automatisch nur die Reichweite; ihr eigener Verbrauch zählt mit.
-- Alle Einheitentypen bleiben ölpflichtig. Proportionale Hinweg-Verlängerung und normaler Rückweg aus Auftrag 13 bleiben gültig.
-- Nahrungsunterhalt bleibt ausschließlich stationär. Mitgeführte Nahrung wird dadurch nicht automatisch Reiseproviant oder neue Unterhaltsquelle.
+- Frei wählbare Mengen Holz, Stein, Nahrung und Öl innerhalb von Stadtbestand und gemeinsamer Transportkapazität mitnehmen.
+- Gesamtes Betriebsöl für Hin- und Rückweg muss beim Start ebenfalls in die Traglast passen. Alle Einheitentypen bleiben typabhängig ölpflichtig.
+- Eigene Ladung, Betriebsöl und Beute getrennt führen. Freiwilliges Öl nicht automatisch verbrennen.
+- Verbrauchtes Hinwegöl gibt Platz frei; am Ziel belegen eigene Ladung und Rückwegreserve Platz. Nur der verbleibende Raum steht für Beute zur Verfügung.
+- Ohne Verluste:1000 Kapazität−200 eigene Ladung−100 Rückwegöl=700 mögliche Beute am Ziel; beim Start belegen zusätzlich100 Hinwegöl Platz.
+- Zusätzliche Verzögerung verlängert nur die Hinfahrt und erhöht deren Ölbedarf proportional. Normaler Rückweg bleibt erhalten.
+- Keine Stadtnahrung für reisende Truppen, kein neuer Reiseunterhalt durch freiwillige Nahrungsladung.
+- Reichweite ergibt sich aus Truppenmix, Traglast, Ladung, Ölraten und Verzögerung. LKWs kosten selbst Öl.
+- Eigene Ladung wird NPCs nicht geschenkt. Geteilte NPC-Nahrungsbeute und Wiederauffüllung erhalten.
 
-### Rechnungsmodell für den Start
+### Ergänzende vorläufige Umsetzungsentscheidungen
 
-Vorläufiger Vorschlag: Eine Einheit Holz, Stein, Nahrung oder Öl belegt jeweils eine Transporteinheit. Ressourcengewichte zentral definieren; dies ist noch ein Balancevorschlag.
+Die folgenden Regeln schließen Randfälle; sie sind Projekt-Balanceentscheidungen, keine belegten Originalspielwerte.
 
-- Erforderliches Betriebsöl getrennt von optional mitgeführtem Öl als Handels-/Ressourcenladung ausweisen.
-- Startbelegung = Gewicht der freiwilligen Ressourcenladung + Gewicht des notwendigen Betriebsöls für Hin- und Rückweg.
-- Freier Platz = gesamte Transportkapazität minus Startbelegung; negative Werte sperren den Start.
-- Einmalige Abbuchung beim Start: normale Ressourcenladung je Ressource; bei Öl Summe aus Betriebsöl und freiwilliger Ölladung. Kein doppelter Abzug von schon im Angebot enthaltenem Kraftstoff.
-- Einsatzladung ist kein neuer Stadtvorrat und kann nicht zugleich für Bauten/Forschung/weitere Missionen ausgegeben werden.
-- Gleiche requestId, mehrere Tabs, Serverneustart und Wiederholung erzeugen keine zusätzliche Ladung, Beute oder Zahlung.
-- Reichweitenanzeige muss genau dieselbe Berechnung wie Startprüfung verwenden; tatsächliche Kartenziele und gegebenenfalls maximale Zusatzzeit prüfen. Keine irreführende pauschale Reichweite ohne aktuellen Truppen-/Ladungsmix.
+- Ressourcengewicht jeweils1. Bestehende Truppenkapazitäten konfigurativ übernehmen.
+- Normaler exakter Einwegbedarf E; Gesamtstartöl F=ceil(E×(2T+D)/T). Hinweg verbraucht F−E einschließlich Rundungsrest; Rückweg ohne Verluste E. Keine Ölrückerstattung oder erneute Zahlung.
+- Verbrauch aus gespeicherten Zeiten und rationalen Mengen ableiten. Anzeige-Rundungen nicht zur Buchung verwenden.
+- Nach Kampf Rückwegreserve anhand Überlebender berechnen. Auf ausgeschaltete Einheiten entfallendes Restöl als Kampfverlust buchen. Bilanz: verbrannt+verloren+verbleibend=Startöl.
+- Konservative Rückkehrsicherung: Je teilnehmendem Raid-Einheitentyp muss normales Rückwegöl pro Einheit in dessen eigene Traglast passen. Hinwegöl und Güter teilen weiterhin den Frachtraum. Verstoß vor Start verständlich ablehnen; keine Strandungsmechanik.
+- Späher behalten0 Güter-/Beutetraglast. Separater reiner Betriebsöltank mit ENV-Default SCOUT_FUEL_CAPACITY=20 je Späher; gesamtes Scout-Startöl muss hineinpassen.
+- Priorität nach Verlusten: Rückwegöl, eigene Ladung, neue Beute. Ganzzahlige Güterplätze=floor(Überlebendenkapazität−Rückwegöl).
+- Zu große eigene Ladung proportional reduzieren, größte Bruchreste zuerst, Gleichstand Holz/Stein/Nahrung/Öl. Verluste berichten. Niederlage ohne neue Beute; bei vollständigem Truppenverlust gesamte Ladung/Restöl verloren.
+- Rückkehr: eigene Ladung vor Beute einlagern, Überlauf nach vorhandenen Regeln separat berichten. Keine Beute-XP/Punkte für eigene Rückfracht.
+- Reichweiten-/Kapazitätsprüfung serverseitig identisch zur Vorschau; Spielkommunikation über bestehende WebSocket-Events.
+- Konfiguration je Mission speichern. Alte Missionen nach ihren Versionen ohne rückwirkende Fracht oder erneute Zahlung beenden. Ausgangsschema14; nächste freie Version vor Umsetzung prüfen.
+- Spieler-/NPC-Buchungen, requestId, Reconnect, Offlinefortschritt und Neustart dürfen keine doppelten Abzüge oder Güter erzeugen.
 
-### Vor Implementierung festzulegen: verbrauchtes Öl und freie Traglast
+### Abnahme und weitere Reihenfolge
 
-Empfehlung des Planungschats: Tatsächlich verbrauchtes Hinwegöl gibt Raum frei. Am Ziel belegen freiwillig mitgeführte Ressourcen plus noch benötigtes Rückwegöl Platz; nur der Rest kann geplündert werden.
+CODEX_PROMPT.md enthält vollständige Rechenfälle und Tests für Treibstoff, Ladung, Verzögerung, Kampfverluste, Späher, Lagerüberlauf, Mehrspieler und Migration. Der Planungschat hat keine Anwendungstests ausgeführt.
 
-Alternative: Für den gesamten Einsatz bleibt der gesamte ursprüngliche Ölbedarf als fester Kapazitätsanteil gebunden. Einfacher, aber verbrauchtes Öl gibt dann ausdrücklich keinen zusätzlichen Platz frei. Diese Alternative bildet eine abstrakte Logistikreserve ab.
-
-Rechenbeispiel bei unveränderten Truppen und Gewichten 1:
-- Transportkapazität 1000, freiwillige Ladung 200, Betriebsöl 100 für Hinweg und 100 für Rückweg.
-- Beim Start 200 + 100 + 100 = 400 belegt, 600 frei.
-- Mit Verbrauchsmodell am Ziel: 200 Ladung + 100 Rückwegöl = 300 belegt, maximal 700 Beute.
-- Mit dauerhaft gebundenem Ölbudget am Ziel: 400 belegt, maximal 600 Beute.
-
-Diese Entscheidung verändert Wirtschaft, Reichweite und Berichte und darf von Codex nicht zwischen UI und Server unterschiedlich ausgelegt werden.
-
-### Folgeregeln für den ausführbaren Auftrag
-
-- Eigene mitgenommene Güter, geplünderte Güter und Betriebsöl getrennt speichern, damit Rückkehr, Verluste und Berichte Herkunft nachvollziehen können.
-- Verbleibende Ladung bei normaler Rückkehr nach Lagerregeln je Ressource einlagern; eigene zurückgebrachte Güter nicht als neue Beute oder Kampfbelohnung zählen.
-- Bei NPC-Farmzügen eigene Ressourcen nicht still dem NPC schenken oder gegen dessen Bestand verrechnen. Lieferung an andere Spieler gehört in einen nachfolgenden Transport-/Handelsschritt.
-- Ohne neue Spezifikation keine Ladung aus Nahrung unterwegs verbrauchen, keine neue NPC-Beuteart oder Ölproduktion während Reise.
-- Kampfverluste können Transportkapazität reduzieren: Reihenfolge für Rückwegtreibstoff, eigene Güter und neue Beute sowie Umgang mit Treibstoffmangel vor Implementierung ausdrücklich festlegen. Kein stilles Auffüllen, Verschwinden von Gütern oder unmögliche negative Ladung.
-- Aufklärung berücksichtigen: Späher besitzen im Stand nach Auftrag 13 0 Beutetraglast, kosten aber Öl. Für mitgeführten Kraftstoff braucht es eine ausdrücklich definierte Transport-/Tankkapazität, ohne versehentlich Beutefähigkeit oder kostenlosen Treibstoff einzuführen.
-- Bisheriger Quellcode zieht in startLogisticsMission Öl einmalig ab; Auftrag 14 muss klar zwischen Zahlung, physisch mitgeführtem Kraftstoff und Verbrauch unterscheiden, statt Öl erneut zu erzeugen oder doppelt zu buchen.
-- Bestehende fuelPlan-Verhältnisrechnung beibehalten. Mengen/rationale Teilbeträge sicher speichern und Rundungsreste ausdrücklich behandeln; niemals mehr Öl zurückgeben als tatsächlich mitgeführt.
-- Alte laufende Missionen und Berichte ohne Frachtmodell anhand ihrer gespeicherten Version zu Ende führen; keine rückwirkende Zuladung oder neue Reichweitensperre.
-- Ausgangspunkt der gelesenen Implementierung ist Spielerschema 14. Nächste freie Schema-/Missionsversion verwenden, Porträts, Bewerber, Nachrichten und Versorgungsregelhistorie bewahren.
-- Tests für gemeinsame Kapazitätsgrenze, freiwillige Ölladung plus Betriebsöl, Hin-/Rückweg, Verzögerung, Verluste, volle Lager, mehrere Spieler und atomare Zahlung/Einlagerung in den Auftrag aufnehmen.
-
-### Verbindung mit weiteren Projektschritten
-
-1. Auftrag 14: Ressourcenladung, Treibstoffbelegung und daraus abgeleitete Reichweite als vollständigen, getesteten Ablauf konkretisieren und gemeinsam umsetzen.
-2. Danach Transport/Lieferungen zwischen Spielerstädten und darauf aufbauenden Handel bzw. Versorgung von Verbündeten spezifizieren. Dasselbe Frachtmodell verwenden; keine parallele zweite Lager-/Transportrechnung.
-3. Weitere Militärtechnologien und die bestätigte spätere Luft-/Raketenphase folgen gesondert. Matrix-Föderation bleibt eigenes Kernziel.
+1. Auftrag14: Fracht, physisches Betriebsöl, Verbrauch, Rückkehr und kapazitätsabhängige Reichweite vollständig implementieren und prüfen.
+2. Danach Spielerlieferungen/Versorgung zwischen Städten auf demselben Frachtmodell spezifizieren.
+3. Forschung/weitere Militärtechnik, spätere Luft-/Raketenphase und Matrix-Föderation gesondert fortführen.
 
 ## Bestätigte spätere Phase vom 09.10.2026: Luftstreitkräfte, Raketenwerfer und Generalfähigkeiten
 
