@@ -37,8 +37,13 @@ export class GameTransport {
   }
   #receive(raw) {
     let event; try { event = JSON.parse(raw); } catch { return; }
+    // The connection greeting is not a failed resume and must preserve the stored token.
+    if (event.type === 'auth.required' && event.requestId === 'connection') {
+      if (!this.state.authenticated) this.#set({ message: event.payload.message ?? '' });
+      return;
+    }
     const request = this.#requests.get(event.requestId);
-    if (request && ['general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
+    if (request && ['raid.preview', 'scouting.preview', 'general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
       this.#requests.delete(event.requestId);
       if (event.type === 'command.error') request.reject(new Error(event.payload.message));
       else request.resolve(event.payload);

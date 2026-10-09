@@ -1,9 +1,11 @@
+import { missionUnits, clampMissionCargo } from './logistics.js';
 import { advanceCity, buildingProductionRates, productionRates } from './index.js';
 import { effectiveAttributes } from './military.js';
 
 export const SUPPLY_RULES = Object.freeze({
-  version: 'supply-1-provisional',
-  upkeepPerSecond: Object.freeze({ infantry: 0.1, scout: 0.05 }),
+  version: 'supply-3-stationed-provisional',
+  upkeepScope: 'stationed',
+  upkeepPerSecond: Object.freeze({ infantry: 0.1, scout: 0.05, truck: 0.05 }),
   graceMs: 30 * 60_000,
   lossIntervalMs: 5 * 60_000,
   lossRate: 0.05,
@@ -22,16 +24,23 @@ export function mayorBonus(military) {
 export function livingUnitGroups(military) {
   const groups = Object.entries(military.units).map(([unit, amount]) => ({ id: `stationed:${unit}`, kind: 'stationed', unit, amount }));
   for (const mission of military.missions.filter(item => item.status === 'outbound' || item.status === 'returning')) {
-    if (mission.type === 'raid') groups.push({ id: `mission:${mission.id}:infantry`, kind: 'mission', mission, unit: 'infantry', amount: mission.result?.survivors ?? mission.infantry });
-    else groups.push({ id: `mission:${mission.id}:scout`, kind: 'mission', mission, unit: 'scout', amount: mission.scouts });
+    for (const [unit, amount] of Object.entries(missionUnits(mission))) groups.push({ id: `mission:${mission.id}:${unit}`, kind: 'mission', mission, unit, amount });
   }
   return groups.filter(group => group.amount > 0);
 }
 
+// Missing scope in saved historical rules explicitly means all living units.
+export function suppliedUnitGroups(military, rules) {
+  return livingUnitGroups(military).filter(group => rules.upkeepScope !== 'stationed' || group.kind === 'stationed');
+}
+
+function militaryUnitTypes(player) { return player.military.units; }
+
 export function supplySummary(player) {
   const rules = player.supply?.rules ?? SUPPLY_RULES;
-  const groups = livingUnitGroups(player.military);
-  const unitCounts = Object.fromEntries(Object.keys(rules.upkeepPerSecond).map(unit => [unit,
+  const allGroups = livingUnitGroups(player.military);
+  const groups = suppliedUnitGroups(player.military, rules);
+  const unitCounts = Object.fromEntries([...new Set([...Object.keys(militaryUnitTypes(player)), ...groups.map(g => g.unit)])].map(unit => [unit,
     groups.filter(group => group.unit === unit).reduce((sum, group) => sum + group.amount, 0),
   ]));
   const upkeep = groups.reduce((sum, group) => sum + group.amount * (rules.upkeepPerSecond[group.unit] ?? 0), 0);
@@ -41,7 +50,10 @@ export function supplySummary(player) {
   const bonus = mayorBonus(player.military);
   const production = researchedProduction * (1 + bonus);
   return { baseProduction, researchProduction, mayorBonus: bonus, mayorProduction: production - researchedProduction, production, upkeep, net: production - upkeep,
-    units: groups.reduce((sum, group) => sum + group.amount, 0), unitCounts };
+    units: groups.reduce((sum, group) => sum + group.amount, 0), unitCounts,
+    upkeepScope: rules.upkeepScope ?? 'all-living',
+    totalUnits: allGroups.reduce((sum, group) => sum + group.amount, 0),
+    deployedUnits: allGroups.filter(group => group.kind === 'mission').reduce((sum, group) => sum + group.amount, 0) };
 }
 
 function normalizeSupply(player, activatedAt) {
@@ -52,7 +64,7 @@ function normalizeSupply(player, activatedAt) {
 
 function applyLossWave(player, at) {
   const rules = player.supply.cycleRules ?? player.supply.rules ?? SUPPLY_RULES;
-  const groups = livingUnitGroups(player.military).filter(group => (player.supply.rules ?? SUPPLY_RULES).upkeepPerSecond[group.unit] > 0).sort((a, b) => a.id.localeCompare(b.id));
+  const groups = suppliedUnitGroups(player.military, player.supply.rules ?? SUPPLY_RULES).filter(group => (player.supply.rules ?? SUPPLY_RULES).upkeepPerSecond[group.unit] > 0).sort((a, b) => a.id.localeCompare(b.id));
   const total = groups.reduce((sum, group) => sum + group.amount, 0);
   if (!total) return 0;
   const loss = Math.min(total, Math.max(1, Math.ceil(total * rules.lossRate)));
@@ -61,11 +73,18 @@ function applyLossWave(player, at) {
   shares.sort((a, b) => b.remainder - a.remainder || a.group.id.localeCompare(b.group.id));
   for (const share of shares) if (remaining-- > 0) share.loss += 1;
   const losses = {};
+  const affectedMissions = new Set();
   for (const { group, loss: amount } of shares) {
     if (!amount) continue;
     losses[group.unit] = (losses[group.unit] ?? 0) + amount;
     if (group.kind === 'stationed') player.military.units[group.unit] -= amount;
-    else if (group.unit === 'infantry') {
+    else if (group.mission.units) {
+      affectedMissions.add(group.mission);
+      group.mission.units[group.unit] -= amount;
+      group.mission.hungerLossesByUnit ??= {};
+      group.mission.hungerLossesByUnit[group.unit] = (group.mission.hungerLossesByUnit[group.unit] ?? 0) + amount;
+      group.mission.hungerLosses = (group.mission.hungerLosses ?? 0) + amount;
+    } else if (group.unit === 'infantry') {
       if (group.mission.result) group.mission.result.survivors -= amount;
       else group.mission.infantry -= amount;
       group.mission.hungerLosses = (group.mission.hungerLosses ?? 0) + amount;
@@ -76,6 +95,7 @@ function applyLossWave(player, at) {
       }
     } else { group.mission.scouts -= amount; group.mission.hungerLosses = (group.mission.hungerLosses ?? 0) + amount; }
   }
+  for (const mission of affectedMissions) if (mission.status === 'returning') clampMissionCargo(mission);
   player.supply.events.push({ id: `hunger-${at}`, at, type: 'hunger-loss', total: loss, losses });
   player.supply.events = player.supply.events.slice(-SUPPLY_RULES.maxEvents);
   return loss;
