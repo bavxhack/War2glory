@@ -1,3 +1,12 @@
+import { buildingArtFrame } from '../building-art.js';
+import sawmillLevels from '../assets/building-levels/sawmill.webp';
+import quarryLevels from '../assets/building-levels/quarry.webp';
+import farmLevels from '../assets/building-levels/farm.webp';
+import warehouseLevels from '../assets/building-levels/warehouse.webp';
+import universityLevels from '../assets/building-levels/university.webp';
+import refineryLevels from '../assets/building-levels/refinery.webp';
+import barracksLevels from '../assets/building-levels/barracks.webp';
+import vehicleFactoryLevels from '../assets/building-levels/vehicleFactory.webp';
 import { useEffect, useRef } from 'react';
 import gameArtwork from '../assets/game-art.png';
 import logisticsArtwork from '../assets/logistics-art.png';
@@ -16,7 +25,13 @@ export function GameArt({ type, label, className = '' }) {
   const [x, y] = artPositions[type] ?? artPositions.town;
   return <span className={`game-art ${className}`} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} style={{ backgroundImage: `url(${gameArtwork})`, backgroundPosition: `${x}% ${y}%` }}/>;
 }
-export function BuildingArt({ type }) { return <GameArt type={type} className="building-art"/>; }
+const buildingAtlases = { sawmill: sawmillLevels, quarry: quarryLevels, farm: farmLevels, warehouse: warehouseLevels,
+  university: universityLevels, refinery: refineryLevels, barracks: barracksLevels, vehicleFactory: vehicleFactoryLevels };
+export function BuildingArt({ type, level = 1 }) {
+  const frame = buildingArtFrame(type, level);
+  return <span className="game-art building-art" role="img" aria-label={frame.label} data-building-type={type} data-building-level={level}
+    style={{ backgroundImage: `url(${buildingAtlases[type]})`, backgroundSize: frame.backgroundSize, backgroundPosition: frame.backgroundPosition }}/>;
+}
 
 export function Dialog({ open, title, kicker, danger = false, onClose, children, actions }) {
   const ref = useRef(null); const returnFocus = useRef(null);

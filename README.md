@@ -6,6 +6,10 @@ Repository: https://github.com/bavxhack/War2glory
 
 **Weiterentwicklung mit Codex:** Der Startauftrag steht in [CODEX_PROMPT.md](CODEX_PROMPT.md). Projektregeln stehen in [AGENTS.md](AGENTS.md).
 
+## Sichtbare Gebäudeentwicklung
+
+Alle acht Gebäudetypen besitzen zehn eigene Bilder für Stufe 1–10: Sägewerk, Steinbruch, Bauernhof, Lagerhaus, Universität, Ölraffinerie, Kaserne und Fahrzeugfabrik. Kleine Hütten und Werkstätten wachsen mit jedem Ausbau zu stattlichen Gebäuden und Anlagen. Bauplätze, Gebäudeauswahl, Forschung und Abrissvorschau zeigen die tatsächlich abgeschlossene Stufe; Neubauangebote beginnen mit Stufe 1. Die Bilddateien werden lokal ausgeliefert. Herkunft und Zuordnung stehen in [apps/client/assets/README.md](apps/client/assets/README.md).
+
 ## Ressourcenladung und Betriebsöl (Auftrag 14)
 
 Neue NPC-Einsätze nutzen eine gemeinsame Kapazität für eigene Holz-/Stein-/Nahrungs-/Ölladung und das gesamte beim Start bezahlte Betriebsöl. Jede Ressourceneinheit wiegt vorläufig einen Platz. Freiwilliges Öl bleibt Güterladung; nur Betriebsöl wird verbrannt. Nahrung erzeugt keinen Reiseunterhalt. Vorschau und Start prüfen dieselben Bestände, Truppen, Generalversion, Reichweitenbedingungen und Regeln.

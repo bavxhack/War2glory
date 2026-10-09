@@ -106,9 +106,10 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .auth-message { color:#efaa98;min-height:22px;margin-top:14px; }
 .mission-dialog .dialog-content { display:grid;gap:1rem;padding:1.25rem; }
 
-/* Shared cinematic artwork: one local atlas, fingerprinted by Vite. */
+/* Shared local artwork, fingerprinted by Vite. */
 .game-art { display:block; width:100%; aspect-ratio:1; background-size:300% 300%; background-repeat:no-repeat; border-radius:12px; background-color:#263329; }
-.building-art { width:100%; height:auto; aspect-ratio:1.35; filter:none; margin-bottom:10px; border-radius:10px; }
+.building-art { width:100%; height:auto; aspect-ratio:1; filter:none; margin-bottom:10px; border-radius:10px; }
+.mission-dialog .building-art { aspect-ratio:1; }
 .city-scene { min-height:650px; padding:24px; background:linear-gradient(145deg,#293e32,#14241e); border-color:#45584c; }
 .city-scene .river,.city-scene .road { opacity:.2; }
 .city-grid { gap:18px; }
@@ -133,8 +134,8 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .general-card .game-art { aspect-ratio:1.35; margin-bottom:6px; }
 .general-card strong,.general-card span:not(.game-art) { padding-inline:5px; }
 .building-option { display:grid; grid-template-columns:74px minmax(0,1fr); align-items:stretch; gap:8px; }
-.building-option .building-art { margin:0; aspect-ratio:1; height:100%; }
-.selection>.building-art { max-height:220px; }
+.building-option .building-art { margin:0; aspect-ratio:1; height:auto; align-self:center; }
+.selection>.building-art { max-width:300px; max-height:none; margin-inline:auto; }
 .mission-dialog .game-art { aspect-ratio:1.7; }
 .world-tile .game-art { position:absolute; inset:0; height:100%; border-radius:0; opacity:.75; }
 .world-tile strong { position:absolute; bottom:0; left:0; right:0; z-index:1; background:#0d1714cc; padding:4px 2px; }
@@ -150,7 +151,7 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .auth-card .login-art { aspect-ratio:1.6; margin-bottom:24px; }
 .training-form .training-art { aspect-ratio:1.8; }
 .general-grid { grid-template-columns:repeat(auto-fill,minmax(190px,260px)); }
-.city-grid.compact .building-art { aspect-ratio:1.8; }
+.city-grid.compact .building-art { aspect-ratio:1; }
 
 /* Skill drafts remain usable in a narrow, scrollable general dialog. */
 .attribute-list small { display: block; margin-top: .4rem; line-height: 1.4; }
@@ -185,7 +186,7 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 /* Keep technologies close to the top; the university artwork is a small icon. */
 .research-title { font-size: 1.3rem; margin: .75rem 0; }
 .research-controls { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: .5rem .75rem; align-items: center; padding: .75rem; }
-.research-controls > .building-art { width: 56px; height: 48px; margin: 0; aspect-ratio: auto; border-radius: .5rem; }
+.research-controls > .building-art { width: 56px; height: 56px; margin: 0; aspect-ratio: 1; border-radius: .5rem; }
 .research-university { min-width: 0; }
 .research-university label { font-size: .85rem; }
 .research-university .notice { margin: 0; }
@@ -250,3 +251,5 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 .cargo-inputs p { grid-column: 1 / -1; }
 .cargo-inputs input { width: 100%; min-width: 0; }
 @media (max-width: 480px) { .cargo-inputs { grid-template-columns: 1fr; } }
+
+.demolition-preview > .building-art { max-width:330px; margin-inline:auto; }
