@@ -37,7 +37,7 @@ export function ResearchView({ state, transport }) {
       {active && <p>Während der Forschung ist das Amt gesperrt. Gespeichert: {active.researcher?.generalName ?? 'ohne General'} · Geschwindigkeit +{active.researcher?.bonusPercent ?? 0} %. Nach Abschluss bleibt die Leitung im Amt.</p>}
     </section>
     <section className="card research-controls">
-      <BuildingArt type="university"/>
+      <BuildingArt type="university" level={selected?.level ?? 1}/>
       <div className="research-university">
       {universities.length ? <label>Universität<select value={selected.buildingId} onChange={event => { setUniversityId(event.target.value); setPreview(null); }}>{universities.map(slot => <option key={slot.buildingId} value={slot.buildingId}>Grundstück {slot.id.split('-').at(-1)} · Universität Stufe {slot.level}</option>)}</select></label> : <p className="notice">Errichte zuerst eine Universität auf einem freien Stadtgrundstück.</p>}
       </div>

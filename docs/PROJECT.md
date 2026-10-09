@@ -30,6 +30,10 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 
 Vor jeder Etappe definieren wir einen konkreten Spielablauf und dessen Erfolgskriterien. Keine Zeit- oder Aufwandszusage für das vollständige Spiel: Umfang und Detailtreue sind noch offen.
 
+## Gebäudeillustrationen je Ausbaustufe
+
+Implementiert auf Nutzerwunsch vom 09.10.2026: Alle sechs zivilen und beide militärischen Gebäudetypen erhalten je zehn unterschiedliche Illustrationen. Die Entwicklung von kleiner Produktionsstätte zu stattlichem Gebäude folgt der tatsächlichen fertiggestellten Stufe. Stadt-/Militärbauplätze, Detailansichten, ausgewählte Universität und Abrissvorschau verwenden dieselbe Bildzuordnung. Die eigenen lokal ausgelieferten Bilder ändern keine Gebäudestufen, Kosten, Produktionswerte oder Spielstände. Bildquellen/Zuordnung: [assets/README](../apps/client/assets/README.md); Prüfbelege: [BUILDING_ART_VALIDATION.md](BUILDING_ART_VALIDATION.md).
+
 ## Implementierungsstand Auftrag 13
 
 Auf Basis der Präzisierung vom 09.10.2026 implementiert und getestet: Ölverarbeitung/Raffinerie, Motorisierung/Fahrzeugfabrik, gemeinsame Gruppenherstellung für LKWs, typisierte NPC-Farmzüge und serverseitige Vorschau. Neue Bewegungen aller vorhandenen Typen benötigen positive Ölraten (vorläufig Infanterie 0,1, Späher 0,2, LKW 1). Zusatzminuten verlängern nur den Hinweg; Hinwegöl steigt linear im Verhältnis zur normalen Hinreisedauer. Gesamte Zahlung und Mission werden beim Start einmalig gespeichert.
