@@ -66,3 +66,22 @@ test('connection greeting preserves resumed token and logistics previews resolve
   }
   transport.stop();
 });
+
+test('tab city selection persists, all commands include cityId, late city/map/dialog events cannot overwrite another city', async () => {
+  FakeSocket.instances = []; const tab = storage();
+  const transport = new GameTransport({ WebSocketImpl: FakeSocket, storage: storage(), tabStorage: tab, location: { protocol: 'http:', host: 'localhost' } });
+  transport.start(); const socket = FakeSocket.instances[0]; socket.readyState = FakeSocket.OPEN; socket.emit('open');
+  const cities = [{ id: 'city-a' }, { id: 'city-b' }];
+  const emit = (type,payload) => socket.emit('message', { data: JSON.stringify({ type, payload }) });
+  emit('city.snapshot', { cityId: 'city-a', cities });
+  const pending = transport.request('field.scout.preview', { x: 1, y: 2 }); const rejected = assert.rejects(pending, /Stadt/);
+  assert.equal(socket.sent.at(-1).payload.cityId, 'city-a');
+  transport.selectCity('city-b'); await rejected; assert.equal(tab.getItem('strategy.city'), 'city-b');
+  emit('city.snapshot', { cityId: 'city-b', cities });
+  emit('city.updated', { cityId: 'city-a', cities, city: { name: 'Wrong' } });
+  emit('building.preview', { cityId: 'city-a', slotId: 'old' });
+  emit('map.snapshot', { cityId: 'city-a', ownCity: { id: 'city-a' } });
+  assert.equal(transport.state.game.cityId, 'city-b'); assert.equal(transport.state.demolition, null); assert.equal(transport.state.map, null);
+  transport.mutate('construction.enqueue', { slotId: 'plot-4', building: 'farm' }); assert.equal(socket.sent.at(-1).payload.cityId, 'city-b');
+  const reconnected = new GameTransport({ tabStorage: tab }); assert.equal(reconnected.selectedCityId, 'city-b'); transport.stop();
+});

@@ -1,3 +1,5 @@
+import { canonicalJSON, exposeCity, ownedCity, playerScore, refreshCities } from '../../packages/game-core/multicity.js';
+import { ensureField, fieldMissionQuote, startFieldMission, foundingQuote, foundCity } from '../../packages/game-core/settlement.js';
 import { operatingFuel } from '../../packages/game-core/cargo.js';
 import { missionQuote, startLogisticsMission } from '../../packages/game-core/logistics.js';
 import { RESEARCH_RULES, TECHNOLOGIES, researchOffers, researchQuote, startResearch } from '../../packages/game-core/research.js';
@@ -15,7 +17,7 @@ import { assignMayor, refreshSupplyAt, supplySummary } from '../../packages/game
 import { WorldStorage } from './storage.js';
 import { acceptWebSocket } from './websocket.js';
 import { publicMap } from '../../packages/game-core/world.js';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomInt } from 'node:crypto';
 import { assignResearcher, hasBarracks, recruitGeneral, recruitQuote, recruitmentCost, researcherSnapshot, validateRoles } from '../../packages/game-core/officers.js';
 
 const MAX_PROCESSED_COMMANDS = 500;
@@ -33,6 +35,10 @@ const staticFiles = new Map([
 const mimeTypes = new Map([['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'], ['.css', 'text/css; charset=utf-8'], ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'], ['.woff2', 'font/woff2']]);
 
 function commandFingerprint(type, payload) {
+  if (type.startsWith('field.') || type === 'city.found') return JSON.stringify([type, payload]);
+  return JSON.stringify([payload?.cityId, legacyCommandFingerprint(type, payload)]);
+}
+function legacyCommandFingerprint(type, payload) {
   if (['general.recruit', 'general.researcher'].includes(type)) {
     const keys = type === 'general.recruit' ? ['candidateId', 'poolId', 'poolVersion', 'expiresAt', 'acquiredCount', 'rosterVersion', 'rulesetVersion', 'name'] : ['generalId', 'expectedRoleVersion'];
     return JSON.stringify([type, ...keys.map(k => payload?.[k])]);
@@ -43,7 +49,7 @@ function commandFingerprint(type, payload) {
       changes && typeof changes === 'object' ? Object.entries(changes).sort(([a], [b]) => a.localeCompare(b)) : changes]);
   }
   const allowed = type === 'research.start' ? ['universityId', 'technology', 'targetLevel', 'expectedUniversityLevel', 'rulesetVersion', 'researcher'] : type === 'construction.enqueue' ? ['slotId', 'building'] : type === 'training.enqueue' ? ['barracksSlotId', 'trainingSlotId', 'unit', 'amount'] :
-    type === 'scouting.start' ? ['targetId', 'generalId', 'scouts', 'delayMinutes', 'preview'] : type === 'raid.start' ? ['targetId', 'generalId', 'infantry', 'trucks', 'units', 'delayMinutes', 'preview'] : type === 'general.rename' ? ['generalId', 'name', 'expectedVersion'] : type === 'general.mayor' ? ['generalId', 'expectedRoleVersion'] : ['slotId', 'buildingId', 'version'];
+    type === 'scouting.start' ? ['targetId', 'generalId', 'scouts', 'delayMinutes', 'cargo', 'preview'] : type === 'raid.start' ? ['targetId', 'generalId', 'infantry', 'trucks', 'units', 'delayMinutes', 'cargo', 'preview'] : type === 'general.rename' ? ['generalId', 'name', 'expectedVersion'] : type === 'general.mayor' ? ['generalId', 'expectedRoleVersion'] : ['slotId', 'buildingId', 'version'];
   return JSON.stringify(Object.fromEntries(allowed.map(key => [key, payload?.[key]])));
 }
 
@@ -64,17 +70,19 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
 
   const response = (peer, type, requestId, payload = {}) => peer.send({ version: 1, type, requestId, payload });
   const errorResponse = (peer, requestId, error) => response(peer, 'command.error', requestId, { message: error.message });
-  const snapshot = (player, account) => {
+  const snapshot = (player, account, cityId = player.cities[0].id) => {
     const now = clock();
-    const current = player;
+    const current = exposeCity(canonicalJSON(player), cityId);
     const city = current.city;
     const military = current.military;
     return {
       world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ruleset: RULESET,
-      player: { id: player.playerId, commanderName: account.displayName }, city, serverTime: now,
+      cityId, cities: player.cities.map(c => ({ id: c.id, name: c.name, ...(() => { const e = storage.world.map.entities.find(e => e.id === c.id); return { x: e?.x, y: e?.y }; })(), resources: c.resources, constructionQueue: c.constructionQueue })),
+      claims: Object.values(storage.world.fields ?? {}).filter(f => f.claim?.playerId === player.playerId).map(f => ({ ...f.claim, x: f.x, y: f.y })),
+      player: { id: player.playerId, commanderName: account.displayName }, city: { ...city, research: current.research }, serverTime: now,
       mailbox: { readReportIds: current.mailbox.readReportIds, messages: current.mailbox.messages.map(({ commandId, fingerprint, ...message }) => message), unreadCount: unreadMail(current) },
-      military: { ...military, missions: military.missions.map(({ commandFingerprint, ...mission }) => ({ ...mission, ...(mission.cargo ? { operatingFuel: operatingFuel(mission, now) } : {}) })) }, score: { ...commanderScore(city), combat: military.combatScore ?? 0, total: Math.max(0, commanderScore(city).buildings + commanderScore(city).research + (military.combatScore ?? 0)) }, buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
-      capacityBreakdown: capacityBreakdown(city), productionRates: productionRates(city), buildingProductionRates: buildingProductionRates(city), researchOffers: researchOffers(city, { military, officerRules: storage.config.officers }), researchRules: RESEARCH_RULES, technologies: TECHNOLOGIES, storageRules: STORAGE_RULES,
+      military: { ...military, missions: military.missions.filter(m => m.originCityId === cityId).map(({ commandFingerprint, ...mission }) => ({ ...mission, ...(mission.cargo ? { operatingFuel: operatingFuel(mission, now) } : {}) })) }, score: playerScore(player), buildings: BUILDINGS, offers: cityOffers(city), capacities: resourceCapacities(city),
+      capacityBreakdown: capacityBreakdown(city), productionRates: productionRates(city), buildingProductionRates: buildingProductionRates(city), researchOffers: researchOffers({ ...city, research: current.research }, { military, officerRules: storage.config.officers }), researchRules: RESEARCH_RULES, technologies: TECHNOLOGIES, storageRules: STORAGE_RULES,
       officerRules: storage.config.officers, researcher: researcherSnapshot(military, storage.config.officers), recruitment: (() => {
         let cost = null, nextCost = null, reason = null;
         try { cost = recruitmentCost(military.acquiredCount, storage.config.officers); nextCost = recruitmentCost(military.acquiredCount + 1, storage.config.officers); } catch (error) { reason = error.message; }
@@ -88,6 +96,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     for (const peer of playerConnections.get(playerId) ?? []) peer.send({ version: 1, type, payload: payloadFactory(peer) });
   };
   const setIdentity = (peer, result) => {
+    peer.cityId = result.player.cities[0].id;
     peer.playerId = result.player.playerId;
     peer.account = result.account;
     peer.sessionToken = result.session.token;
@@ -95,11 +104,13 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     playerConnections.get(peer.playerId).add(peer);
     return result;
   };
-  const mapSnapshot = (playerId, viewport) => ({ world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ...publicMap(storage.world, playerId, viewport) });
+  const mapSnapshot = (playerId, viewport) => ({ world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, cityId: viewport?.cityId, ...publicMap(storage.world, playerId, viewport, viewport?.cityId) });
   const pushMapChange = entity => {
     const publicEntity = { id: entity.id, type: 'player-city', name: entity.name, commanderName: entity.commanderName, x: entity.x, y: entity.y };
     for (const connection of connections) if (connection.playerId) connection.send({ version: 1, type: 'map.changed', payload: { revision: storage.world.map.revision, entity: { ...publicEntity, type: connection.playerId === entity.playerId ? 'own-city' : 'player-city' } } });
   };
+
+  async function loadSelected(playerId, cityId) { const player = await storage.loadPlayer(playerId); ownedCity(player, cityId); return exposeCity(player, cityId); }
 
   async function authenticate(peer, message) {
     const address = peer.socket.remoteAddress;
@@ -154,11 +165,13 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         return await storage.exclusive(async () => {
           await storage.advanceWorld(clock());
           const player = await storage.loadPlayer(peer.playerId);
+          ownedCity(player, message.payload.cityId); peer.cityId = message.payload.cityId;
           await storage.savePlayer(player);
-          return response(peer, 'city.snapshot', message.requestId, snapshot(player, peer.account));
+          return response(peer, 'city.snapshot', message.requestId, snapshot(player, peer.account, peer.cityId));
         });
       }
       if (message.type === 'map.viewport') {
+        const player = await storage.loadPlayer(peer.playerId); ownedCity(player, message.payload.cityId);
         const payload = mapSnapshot(peer.playerId, message.payload);
         const previous = mapRequestTimes.get(peer) ?? 0;
         if (clock() - previous < 75) throw new Error('Kartenanfragen erfolgen zu schnell.');
@@ -169,30 +182,41 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         if (typeof message.payload.id !== 'string' || message.payload.id.length > 100) throw new Error('Ungültige Kartenidentität.');
         const entity = storage.world.map.entities.find(candidate => candidate.id === message.payload.id);
         if (!entity) throw new Error('Stadt nicht gefunden.');
-        const view = publicMap(storage.world, peer.playerId, { x: entity.x, y: entity.y, width: 1, height: 1 });
-        return response(peer, 'map.details', message.requestId, { entity: view.entities[0], terrain: view.terrain[0], restricted: entity.playerId !== peer.playerId });
+        const player = await storage.loadPlayer(peer.playerId); ownedCity(player, message.payload.cityId);
+        const view = publicMap(storage.world, peer.playerId, { x: entity.x, y: entity.y, width: 1, height: 1 }, message.payload.cityId);
+        return response(peer, 'map.details', message.requestId, { cityId: message.payload.cityId, entity: view.entities[0], terrain: view.terrain[0], restricted: entity.playerId !== peer.playerId });
       }
       if (message.type === 'building.preview') {
         return await storage.exclusive(async () => {
           await storage.advanceWorld(clock());
-          const player = await storage.loadPlayer(peer.playerId); const now = clock();
+          const player = await loadSelected(peer.playerId, message.payload.cityId); const now = clock();
           const slot = [...player.city.buildingSlots, ...(player.city.militarySlots ?? [])].find(item => item.id === message.payload.slotId);
           if (['barracks', 'vehicleFactory'].includes(slot?.building) && barracksIsBusy(player.military, slot.id)) throw new Error('Dieses Ausbildungsgebäude ist durch Ausbildung belegt.');
           const { preview } = demolitionPreview(player.city, message.payload.slotId, now);
-          return response(peer, 'building.preview', message.requestId, preview);
+          return response(peer, 'building.preview', message.requestId, { ...preview, cityId: player.cityId });
         });
       }
+      if (['field.scout.preview', 'field.conquest.preview', 'city.found.preview'].includes(message.type)) return await storage.exclusive(async () => {
+        const now = clock(); await storage.advanceWorld(now);
+        const player = await loadSelected(peer.playerId, message.payload.cityId);
+        if (message.type === 'city.found.preview') return response(peer, message.type, message.requestId, foundingQuote(player, storage.world, message.payload.claimId, now, storage.config.settlement));
+        const field = ensureField(storage.world, message.payload.x, message.payload.y, storage.config.settlement, randomInt);
+        await storage.commitPlayers([], true);
+        const origin = storage.world.map.entities.find(e => e.id === player.cityId);
+        return response(peer, message.type, message.requestId, fieldMissionQuote(player, storage.world, { ...message.payload, type: message.type === 'field.conquest.preview' ? 'conquest' : 'field-scout' }, origin, field, storage.config.logistics, now));
+      });
       if (['raid.preview', 'scouting.preview'].includes(message.type)) return await storage.exclusive(async () => {
         const now = clock(); await storage.advanceWorld(now);
-        const player = await storage.loadPlayer(peer.playerId);
-        const origin = storage.world.map.entities.find(e => e.playerId === peer.playerId);
+        const player = await loadSelected(peer.playerId, message.payload.cityId);
+        const origin = storage.world.map.entities.find(e => e.id === player.cityId && e.playerId === peer.playerId);
         const target = storage.world.map.entities.find(e => e.id === message.payload.targetId);
         return response(peer, message.type, message.requestId, missionQuote(player, { ...message.payload, type: message.type === 'raid.preview' ? 'raid' : 'scout' }, origin, target, storage.config.logistics));
       });
       if (message.type === 'research.preview') {
         return await storage.exclusive(async () => {
           await storage.advanceWorld(clock());
-          const player = await storage.loadPlayer(peer.playerId);
+          const player = await loadSelected(peer.playerId, message.payload.cityId);
+          if (player.research.active) throw new Error('Es läuft bereits eine spielerweite Forschung.');
           return response(peer, 'research.preview', message.requestId, researchQuote(player.city, message.payload, { military: player.military, officerRules: storage.config.officers }));
         });
       }
@@ -210,7 +234,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         });
       }
       if (message.type === 'general.recruit.preview') return await storage.exclusive(async () => {
-        await storage.advanceWorld(clock()); const player = await storage.loadPlayer(peer.playerId);
+        await storage.advanceWorld(clock()); const player = await loadSelected(peer.playerId, message.payload.cityId);
         return response(peer, message.type, message.requestId, recruitQuote(player, message.payload.candidateId, clock(), storage.config.officers));
       });
       if (['mail.send', 'mail.read'].includes(message.type)) return await storage.exclusive(async () => {
@@ -227,15 +251,17 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           players = [player]; result = {};
         }
         response(peer, 'command.ok', message.requestId, result);
-        for (const player of players) broadcast(player.playerId, 'city.updated', connection => snapshot(player, connection.account));
+        for (const player of players) broadcast(player.playerId, 'city.updated', connection => snapshot(player, connection.account, connection.cityId));
       });
-      if (!['general.recruit', 'general.researcher', 'construction.enqueue', 'training.enqueue', 'scouting.start', 'raid.start', 'building.demolish', 'general.rename', 'general.mayor', 'general.convert', 'general.distribute', 'research.start'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
+      if (!['field.scout.start', 'field.conquest.start', 'city.found', 'general.recruit', 'general.researcher', 'construction.enqueue', 'training.enqueue', 'scouting.start', 'raid.start', 'building.demolish', 'general.rename', 'general.mayor', 'general.convert', 'general.distribute', 'research.start'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
       await storage.exclusive(async () => {
         const now = clock();
         await storage.advanceWorld(now);
-        const player = await storage.loadPlayer(peer.playerId);
+        let player = await storage.loadPlayer(peer.playerId);
+        const cityCommands = !['general.rename', 'general.convert', 'general.distribute'].includes(message.type);
+        if (cityCommands) exposeCity(player, ownedCity(player, message.payload.cityId).id);
         player.processedCommands = (player.processedCommands ?? []).filter(item => item.acceptedAt + COMMAND_TTL_MS > now).slice(-MAX_PROCESSED_COMMANDS);
-        const missionReceipt = ['raid.start', 'scouting.start'].includes(message.type) ? player.military.missions.find(m => m.id === message.requestId && m.commandFingerprint) : null;
+        const missionReceipt = ['raid.start', 'scouting.start', 'field.scout.start', 'field.conquest.start'].includes(message.type) ? player.military.missions.find(m => m.id === message.requestId && m.commandFingerprint) : null;
         const existing = player.processedCommands.find(item => item.id === message.requestId) ?? (missionReceipt ? { fingerprint: missionReceipt.commandFingerprint, result: {} } : null);
         const fingerprint = commandFingerprint(message.type, message.payload);
         if (existing && existing.fingerprint !== fingerprint) throw new Error('Diese Befehls-ID wurde bereits mit anderem Inhalt verwendet.');
@@ -243,6 +269,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
           validateRoles(player);
           if (message.type === 'general.recruit') Object.assign(player, recruitGeneral(player, message.payload, now, storage.config.officers, randomUUID));
           if (message.type === 'general.researcher') Object.assign(player, assignResearcher(player, message.payload));
+          if (message.type === 'research.start' && player.research.active) throw new Error('Es läuft bereits eine spielerweite Forschung.');
           if (message.type === 'research.start') player.city = startResearch(player.city, { ...message.payload, id: message.requestId }, now, { military: player.military, officerRules: storage.config.officers });
           if (message.type === 'construction.enqueue') {
             const slot = player.city.militarySlots?.find(candidate => candidate.id === message.payload.slotId);
@@ -255,7 +282,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
             player.city = result.city; player.military = result.military;
           }
           if (['scouting.start', 'raid.start'].includes(message.type)) {
-            const origin = storage.world.map.entities.find(e => e.playerId === peer.playerId);
+            const origin = storage.world.map.entities.find(e => e.id === player.cityId && e.playerId === peer.playerId);
             const target = storage.world.map.entities.find(e => e.id === message.payload.targetId);
             Object.assign(player, startLogisticsMission(player, { ...message.payload, id: message.requestId, type: message.type === 'raid.start' ? 'raid' : 'scout' }, now, origin, target, storage.config.logistics));
             // Reserve the sequence in the same journal as payment and the request receipt.
@@ -277,31 +304,46 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
             if (message.type === 'general.distribute') Object.assign(player, refreshSupplyAt(player, now));
           }
           let result = {};
+          if (['field.scout.start', 'field.conquest.start'].includes(message.type)) {
+            const field = ensureField(storage.world, message.payload.x, message.payload.y, storage.config.settlement, randomInt);
+            const origin = storage.world.map.entities.find(e => e.id === player.cityId);
+            Object.assign(player, startFieldMission(player, storage.world, { ...message.payload, id: message.requestId, type: message.type === 'field.conquest.start' ? 'conquest' : 'field-scout' }, now, origin, field, storage.config.logistics, storage.config.settlement));
+            player.military.missions.at(-1).commandFingerprint = fingerprint;
+          }
+          if (message.type === 'city.found') {
+            const selected = player.cityId;
+            player = canonicalJSON(player);
+            result = foundCity(player, storage.world, message.payload, now, storage.config.settlement, randomUUID);
+            exposeCity(player, selected);
+          }
+
           if (message.type === 'general.recruit') result.generalId = player.military.generals.at(-1).id;
           if (message.type === 'building.demolish') {
             const slot = [...player.city.buildingSlots, ...(player.city.militarySlots ?? [])].find(item => item.id === message.payload.slotId);
+            if (player.research.active?.cityId === player.cityId && player.research.active.universityId === slot?.buildingId) throw new Error('Universität durch Forschung belegt.');
             if (['barracks', 'vehicleFactory'].includes(slot?.building) && barracksIsBusy(player.military, slot.id)) throw new Error('Dieses Ausbildungsgebäude ist durch Ausbildung belegt.');
             const demolition = demolishBuilding(player.city, message.payload, now);
             player.city = demolition.city; result = { demolition: demolition.result };
-            if (player.military.researcherGeneralId && !player.city.buildingSlots.some(s => s.building === 'university' && s.level > 0)) Object.assign(player, assignResearcher(player, { generalId: null, expectedRoleVersion: player.military.roleVersion }));
+            if (player.military.researcherGeneralId && !player.cities.some(c => (c.id === player.cityId ? player.city : c).buildingSlots.some(s => s.building === 'university' && s.level > 0))) Object.assign(player, assignResearcher(player, { generalId: null, expectedRoleVersion: player.military.roleVersion }));
           }
-          Object.assign(player, refreshSupplyAt(player, now));
+          Object.assign(player, refreshCities(player, now));
           player.processedCommands.push({ id: message.requestId, fingerprint, acceptedAt: now, result });
-          if (['scouting.start', 'raid.start'].includes(message.type)) {
+          if (['scouting.start', 'raid.start', 'field.scout.start', 'field.conquest.start', 'city.found'].includes(message.type)) {
             storage.world.nextEventSequence++;
             try { await storage.commitPlayers([player], true); } catch (error) { storage.world.nextEventSequence--; throw error; }
           }
           else await storage.savePlayer(player);
         }
         response(peer, 'command.ok', message.requestId, { duplicate: Boolean(existing), ...(existing?.result ?? player.processedCommands.at(-1)?.result ?? {}) });
-        broadcast(peer.playerId, 'city.updated', connection => snapshot(player, connection.account));
+        if (message.type === 'city.found') pushMapChange(storage.world.map.entities.find(e => e.id === (existing?.result ?? player.processedCommands.at(-1)?.result).cityId));
+        broadcast(peer.playerId, 'city.updated', connection => snapshot(player, connection.account, connection.cityId));
       });
     } catch (error) {
       errorResponse(peer, message.requestId, error);
       if (peer.playerId && ['general.preview', 'general.convert', 'general.distribute', 'research.preview', 'research.start', 'raid.preview', 'raid.start', 'scouting.preview', 'scouting.start'].includes(message.type)) {
         await storage.exclusive(async () => {
           const player = await storage.loadPlayer(peer.playerId);
-          response(peer, 'city.snapshot', message.requestId, snapshot(player, peer.account));
+          response(peer, 'city.snapshot', message.requestId, snapshot(player, peer.account, peer.cityId));
         }).catch(() => {});
       }
     }
@@ -369,16 +411,18 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
   const timer = setInterval(async () => {
     try {
       await storage.exclusive(async () => {
+        const mapRevision = storage.world.map.revision;
         const oldJobs = new Map();
-        for (const [playerId, peers] of playerConnections) if (peers.size) oldJobs.set(playerId, (await storage.loadPlayer(playerId)).city.constructionQueue.map(job => job.id));
+        for (const [playerId, peers] of playerConnections) if (peers.size) oldJobs.set(playerId, (await storage.loadPlayer(playerId)).cities.flatMap(city => city.constructionQueue.map(job => ({ id: job.id, cityId: city.id }))));
         const players = await storage.advanceWorld(clock());
+        if (storage.world.map.revision !== mapRevision) for (const peer of connections) if (peer.playerId) response(peer, 'map.changed', undefined, { revision: storage.world.map.revision });
         for (const [playerId, peers] of playerConnections) {
           if (!peers.size) continue;
           const player = players.get(playerId);
           if (player) {
-            const completed = (oldJobs.get(playerId) ?? []).filter(id => !player.city.constructionQueue.some(job => job.id === id));
-            if (completed.length) broadcast(playerId, 'construction.completed', () => ({ commandIds: completed }));
-            broadcast(playerId, 'city.updated', peer => snapshot(player, peer.account));
+            const completed = (oldJobs.get(playerId) ?? []).filter(old => !player.cities.find(c => c.id === old.cityId).constructionQueue.some(job => job.id === old.id));
+            for (const peer of peers) { const commandIds = completed.filter(job => job.cityId === peer.cityId).map(job => job.id); if (commandIds.length) response(peer, 'construction.completed', undefined, { cityId: peer.cityId, commandIds }); }
+            broadcast(playerId, 'city.updated', peer => snapshot(player, peer.account, peer.cityId));
           }
         }
       });

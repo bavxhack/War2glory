@@ -119,7 +119,7 @@ export function WorldView({ state, map, details, transport }) {
         <p className="map-hint">Karte mit Maus oder Finger ziehen · Pfeiltasten funktionieren ebenfalls</p>
       </div>
       <aside className="map-sidebar">
-        <MapDetails selection={details} state={state} onScout={setScouting} onRaid={setRaiding}/>
+        <MapDetails selection={details} state={state} onScout={setScouting} onRaid={setRaiding}/><FieldActions key={`${state.cityId}-${details?.terrain?.x}-${details?.terrain?.y}`} selection={details} state={state} transport={transport}/>
         <section className="card legend"><h3>Legende</h3><span><i className="marker own"/>Eigene Stadt</span><span><i className="marker player"/>Spielerstadt</span><span><i className="marker npc"/>NPC-Stadt</span><small>Entfernung: Luftlinie in Kartenfeldern.</small></section>
       </aside>
     </div>
@@ -127,7 +127,7 @@ export function WorldView({ state, map, details, transport }) {
     <RaidDialog key={raiding?.id ?? 'raid-closed'} target={raiding} state={state} transport={transport} onClose={() => setRaiding(null)}/>
   </section>;
 }
-function MapDetails({ selection, state, onScout, onRaid }) { if (!selection) return <section className="card"><p>Wähle ein Feld oder eine Stadt.</p></section>; const { entity, terrain } = selection; const distance = Number.isFinite(entity?.distance) ? entity.distance : 0; const general = state.military.generals.find(item => item.status === 'idle'); const scouts = state.military.units.scout; return <section className="card has-selection" tabIndex="-1" aria-live="polite"><span className="kicker">KOORDINATE {terrain.x}, {terrain.y}</span>{entity && <GameArt type="town" label={entity.name}/>}<h2>{entity?.name ?? 'Unbebautes Feld'}</h2><p>Gelände: {terrainLabels[terrain.type]}</p>{entity && <>{<p>{entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`}</p>}<p>Entfernung: {distance.toFixed(2)} Felder Luftlinie</p>{entity.type !== 'own-city' && <p className="notice">Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.</p>}{entity.type === 'npc' && <ActionButton label="Stadt ausspähen" detail={!general ? 'Kein freier General' : scouts < 1 ? 'Zuerst Aufklärungsflugzeuge ausbilden' : `Hinweg ca. ${Math.max(5, Math.ceil(distance) * 5)} s`} disabled={!general || scouts < 1} onClick={() => onScout(entity)}/>} {entity.type === 'npc' && <ActionButton label="NPC angreifen" detail={!general ? 'Kein freier General' : state.military.units.infantry < 1 ? 'Zuerst Infanterie ausbilden' : 'Vorläufige PvE-Regeln · Verluste möglich'} disabled={!general || state.military.units.infantry < 1} onClick={() => onRaid(entity)}/>} {entity.type === 'player-city' && <p className="notice">Spielerstädte können noch nicht ausgespäht werden.</p>}</>}</section>; }
+function MapDetails({ selection, state, onScout, onRaid }) { if (!selection) return <section className="card"><p>Wähle ein Feld oder eine Stadt.</p></section>; const { entity, terrain } = selection; const distance = Number.isFinite(entity?.distance) ? entity.distance : 0; const general = state.military.generals.find(item => item.status === 'idle'); const scouts = state.military.units.scout; return <section className="card has-selection" tabIndex="-1" aria-live="polite"><span className="kicker">KOORDINATE {terrain.x}, {terrain.y}</span>{entity && <GameArt type="town" label={entity.name}/>}<h2>{entity?.name ?? 'Unbebautes Feld'}</h2><p>Gelände: {terrainLabels[terrain.type]}</p>{entity && <>{<p>{entity.type === 'claim' ? 'Reserviertes Feld' : entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`}</p>}<p>Entfernung: {distance.toFixed(2)} Felder Luftlinie</p>{entity.type !== 'own-city' && <p className="notice">Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.</p>}{entity.type === 'npc' && <ActionButton label="Stadt ausspähen" detail={!general ? 'Kein freier General' : scouts < 1 ? 'Zuerst Aufklärungsflugzeuge ausbilden' : `Hinweg ca. ${Math.max(5, Math.ceil(distance) * 5)} s`} disabled={!general || scouts < 1} onClick={() => onScout(entity)}/>} {entity.type === 'npc' && <ActionButton label="NPC angreifen" detail={!general ? 'Kein freier General' : state.military.units.infantry < 1 ? 'Zuerst Infanterie ausbilden' : 'Vorläufige PvE-Regeln · Verluste möglich'} disabled={!general || state.military.units.infantry < 1} onClick={() => onRaid(entity)}/>} {entity.type === 'player-city' && <p className="notice">Spielerstädte können noch nicht ausgespäht werden.</p>}</>}</section>; }
 function ScoutingDialog(props) { return <MissionDialog {...props} type="scout"/>; }
 function RaidDialog(props) { return <MissionDialog {...props} type="raid"/>; }
 function MissionDialog({ target, state, transport, onClose, type }) {
@@ -165,4 +165,42 @@ function MissionDialog({ target, state, transport, onClose, type }) {
     {preview && <div className="mission-preview"><strong>{type === 'raid' ? `Gemeinsame Traglast vor Verlusten: ${preview.capacity}` : `Tankkapazität: ${preview.tankCapacity}`}</strong><span>Eigene Ladung: {preview.ownCargoAmount} · Betriebsöl geladen: {preview.totalOil} · Startbelegung: {preview.startOccupancy} · freie Startplätze: {preview.freeStartCapacity}</span><span>Hinwegverbrauch einschließlich Rundungsrest: {preview.outboundConsumption} · Rückwegreserve: {preview.returnReserve}</span>{type === 'raid' && <span>Prognose ohne Kampfverluste: maximal {preview.projectedLootCapacity} zusätzliche Nahrung am Ziel. Eigene Ladung und Rückwegöl haben Vorrang; tatsächliche Beute hängt auch vom NPC-Bestand ab.</span>}<span>{preview.travelMs / 1000} s Grundhinreise + {preview.delayMinutes} zusätzliche Minuten = {preview.outboundTravelMs / 1000} s gesamte Hinreise · {preview.travelMs / 1000} s Rückweg · {preview.distanceFields} Felder</span><span>Öl: {preview.baseOil} Grundbedarf ({preview.normalOneWayOil} je Richtung) + {preview.delayOil} Verzögerungszuschlag · verlängerter Hinweg {preview.outboundOil}, Rückweg {preview.returnOil} · einmalig aufgerundet {preview.totalOil}</span><span>Stadtunterhalt: {preview.upkeepBeforePerHour.toLocaleString('de-DE')} → {preview.upkeepAfterPerHour.toLocaleString('de-DE')} Nahrung/h</span><span>Voraussichtliche Ankunft: {new Date(preview.arrivesAt).toLocaleString('de-DE')} · Rückkehr: {new Date(preview.returnsAt).toLocaleString('de-DE')}. Termine verschieben sich mit dem tatsächlichen Start.</span>{type === 'raid' && <span>Gespeicherte Boni aus Grundwerten und Skills: Angriff +{preview.combatBonuses.attackPercent} % · Verteidigung −{preview.combatBonuses.defensePercent} %</span>}</div>}
     {error && <p role="alert">{error}</p>}
   </Dialog>;
+}
+
+function FieldActions({ selection, state, transport }) {
+  const [name, setName] = useState('Neue Stadt'), [error, setError] = useState(''), [preview, setPreview] = useState(null), [kind, setKind] = useState(''), [busy, setBusy] = useState(false);
+  const [infantry, setInfantry] = useState(1), [trucks, setTrucks] = useState(0), [scouts, setScouts] = useState(1), [delayMinutes, setDelayMinutes] = useState(0);
+  const [cargo, setCargo] = useState({ wood: 0, stone: 0, food: 0, oil: 0 });
+  const [generalId, setGeneralId] = useState('');
+  const terrain = selection?.terrain;
+  if (!terrain || terrain.type === 'water') return null;
+  const { x, y } = terrain;
+  const claim = state.claims?.find(c => c.x === x && c.y === y);
+  if (selection.entity && !claim) return null;
+  const report = [...state.military.reports].reverse().find(r => r.type === 'field-scout' && r.coordinates?.x === x && r.coordinates?.y === y && r.intelligence);
+  const general = generalId || state.military.generals.find(g => g.status === 'idle')?.id;
+  const payload = { x, y, generalId: general, scouts, units: { infantry, truck: trucks }, delayMinutes, cargo, reportId: report?.id, claimId: claim?.id };
+  const check = async type => {
+    setBusy(true); setError(''); setKind(type); setPreview(null);
+    try { setPreview(await transport.request(type === 'found' ? 'city.found.preview' : `field.${type}.preview`, payload)); }
+    catch (cause) { setError(cause.message); } finally { setBusy(false); }
+  };
+  const confirm = async () => {
+    setBusy(true); setError('');
+    try { await transport.request(kind === 'found' ? 'city.found' : `field.${kind}.start`, { ...payload, name, preview }); setPreview(null); }
+    catch (cause) { setError(cause.message); setPreview(null); } finally { setBusy(false); }
+  };
+  const edit = setter => event => { setter(event.target.type === 'number' ? Number(event.target.value) : event.target.value); setPreview(null); };
+  return <section className="card"><h3>{claim ? 'Eigener Feldanspruch' : 'Felderkundung und Eroberung'}</h3>
+    {claim ? <><p>Anspruch bis {new Date(claim.expiresAt).toLocaleString('de-DE')} · noch {Math.max(0, Math.ceil((claim.expiresAt - state.serverTime) / 60000))} Minuten.</p><p>Zahlung aus {state.cities.find(c => c.id === claim.originCityId)?.name}. Armee kehrt dorthin zurück.</p><label>Stadtname<input value={name} onChange={edit(setName)}/></label><button disabled={busy} onClick={() => check('found')}>Gründungskosten prüfen</button></> : <>
+      <p>{report ? `Beobachtet: ${report.intelligence.defenders} Verteidiger · ${new Date(report.returnedAt).toLocaleString('de-DE')} · Revision ${report.intelligence.fieldRevision}` : 'Verteidigung unbekannt. Erst Späher entsenden und Rückkehrbericht abwarten.'}</p>
+      <label>General<select value={general ?? ''} onChange={edit(setGeneralId)}>{state.military.generals.map(g => <option key={g.id} value={g.id} disabled={g.status !== 'idle'}>{g.name} · {g.status}</option>)}</select></label>
+      <label>Späher<input type="number" min="1" value={scouts} onChange={edit(setScouts)}/></label><button disabled={busy || !general} onClick={() => check('scout')}>Feld aufklären · Vorschau</button>
+      <label>Infanterie<input type="number" min="1" value={infantry} onChange={edit(setInfantry)}/></label><label>LKW<input type="number" min="0" value={trucks} onChange={edit(setTrucks)}/></label>
+      <label>Zusätzliche Verzögerung (Minuten)<input type="number" min="0" value={delayMinutes} onChange={edit(setDelayMinutes)}/></label>
+      <fieldset><legend>Eigene Rückfracht</legend>{Object.entries({ wood: 'Holz', stone: 'Stein', food: 'Nahrung', oil: 'Freiwilliges Öl' }).map(([key,label]) => <label key={key}>{label}<input type="number" min="0" value={cargo[key]} onChange={e => { setCargo({ ...cargo, [key]: Number(e.target.value) }); setPreview(null); }}/></label>)}</fieldset>
+      <button disabled={busy || !report || !general} onClick={() => check('conquest')}>Feld erobern · Vorschau</button><p>Keine Feldbeute. Ein aktiver Eroberungszug oder Anspruch je Spieler; maximal fünf Städte.</p></>}
+    {preview && <><p>{kind === 'found' ? `Gebühr: ${preview.cost.wood} Holz, ${preview.cost.stone} Stein, ${preview.cost.food} Nahrung` : `Ausgangsstadt: ${state.city.name} · Betriebsöl ${preview.totalOil} · eigene Ladung ${preview.ownCargoAmount} · Belegung ${preview.startOccupancy} · Traglast ${preview.capacity} · Tank ${preview.tankCapacity} · Hinweg ${preview.outboundTravelMs / 1000}s, Rückweg ${preview.travelMs / 1000}s · Hinwegöl ${preview.outboundConsumption}, Rückwegreserve ${preview.returnReserve}`}</p><button disabled={busy} onClick={confirm}>{kind === 'found' ? 'Gebühr bezahlen und Stadt gründen' : 'Öl bezahlen und Einsatz starten'}</button></>}
+    {error && <p role="alert">{error}</p>}
+  </section>;
 }

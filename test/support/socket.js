@@ -30,6 +30,7 @@ async function close(server) {
 class TestSocket extends EventEmitter {
   constructor(socket) { super(); this.socket = socket; this.buffer = Buffer.alloc(0); }
   send(type, payload = {}, requestId = randomBytes(8).toString('hex')) {
+    if (this.cityId && !type.startsWith('auth.')) payload = { cityId: this.cityId, ...payload };
     const body = Buffer.from(JSON.stringify({ version: 1, type, requestId, payload }));
     const mask = randomBytes(4);
     const header = body.length < 126 ? Buffer.from([0x81, 0x80 | body.length]) : Buffer.from([0x81, 0xfe, body.length >> 8, body.length & 255]);
@@ -45,7 +46,7 @@ class TestSocket extends EventEmitter {
       if (length === 127) { if (this.buffer.length < 10) return; length = Number(this.buffer.readBigUInt64BE(2)); offset = 10; }
       if (this.buffer.length < offset + length) return;
       const opcode = this.buffer[0] & 15; const body = this.buffer.subarray(offset, offset + length); this.buffer = this.buffer.subarray(offset + length);
-      if (opcode === 1) this.emit('event', JSON.parse(body.toString()));
+      if (opcode === 1) { const event = JSON.parse(body.toString()); if (event.type === 'city.snapshot') this.cityId = event.payload.cityId; this.emit('event', event); }
     }
   }
   next(type, requestId) {

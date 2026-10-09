@@ -1,3 +1,4 @@
+import { legacyPlayer } from './support/player.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
@@ -26,12 +27,12 @@ test('mail validation rejects empty/oversized/control text and permits literal m
 
 test('schema 11 migration preserves historical reports and game state; later reports become unread', async t => {
   const { dir, storage, a } = await setup(t);
-  a.schemaVersion = 11; delete a.mailbox;
+  legacyPlayer(a); a.schemaVersion = 11; delete a.mailbox;
   a.military.reports.push({ id: 'historic', type: 'raid', arbitrary: { preserved: true } });
   const before = structuredClone(a); await storage.savePlayer(a);
   const migrated = await storage.loadPlayer(a.playerId);
   assert.equal(migrated.schemaVersion, PLAYER_SCHEMA_VERSION); assert.equal(unreadMail(migrated), 0);
-  const compare = structuredClone(migrated); delete compare.mailbox; compare.schemaVersion = 11;
+  const compare = structuredClone(migrated); delete compare.mailbox; legacyPlayer(compare); compare.schemaVersion = 11;
   assert.deepEqual(compare, before);
   migrated.military.reports.push({ id: 'fresh', type: 'scout' }); assert.equal(unreadMail(migrated), 1);
   markMailRead(migrated, { kind: 'report', id: 'fresh' }, 100000);

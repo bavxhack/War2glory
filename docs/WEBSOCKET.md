@@ -149,3 +149,22 @@ Neue Missionen: `npc-pve-5-cargo-provisional`/`npc-scout-3-cargo-provisional`, L
 Private Einsatz-Snapshots und Rückkehrberichte enthalten `operatingFuel: {loaded, burned, lost, remaining, exact}`. `exact` speichert Zähler für verbranntes/verlorenes/restliches Öl und einen gemeinsamen Nenner als Dezimalstrings; Anzeigezahlen sind keine Buchungsgrundlage. Restöl wird aus gespeicherten Reisezeiten abgeleitet, nie durch gerundete Ticks akkumuliert. Nach normaler Rückkehr gilt restlich 0 und loaded = burned + lost. Weltkartenereignisse enthalten keinerlei fremde Ladung.
 
 Schema 14 → 15 ändert ausschließlich die Schemakennung; keine Nachrüstung alter Einsätze mit Fracht/Tanks, keine Neuberechnung historischer Ölpreise. Ältere Ketten und Journalwiederherstellung bleiben erhalten. Neue inkonsistente Fracht-/Ölbilanzen und unbekannte Versionen werden konkret abgewiesen. Nachrichten, Lesestatus, Generäle, Forschung und Versorgungshistorie bleiben erhalten.
+
+## Auftrag 15: Stadtidentitäten und freie Felder
+
+Transportversion bleibt 1. `city.snapshot` / `city.updated` enthalten `cityId`, `serverTime`, private `cities` (ID, Name, Koordinaten, lokale Bestände/Bauqueues) und eigene `claims`. `city` und lokale Militär-/Versorgungsfelder sind Ansichtsadapter der ausgewählten Stadt. Generäle, Berichte und Postbox bleiben global; angezeigte Missionen/Truppen gehören zur gewählten Ausgangsstadt. `city.research` zeigt die globale Forschungsqueue einschließlich ausführender `cityId`. Gebäude-, Forschungs- und Kampfwertung werden ohne Vervielfachung summiert.
+
+`city.sync {cityId}` wählt ausschließlich die Ansicht dieser Verbindung. Jeder Bau-, Abriss-, Ausbildungs-, Bürgermeister-, Forschungs-/Forschungsleitungs-, Rekrutierungs- und Einsatzbefehl sowie jede entsprechende Vorschau benötigt eine eigene `cityId`; unbekannte, fremde oder fehlende IDs werden abgewiesen. Weltkarte: `map.viewport` / `map.details` benötigen ebenfalls `cityId`; Entfernungen beziehen sich darauf. Stadtwechsel verändert weder Ressourcen noch Truppenstandorte. Der Client speichert die Auswahl in `sessionStorage`, filtert verspätete Antworten anderer Städte und verwirft offene Vorschauen beim Wechsel. `construction.completed` nennt `cityId`; Kartenänderungen bei Anspruch/Sieg/Ablauf/Gründung senden öffentliche `map.changed`-Revisionen ohne Verteidigung oder Privatbestände.
+
+Neue Ereignisse:
+
+| Ereignis | Payload / Ergebnis |
+| --- | --- |
+| `field.scout.preview` | `cityId, x, y, generalId, scouts`; verbindliche Öl-/Tank-/Zeitvorschau |
+| `field.scout.start` | dieselben Werte und vollständige `preview`; Bericht erst bei Rückkehr, keine XP |
+| `field.conquest.preview` | `cityId, x, y, generalId, units:{infantry,truck}, reportId, delayMinutes?, cargo?`; eigener abgeschlossener aktueller Bericht erforderlich |
+| `field.conquest.start` | dieselben Werte und vollständige `preview`; persönlicher Platz reserviert, kein exklusiver Feldanspruch vor Sieg |
+| `city.found.preview` | `cityId, claimId`; Kosten mit `originCityId, fieldRevision, cityCount, expiresAt, rulesetVersion` |
+| `city.found` | `cityId, claimId, name, preview`; Zahlung aus gespeicherter Ausgangsstadt, `command.ok` enthält neue `cityId` |
+
+Feldmissionen haben `originCityId`, Koordinaten und eigene Regelversionen `field-scout-1-provisional` / `field-conquest-1-provisional`. Aufklärungsbericht `type:field-scout` enthält private `intelligence:{capturedAt,fieldRevision,defenders,coordinates}`. `type:conquest` berichtet Kampf, Anspruch oder Abbruch bei inzwischen besetztem Feld und getrennte Fracht-/Ölbilanzen; keine Beute. Alle IDs/Bestände, Rollen und Bindungen prüft der Server. Wiederholte Start-/Gründungsbefehle bleiben dedupliziert; geänderte Inhalte zur gleichen ID werden abgewiesen. Öffentliche Reservierungen werden als `type:claim` dargestellt und sind weder NPCs noch angreifbare Städte.

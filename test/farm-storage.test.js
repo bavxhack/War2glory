@@ -1,3 +1,4 @@
+import { legacyPlayer } from './support/player.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -61,7 +62,7 @@ test('Migration und altes offenes Journal erhalten Rollen, Skillzähler, Hunger 
   let storage = await new WorldStorage(directory, 'test', () => now).initialize();
   const registration = await storage.register('AltSkills', 'sicheres-passwort-4', 'Alte Stadt');
   const player = await storage.loadPlayer(registration.player.playerId);
-  player.schemaVersion = 7; delete player.generalSkillRuleset;
+  legacyPlayer(player); player.schemaVersion = 7; delete player.generalSkillRuleset;
   player.military.generals[0].experience = 100;
   player.military.generals[0] = applySkillDistribution(applySkillConversion(player.military.generals[0], 3), { defense: 1 });
   const target = storage.world.map.entities.find(entity => entity.kind === 'npc');
@@ -76,13 +77,13 @@ test('Migration und altes offenes Journal erhalten Rollen, Skillzähler, Hunger 
   await writeFile(storage.journalFile, JSON.stringify({ id: 'old-journal', world: null, players: [player] }));
   storage = await new WorldStorage(directory, 'test', () => now).initialize();
   const migrated = await storage.loadPlayer(player.playerId);
-  assert.equal(migrated.schemaVersion, 15); assert.equal(migrated.generalSkillRuleset, GENERAL_SKILL_RULES.version);
+  assert.equal(migrated.schemaVersion, 16); assert.equal(migrated.generalSkillRuleset, GENERAL_SKILL_RULES.version);
   assert.deepEqual(migrated.military.generals, preserved.military.generals);
   assert.equal(migrated.military.mayorGeneralId, mayor.id);
   assert.equal(migrated.military.missions[0].ruleset, MILITARY_RULES.raidRuleset);
   assert.equal(migrated.military.missions[0].combatBonuses, undefined);
   assert.deepEqual(migrated.military.reports, preserved.military.reports);
-  assert.deepEqual(migrated.city, preserved.city);
+  assert.deepEqual(legacyPlayer(structuredClone(migrated)).city, preserved.city);
   assert.equal(migrated.supply.shortageMs, 1234);
   assert.deepEqual(skillSummary(migrated.military.generals[0]), skillSummary(preserved.military.generals[0]));
   const again = await new WorldStorage(directory, 'test', () => now).initialize();
