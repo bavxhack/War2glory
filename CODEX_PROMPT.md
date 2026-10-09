@@ -1,5 +1,7 @@
 # Codex-Auftrag 13: Ölwirtschaft, LKWs, Stadtversorgung und verzögerte Ankunft
 
+> Status am 09.10.2026: Der Nutzer bestätigt Auftrag 13 als abgeschlossen. Die folgende Spezifikation ist historisch und soll nicht erneut als unerledigter Auftrag ausgeführt werden. Neue Anforderungen für Auftrag 14 (freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite) stehen in docs/PROJECT.md. Die Kapazitätswirkung verbrauchten Öls ist dort als noch abzustimmende Detailregel markiert; ein vollständiger Implementierungsauftrag folgt nach deren Festlegung.
+
 ## Auftrag und Arbeitsweise
 
 Der Nutzer bestätigt Auftrag 12 am 08.10.2026 als abgeschlossen und beauftragt den nächsten Schritt. Implementiere einen vollständigen Ablauf: Ölverarbeitung erforschen → zivile Ölraffinerie bauen → Motorisierung erforschen → Fahrzeugfabrik auf Militärbauplatz bauen → LKWs herstellen → Infanterie und LKWs gemeinsam zum NPC schicken → begrenzte Nahrung erbeuten und zurückbringen.
