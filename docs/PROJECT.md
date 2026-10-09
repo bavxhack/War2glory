@@ -351,7 +351,7 @@ Neue Technologien, Öl/LKWs, Forschungswarteschlange, Generalentlassung, Respec,
 
 ## Beauftragter Auftrag 13, ergänzt am 09.10.2026: Ölwirtschaft, LKWs, Stadtversorgung und verzögerte Ankunft
 
-Status: Anweisungen erstellt, noch nicht als implementiert bestätigt. Nach bestätigtem Abschluss von Auftrag 12 wird der nächste geplante vollständige Spielablauf beauftragt. Der ausführbare Auftrag steht in CODEX_PROMPT.md. Neue Zahlen sind vorläufige eigene Balancevorschläge, keine Originalwerte. Verbindliche Nutzerergänzung vom 09.10.2026: Unterwegs befindliche Truppen verbrauchen keine Nahrung aus der Stadt; zusätzlich wählbare Ankunftsverzögerung gegen linear steigenden Ölbedarf. Diese Fassung von CODEX_PROMPT.md ersetzt die frühere Reiseversorgung, auch falls deren Umsetzung bereits begonnen wurde.
+Status: Anweisungen erstellt, noch nicht als implementiert bestätigt. Nach bestätigtem Abschluss von Auftrag 12 wird der nächste geplante vollständige Spielablauf beauftragt. Der ausführbare Auftrag steht in CODEX_PROMPT.md. Neue Zahlen sind vorläufige eigene Balancevorschläge, keine Originalwerte. Verbindliche Nutzerergänzung vom 09.10.2026: Unterwegs befindliche Truppen verbrauchen keine Nahrung aus der Stadt; zusätzlich wählbare Ankunftsverzögerung gegen linear steigenden Ölbedarf. Zusätzliche verbindliche Präzisierung: Alle Einheitentypen kosten bei Bewegung Öl. Verlängerter Hinweg wird im Verhältnis zur normalen Hinreisedauer teurer, Rückweg bleibt normal. Diese Fassung von CODEX_PROMPT.md ersetzt frühere Reiseversorgung, Öl-Nullraten und pauschalen Minutenpreis, auch falls deren Umsetzung bereits begonnen wurde.
 
 ### Spielbarer Ablauf und Bestand
 
@@ -385,9 +385,9 @@ Bestehende Generäle, Profile, Bewerberpreise/-zyklen, Forschungsleitung, indivi
 - Infanterie/Späher bleiben in Kasernen. Fahrzeugfabrik ersetzt keine Kaserne für Bewerber.
 - LKW trägt standardmäßig 200 Nahrung, hat keine Kampfkraft und verbraucht bei Stationierung 180 Nahrung/Stunde; unterwegs kein Stadtverbrauch. Infanterie trägt weiter 20.
 - Laufender Nahrungsunterhalt und einmalige Mobilmachung mit Öl bleiben getrennt.
-- Öl je Einheit/Feld/einfache Strecke: Infanterie 0, Späher 0, LKW 1. Distanzfelder max(1, ceil(Luftlinie)).
-- Normaler ungerundeter Ölbedarf B = 2 × Distanzfelder × Summe(Anzahl × Typ-Ölrate). Verzögerung verursacht Zuschlag Z; Gesamtzahlung ceil(B + Z) vollständig beim Start.
-- Beispiel 20 Infanteristen/4 LKWs über 5 Felder: 2 × 5 × 4 = 40 Öl. Keine Rückweg-Nachbelastung oder Verlust-Erstattung.
+- Positive vorläufige Ölraten je Einheit/Feld/einfache Strecke: Infanterie 0,1, Späher 0,2, LKW 1. Distanzfelder d = max(1, ceil(Luftlinie)). Alle neuen Bewegungen einschließlich Aufklärung sind ölpflichtig.
+- Normaler ungerundeter Bedarf E für EINE Richtung = d × Summe(Anzahl × positive Typ-Ölrate). Ohne Verzögerung Gesamtöl ceil(2 × E), mit Zusatzzeit gemäß Verhältnisformel unten.
+- Beispiel 20 Infanteristen/4 LKWs über 5 Felder: E = 5 × (20 × 0,1 + 4 × 1) = 30 Öl je Richtung, unverzögert 60 Gesamtöl. Vollständig beim Start bezahlen, keine Rückweg-Nachbelastung oder Verlust-Erstattung.
 - Grundreisezeit bleibt vorläufig bestehen, keine Wegfindung/Geländekosten. Zusatzverzögerung verlängert nur Hinreise, Rückreise bleibt normal lang.
 
 ### Gemischte Farmzüge und Verluste
@@ -406,19 +406,24 @@ Bestehende Generäle, Profile, Bewerberpreise/-zyklen, Forschungsleitung, indivi
 - General-XP weiterhin 2 je getötetem NPC-Verteidiger, Beispiel 20 XP; keine Erfahrung für Transportmenge.
 - Neue Missionsversion; alte Kampf-/Öl-/Zeitsnapshots und historische Berichte der Versionen 1–3 erhalten. Ausnahme: zukünftige laufende Stadtversorgung folgt für alle Missionen der neuen Regel ab Aktivierung.
 
-### Ankunftsverzögerung und linearer Ölzuschlag
+### Ankunftsverzögerung und typabhängiger proportionaler Ölverbrauch
 
-- Zusätzliche ganze Minuten beim Start eines NPC-Angriffs/Farmzugs wählen, Standard 0, vorläufig höchstens 1440 Minuten. Später für PvP wiederverwendbar; heute keine PvP- oder Aufklärungsverzögerung.
-- Sofortige Abreise und Bindung von General/Truppen. Ankunft = Start + Grundhinreise + Zusatzzeit; Rückkehr = Ankunft + normale Rückreisedauer.
-- Nutzerbeispiel: 1 Minute Grundreise + 30 Zusatzminuten ergibt Ankunft nach 31, Rückkehr nach 32 Minuten. Keine spätere Abreise aus der Stadt.
-- Kein Kampf und keine NPC-Reservierung zum ursprünglichen Termin. Erst tatsächliche Ankunft entscheidet Regeneration, Kampf und Beute; bestehende Ereignisreihenfolge erhalten.
-- Kein nachträgliches Umplanen oder kostenloses Verlängern.
-- Vorläufiger positiver Zuschlag 0,1 Öl je entsendeter Einheit und zusätzlicher Minute: Z = Minuten × Einheitenzahl × Satz.
-- Gesamtöl = ceil(B + Z), erst die Summe einmal aufrunden. Ungerundeter Zuschlag steigt linear.
-- Beispiel 20 Infanteristen/4 LKWs, normaler Ölbedarf 40, 30 Zusatzminuten: Z = 30 × 24 × 0,1 = 72, Gesamtöl 112.
-- Auch normale Ölfreiheit einer Einheit erlaubt keine kostenlose Verlängerung: 10 Infanteristen × 30 Minuten × 0,1 = 30 zusätzliches Öl.
-- Vorschau bindet Mengen/Zusatzzeit/Regeln und zeigt Grundzeit, Ankunft/Rückkehr und Ölgrundbedarf/Zuschlag/Gesamt. Serverzeit und Serverkosten sind verbindlich.
-- Dauer, Zusatzzeit, Ankunft/Rückkehr, Kosten und Startsnapshot speichern; Neustart oder ENV-Wechsel verändert laufenden Einsatz nicht.
+Verbindliche Präzisierung vom 09.10.2026: Keine pauschale Verzögerungsrate je Kopf/Minute. Mehrkosten aus dem normalen Ölverbrauch der tatsächlich versendeten Gruppe ableiten.
+
+- Im NPC-Angriffs-/Farmdialog zusätzliche ganze Minuten D wählen, Standard 0, vorläufig höchstens 1440. Grundhinreisezeit T und gesamte Hinreise H=T+D getrennt anzeigen.
+- Sofortige Abreise und Bindung von General/Truppen. Ankunft = Start + T + D; Rückkehr = Ankunft + T.
+- Normaler Ölbedarf E für eine Richtung = Distanzfelder × Summe(Anzahl × positive Typ-Ölrate).
+- Hinwegöl = E × (T+D)/T; Rückwegöl = E; Mehrkosten = E × D/T. Alle Zeiten in derselben Einheit, T > 0.
+- Gesamtzahlung = ceil(E × (2T+D)/T), erst am Ende auf ganze Öleinheiten aufrunden. Ungerundete Teilbeträge verwenden.
+- Nutzerbeispiel T=1 Minute, E=10 Öl und gesamte Hinreise H=10 Minuten: D=9 Zusatzminuten, Hinweg 100 Öl, Rückweg 10 Öl, Gesamt 110. Ankunft nach 10, Rückkehr nach 11 Minuten.
+- Eingabe von 10 ZUSATZminuten bedeutet dagegen 11 Minuten Hinreise: 110 Hinweg + 10 Rückweg = 120 Gesamtöl.
+- Früheres Zeitbeispiel 1+30 Minuten bleibt: Ankunft nach 31, Rückkehr nach 32 Minuten. Bei E=10 kostet das 310+10=320 Öl.
+- Ölverbrauch ist damit abhängig von Typen/Mengen, Strecke und Verhältnis der Reisezeiten. Keine ölfreie Infanterie/Späherbewegung mehr; jede künftige Einheit braucht explizite positive Rate.
+- Kein früher Kampf oder Reservieren von NPC-Vorräten; tatsächliche Ankunft bestimmt Regeneration/Kampf/Beute. Keine nachträgliche Umplanung.
+- Aufklärung erhält weiterhin keine Zusatzverzögerung, muss aber normalen Hin-/Rückweg bezahlen. Spätere Bewegungsarten verwenden dieselbe Pflicht zu positiven Typ-Raten; PvP nicht vorziehen.
+- Vorschau bindet Mengen/Dauer/Regeln, zeigt Hinweg, Rückweg und Gesamtzahlung getrennt; Daten serverseitig berechnen und atomar beim Start speichern.
+- Neue Ölregelversion. Laufende Missionen bewahren frühere Zahlungen/Termine, auch wenn sie noch mit Öl-Nullraten oder altem Minutenpreis gestartet wurden. Keine rückwirkenden Forderungen.
+- Raffinerie/Forschung bleiben ohne Öl baubar/erreichbar, damit der Einstieg trotz nun ölpflichtiger erster Truppenbewegung möglich bleibt. Keine erfundenen Start-Ölvorräte.
 
 ### Nahrung nur für stationierte Truppen
 
@@ -436,16 +441,18 @@ Bestehende Generäle, Profile, Bewerberpreise/-zyklen, Forschungsleitung, indivi
 
 ### ENV, Migration und Oberfläche
 
-- UPKEEP_TRUCK_PER_HOUR=180 (stationiert), OIL_INFANTRY_PER_FIELD=0, OIL_SCOUT_PER_FIELD=0, OIL_TRUCK_PER_FIELD=1 und TRUCK_CARGO_CAPACITY=200.
-- MAX_ATTACK_DELAY_MINUTES=1440 (Ganzzahl 0–10080, 0 deaktiviert Verlängerung) und OIL_DELAY_PER_UNIT_PER_MINUTE=0.1 (positiv 0,001–100.000, höchstens drei Nachkommastellen).
-- Native/Compose-Weitergabe und zentrale Validierung; Null bei Unterhalt/Öl zulässig, Ölraten auf feste Tausendstelbasis, Kapazität positive Ganzzahl.
+- UPKEEP_TRUCK_PER_HOUR=180 (stationiert), OIL_INFANTRY_PER_FIELD=0.1, OIL_SCOUT_PER_FIELD=0.2, OIL_TRUCK_PER_FIELD=1 und TRUCK_CARGO_CAPACITY=200.
+- MAX_ATTACK_DELAY_MINUTES=1440 (Ganzzahl 0–10080, 0 deaktiviert Verlängerung). OIL_DELAY_PER_UNIT_PER_MINUTE entfernen: Der Verzögerungsbedarf ergibt sich aus Typ-Raten und Reisezeitverhältnis.
+- Native/Compose-Weitergabe und zentrale Validierung: Nahrungskosten dürfen 0 sein, ALLE neuen Öl-Typ-Raten müssen positiv 0,001–100.000 mit höchstens drei Nachkommastellen sein.
+- Öl-Nullraten und veralteten Minutenpreis in ENV vor Spielstandänderung verständlich abweisen; Betreiberhinweis zur Aktualisierung. Historische gespeicherte Missionen mit alten Werten bleiben lesbar.
+- Ölwerte auf feste Tausendstelbasis bringen, Zeitverhältnis rational mit sicheren Ganzzahlen rechnen, nur Gesamtsumme aufrunden.
 - Verbrauchsraten und Versorgungsscope über Regelhistorie; Öl/Traglast/Verzögerung laufender Missionen eingefroren. Keine rückwirkende Ölschuld oder Fristenresets.
 - Neue Ressource, Einheiten, zwei Forschungsstufen und Migration ab Schema 12 mit Null ergänzen; alte Ressourcen, Queues, Generalporträts, Nachrichten und Lesestatus erhalten.
 - Forschungs-/Bau-/Herstellungsvoraussetzungen serverseitig prüfen; Ölzahlung, General/Truppenbindung und Wiederholungsbeleg gemeinsam speichern.
 - Bestehendes Journal schützt weiterhin gemeinsamen NPC-Abzug und Beute. Ein großer Offline-Zeitschritt muss dasselbe ergeben wie viele kleine.
-- React zeigt Ölwirtschaft, Fabrik/LKW-Produktion, Zusatzminuten, Grundöl/Zuschlag, Ankunft/Rückkehr und Stadtverbrauch vor/nach Abreise. Starttraglast ist keine garantierte Beute; private NPC-Werte bleiben verborgen.
+- React zeigt Ölwirtschaft, Fabrik/LKW-Produktion, Zusatzminuten/gesamte Hinreise, normale/verlängerte Hinwegkosten, Rückwegkosten, Gesamtöl und Stadtverbrauch vor/nach Abreise. Starttraglast ist keine garantierte Beute; private NPC-Werte bleiben verborgen.
 - Postbox zeigt Typmengen, Kampfverluste, Grundzeit/Zusatzminuten, Ankunft/Rückkehr, Ölgrundbedarf/-zuschlag, Einlagerung und Überlauf. Historische Reise-/Ladungsverluste und Lesestatus erhalten; keine neuen Reiseverluste durch Stadtmangel erfinden.
-- Abnahme enthält exakte Zeitgrenzen, lineare Ölbeispiele, Abreise-/Rückkehrunterhalt, Aktivierung während alter Missionen, mehrere Tabs, lange Offlinezeit und Neustart.
+- Abnahme: T=1/E=10/H=10 ergibt Hinweg 100, Rückweg 10, Gesamt 110. Auch D=10/H=11, unterschiedliche Gruppentypen, positive Ölpflicht bei Infanterie/Aufklärung, exakte Bruchrechnung und alte Snapshots prüfen; bestehende Versorgung-/Zeit-/Offline-/Atomaritätstests erhalten.
 - Codex führt Tests, Build und vollständigen manuellen Ablauf aus, dokumentiert in docs/LOGISTICS_VALIDATION.md und liefert einen PR. Dieser Planungschat ändert keine Spiellogik.
 
 ### Danach
