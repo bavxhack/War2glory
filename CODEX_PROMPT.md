@@ -1,4 +1,19 @@
-# Codex-Auftrag 13: Ölwirtschaft, LKWs, Stadtversorgung und verzögerte Ankunft
+# Abgeschlossener Codex-Auftrag 13: Ölwirtschaft, LKWs, Stadtversorgung und verzögerte Ankunft
+
+## Abschluss und nächste gemeinsame Logistik-Ergänzung
+
+Der Nutzer bestätigt Auftrag 13 am 09.10.2026 als fertig; PR #17 ist gemergt. Die folgende Auftrag-13-Spezifikation bleibt als Dokumentation des abgeschlossenen Stands erhalten.
+
+Für die nächsten Projektschritte verbindlich vormerken, gemeinsam mit diesen zu implementieren:
+
+- Frei wählbare Mengen eigener Ressourcen können auf einen Einsatz mitgenommen werden, insgesamt bis zur gemeinsamen Transportgrenze.
+- Mitgeführte Ressourcen belegen Frachtraum und verringern deshalb die mögliche Plünderungsmenge auf dem Rückweg.
+- Erforderliches Einsatzöl muss mitgeführt werden und ebenfalls dieselbe Transportkapazität belegen. Keine zusätzliche kostenlose Kraftstoffkapazität oder doppelte Ölbuchung.
+- Aus dem nötigen Kraftstoff, der gewählten Ladung und der Gesamttraglast kann eine serverseitig geprüfte Grenze für den Angriffsradius entstehen; Hinreise, Zusatzzeit und Rückweg berücksichtigen.
+- Gewichte, Verbrauch/Freigabe von Frachtraum, Rückwegreserve, Verlustprioritäten und Einlagerung werden vor der gemeinsamen Umsetzung konkret festgelegt. Noch keine neue Formel oder Balancewerte als beschlossen behandeln.
+- Alte Spielstände/laufende Missionen bewahren; stationärer Nahrungsunterhalt bleibt erhalten. Die Mitnahme von Nahrung ist keine automatische Einführung von Reiseproviant.
+
+Der ausführliche Folgeplan steht in `docs/PROJECT.md`, Abschnitt „Bestätigte Folgeplanung vom 09.10.2026: Mitgeführte Ressourcen, Einsatzöl und Reichweite“. Diese Ergänzung ist geplant, noch nicht implementiert. Kampfflugzeuge, Raketenwerfer und zusätzliche Luftfähigkeiten bleiben für ihre spätere Phase vorgemerkt.
 
 ## Auftrag und Arbeitsweise
 

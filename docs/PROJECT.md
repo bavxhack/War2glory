@@ -20,8 +20,9 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills, Universität/vier Stadtforschungen, Offiziersbewerber und Forschungsleitung umgesetzt; Ölfreischaltungen in Auftrag 13 als Prototyp implementiert |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
-| 4c | LKWs, Ölraffinerien, Ölwirtschaft, stationärer Unterhalt und verzögerte Ankunft mit proportionalem Ölbedarf | Auftrag 13 als getesteter Prototyp im Review implementiert |
+| 4c | LKWs, Ölraffinerien, Ölwirtschaft, stationärer Unterhalt und verzögerte Ankunft mit proportionalem Ölbedarf | Vom Nutzer am 09.10.2026 als abgeschlossen bestätigt; PR #17 gemergt |
 | Luft/Militär | Kampfflugzeuge, Raketenwerfer und Generalfähigkeiten für Luftvorteile | Nutzeranforderung vom 09.10.2026; spätere Phase, nicht Auftrag 13 |
+| Logistik-Folge | Frei wählbare mitgeführte Ressourcen und verpflichtendes Einsatzöl innerhalb gemeinsamer Traglast; begrenzte Beute und Reichweite | Bestätigte Folgeplanung vom 09.10.2026; gemeinsam mit nächsten Projektschritten implementieren |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -31,9 +32,11 @@ Vor jeder Etappe definieren wir einen konkreten Spielablauf und dessen Erfolgskr
 
 ## Implementierungsstand Auftrag 13
 
+Am 09.10.2026 bestätigt der Nutzer Auftrag 13 als fertig. [PR #17](https://github.com/bavxhack/War2glory/pull/17) ist gemergt. Die unten ergänzte Mitnahme von Ressourcen und Einsatzöl ist Folgeplanung, noch nicht implementiert.
+
 Auf Basis der Präzisierung vom 09.10.2026 implementiert und getestet: Ölverarbeitung/Raffinerie, Motorisierung/Fahrzeugfabrik, gemeinsame Gruppenherstellung für LKWs, typisierte NPC-Farmzüge und serverseitige Vorschau. Neue Bewegungen aller vorhandenen Typen benötigen positive Ölraten (vorläufig Infanterie 0,1, Späher 0,2, LKW 1). Zusatzminuten verlängern nur den Hinweg; Hinwegöl steigt linear im Verhältnis zur normalen Hinreisedauer. Gesamte Zahlung und Mission werden beim Start einmalig gespeichert.
 
-Stadtunterhalt erfasst ab gespeichertem weltweitem Regelwechsel ausschließlich stationierte Truppen. Reise-Hunger-/Ladungsverluste vergangener Intervalle bleiben erhalten; neue Reisen verbrauchen keine Stadt- oder Beutenahrung. Schema 14 erhält alle früheren Ketten einschließlich Schema-13-Vorarbeit, Porträts und Postbox. Prüfbelege: [LOGISTICS_VALIDATION.md](LOGISTICS_VALIDATION.md). Die nachfolgenden Anforderungsabschnitte bleiben als Spezifikation/Historie erhalten; Implementation ist ein vorläufiger Prototyp im Review.
+Stadtunterhalt erfasst ab gespeichertem weltweitem Regelwechsel ausschließlich stationierte Truppen. Reise-Hunger-/Ladungsverluste vergangener Intervalle bleiben erhalten; neue Reisen verbrauchen keine Stadt- oder Beutenahrung. Schema 14 erhält alle früheren Ketten einschließlich Schema-13-Vorarbeit, Porträts und Postbox. Prüfbelege: [LOGISTICS_VALIDATION.md](LOGISTICS_VALIDATION.md). Die nachfolgenden Anforderungsabschnitte bleiben als Spezifikation/Historie erhalten; Implementation ist der abgeschlossene Prototyp; Balancewerte bleiben vorläufig.
 
 Kampfflugzeuge, Raketenwerfer und Luftfähigkeiten sind ausschließlich für später vorgemerkt. PvP, Handel und aktive Föderation bleiben geplant.
 
@@ -274,9 +277,10 @@ Die folgenden Forschungswerte sind Vorschläge des Planungschats für den Review
 
 1. Auftrag 11 ist vom Nutzer als fertig bestätigt. Unterhaltsprüfung und Implementierungsgrenzen sind in docs/UPKEEP_AUDIT.md dokumentiert.
 2. Auftrag 12 ist abgeschlossen: Offiziersbewerber, steigende Rekrutierungskosten, Forschungsleitung und ENV-Parameter; zusätzlich Porträts und Postbox implementiert.
-3. Auftrag 13 verbindet Freischaltungen, Öl/LKWs, stationären Nahrungsunterhalt und verzögerte Ankunft gegen linearen Ölzuschlag. Nutzerergänzung vom 09.10.2026, vorläufige Zahlen und Abnahme stehen in CODEX_PROMPT.md.
-4. Danach weitere Einheiten/Waffensysteme, Bündnisse, Handel, Unterstützung und PvP.
-5. Matrix-Anbindung und aktives Spielen zwischen Servern mit eigenen Identitäts-, Ereignis- und Vertrauensregeln; weiterhin Kernziel des Projekts.
+3. Auftrag 13 ist vom Nutzer am 09.10.2026 als fertig bestätigt: Freischaltungen, Öl/LKWs, stationärer Nahrungsunterhalt und verzögerte Ankunft mit proportionalem Ölbedarf.
+4. Gemeinsam mit den nächsten Projektschritten die bestätigte Logistik-Folge umsetzen: frei wählbare mitgeführte Ressourcen und verpflichtendes Einsatzöl teilen die Traglast mit Beute und begrenzen damit die mögliche Reichweite. Details und noch offene Regeln stehen im Folgeplanungsabschnitt unten.
+5. Weitere Einheiten/Waffensysteme, Bündnisse, Handel, Unterstützung und PvP getrennt konkretisieren. Flugzeuge, Raketenwerfer und Luftfähigkeiten bleiben vorgemerkt.
+6. Matrix-Anbindung und aktives Spielen zwischen Servern mit eigenen Identitäts-, Ereignis- und Vertrauensregeln; weiterhin Kernziel des Projekts.
 
 ## Umgesetzter Auftrag 12 vom 08.10.2026: Offiziersbewerber, steigende Kosten und Forschungsleitung
 
@@ -357,7 +361,7 @@ Gleiches vorläufiges Grundwertbudget 30, pro Pool drei verschiedene Profile aus
 
 Neue Technologien, Öl/LKWs, Forschungswarteschlange, Generalentlassung, Respec, PvP und Föderation folgen separat.
 
-## Beauftragter Auftrag 13, ergänzt am 09.10.2026: Ölwirtschaft, LKWs, Stadtversorgung und verzögerte Ankunft
+## Abgeschlossener Auftrag 13, ergänzt am 09.10.2026: Ölwirtschaft, LKWs, Stadtversorgung und verzögerte Ankunft
 
 Status: Anweisungen erstellt, noch nicht als implementiert bestätigt. Nach bestätigtem Abschluss von Auftrag 12 wird der nächste geplante vollständige Spielablauf beauftragt. Der ausführbare Auftrag steht in CODEX_PROMPT.md. Neue Zahlen sind vorläufige eigene Balancevorschläge, keine Originalwerte. Verbindliche Nutzerergänzung vom 09.10.2026: Unterwegs befindliche Truppen verbrauchen keine Nahrung aus der Stadt; zusätzlich wählbare Ankunftsverzögerung gegen linear steigenden Ölbedarf. Zusätzliche verbindliche Präzisierung: Alle Einheitentypen kosten bei Bewegung Öl. Verlängerter Hinweg wird im Verhältnis zur normalen Hinreisedauer teurer, Rückweg bleibt normal. Diese Fassung von CODEX_PROMPT.md ersetzt frühere Reiseversorgung, Öl-Nullraten und pauschalen Minutenpreis, auch falls deren Umsetzung bereits begonnen wurde.
 
@@ -465,7 +469,30 @@ Verbindliche Präzisierung vom 09.10.2026: Keine pauschale Verzögerungsrate je 
 
 ### Danach
 
-Zunächst Logistikkreislauf, stationären Unterhalt und verzögerte Ankünfte bewerten. Weitere Rohstoffbeute, Handel/Unterstützung, PvP und zusätzliche militärische Technologien einschließlich Flugzeugen/Raketenwerfern separat spezifizieren. Matrix-Föderation bleibt Kernziel; Identitäten, Regeln und Vertrauen benötigen weiterhin eine eigene Etappe.
+Nach dem abgeschlossenen Auftrag 13 die Mitnahme von Ressourcen und Einsatzöl samt gemeinsamer Traglast und Reichweitengrenze mit den nächsten Projektschritten implementieren; die offenen Regeln im folgenden Abschnitt vorher konkretisieren. Weitere Rohstoffbeute, Handel/Unterstützung, PvP und zusätzliche militärische Technologien einschließlich Flugzeugen/Raketenwerfern separat spezifizieren. Matrix-Föderation bleibt Kernziel; Identitäten, Regeln und Vertrauen benötigen weiterhin eine eigene Etappe.
+
+## Bestätigte Folgeplanung vom 09.10.2026: Mitgeführte Ressourcen, Einsatzöl und Reichweite
+
+Diese Ergänzung soll gemeinsam mit den nächsten Projektschritten implementiert werden. Auftrag 13 ist abgeschlossen; die folgende Mechanik ist noch nicht umgesetzt.
+
+### Verbindliche Anforderungen
+
+- Truppen können auf einen Einsatz Ressourcen mitnehmen. Der Spieler wählt je Ressource eine freie, nicht negative Menge aus verfügbaren eigenen Vorräten; die gemeinsame Transportgrenze darf insgesamt nicht überschritten werden.
+- Mitgeführte Ressourcen, verpflichtendes Einsatzöl und geplünderte Beute nutzen dieselbe Gesamttraglast des Einsatzes. Es gibt kein separates kostenloses Öl-Lager und keine zusätzliche volle Kapazität je Ressourcenart.
+- Bereits belegter Frachtraum reduziert den Platz für Plünderung auf dem Rückweg. Die mitgenommene Ladung erhöht weder Kampfstärke noch garantierte Beute.
+- Das für den Einsatz benötigte Öl muss tatsächlich mitgeführt werden und belegt ebenfalls Transportkapazität. Hinweg, gewählte Zusatzverzögerung und Rückweg müssen mit den geltenden Verbrauchsregeln berücksichtigt werden; keine doppelte Buchung desselben Kraftstoffs als Zahlung und zusätzliche Ladung.
+- Dadurch kann die mögliche Angriffsreichweite begrenzt werden: Ein Einsatz muss mit notwendigem Kraftstoff und gewählter Ressourcenladung innerhalb seiner Traglast durchführbar sein. Auch zusätzliche Hinreisezeit ist bei der Prüfung zu berücksichtigen. Die verbindliche Reichweiten-/Kapazitätsprüfung erfolgt serverseitig, nicht nur in der Oberfläche.
+- Vorschau und Bericht sollen Gesamttraglast, freiwillige Ladung, benötigtes/mitgeführtes Öl, belegten und freien Raum für Beute sowie eine verständliche Reichweitensperre zeigen. Keine geheimen NPC-Vorräte oder garantierte Beute vorwegnehmen.
+- Beladung, Abbuchung bzw. Reservierung, Kraftstoffverbrauch, Beute und Rückkehr müssen gemeinsam gespeichert und gegen Doppelbuchungen, Neustarts und konkurrierende Befehle abgesichert werden. Historische und bereits laufende Einsätze behalten ihre gespeicherten Ladungen, Kosten, Termine und Regeln; keine rückwirkende Beladung oder Öl-Nachforderung.
+- Stationärer Nahrungsunterhalt bleibt der bestätigte Stand. Freiwillig mitgenommene Nahrung führt nicht automatisch Reiseproviant oder Feldversorgung ein. Andere Beuteressourcen, Handels-/Unterstützungsaufträge und neue Bewegungsarten werden erst mit dem jeweiligen nächsten Projektschritt konkret beauftragt.
+
+### Vor gemeinsamer Implementierung konkretisieren
+
+- Kapazitätsgewicht je Ressourcen- und Öleinheit; gemeinsame Mengen-/Gewichtsrechnung und Rundung. Keine unbestätigten Balancewerte als Originalwerte festlegen.
+- Zeitpunkte des Ölverbrauchs, Rückwegreserve und ob bzw. wann verbrauchtes Öl Frachtraum für Beute freigibt. Daraus die konkrete Reichweitenformel ableiten.
+- Umgang mit vorhandener Ladung und erforderlichem Rückwegöl bei Kampfverlusten und verringerter Traglast: Prioritäten, mögliche Ladungsverluste und sichere Rückkehr ausdrücklich festlegen.
+- Verbleib und Einlagerung freiwilliger Ladung sowie ungenutzten Öls bei Rückkehr oder am Ziel; Lagerüberlauf und Trennung zwischen eigener Ladung und echter Beute.
+- Abnahmefälle: leere/volle/überladene Einsätze, mehrere Ressourcen gleichzeitig, Öl als freiwillige Ladung und Kraftstoff ohne Doppelzählung, Reichweitengrenze und Zusatzverzögerung, Verluste, verzögerte Ankunft, Neustart und einmalige Rückkehrbuchung.
 
 ## Bestätigte spätere Phase vom 09.10.2026: Luftstreitkräfte, Raketenwerfer und Generalfähigkeiten
 
@@ -517,7 +544,7 @@ Technischer Vorschlag für die Kostenbasis: insgesamt erworbene Skillpunkte eins
 
 ## Geplante Logistik: Traglast, LKWs und Öl
 
-Nutzerergänzung vom 28.09.2026. Typabhängige Traglast ist mit Auftrag 8 eingeführt; Auftrag 9 ergänzt Kapazitätsverlust durch Hunger. Öl/LKWs sind jetzt Gegenstand des beauftragten Auftrags 13. Dessen konkrete Prototypregeln stehen im neuen Abschnitt; die folgenden ursprünglichen Fragen bleiben als Anforderungshistorie erhalten.
+Nutzerergänzung vom 28.09.2026. Typabhängige Traglast ist mit Auftrag 8 eingeführt; Auftrag 9 ergänzt Kapazitätsverlust durch Hunger. Öl/LKWs sind mit Auftrag 13 umgesetzt; frei wählbare Ressourcenladung und mitgeführtes Einsatzöl sind als nächste gemeinsame Logistik-Ergänzung vorgemerkt. Dessen konkrete Prototypregeln stehen im neuen Abschnitt; die folgenden ursprünglichen Fragen bleiben als Anforderungshistorie erhalten.
 
 ### Bestätigte Anforderungen
 
