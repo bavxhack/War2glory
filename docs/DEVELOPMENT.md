@@ -58,3 +58,13 @@ Schema 12 → 13 ergänzt Öl/LKW/neue Forschungsstufen mit 0 und Investitionen 
 Missionen 1–3 verwenden den skalaren Adapter, neue Missionen ein verbindliches `units`-Objekt. Gesamtbestand und Stadtverbrauch werden getrennt berechnet. Startjournal enthält Sequenz, Ölzahlung, General/Truppenbindung und dauerhaften Request-Beleg. Journalwiederherstellung erfolgt vor Migration und weiterer Abrechnung. Backups brauchen das vollständige Weltverzeichnis mit allen Regelhistorien und Journal.
 
 Prüfungen und Grenzen: [LOGISTICS_VALIDATION.md](LOGISTICS_VALIDATION.md). Testwelten und Browser-/Containerartefakte liegen unter `work/`, nicht in produktiven `data/`-Beständen.
+
+## Frachtregeln (Auftrag 14)
+
+`SCOUT_FUEL_CAPACITY=20`: ganze Zahl 1–1000000 Betriebsöl je Späher. Native Datei-/Prozesspriorität und Compose-Weitergabe entsprechen den bisherigen Spielparametern. Der Wert ist ausschließlich Tankraum; Späher-Gütertraglast bleibt 0. Änderungen betreffen nur neue Vorschauen/Starts. Logistikkennung jetzt `fuel-3-cargo-…`; vorhandene `fuel-2`-Missionen bleiben unverändert.
+
+`packages/game-core/cargo.js` definiert Einheitsgewichte, sichere Cargo-Validierung, Milliöl-Rückwegreserve, ganzzahlige Güterplätze und proportionale Verlustverteilung mit BigInt. Größter Bruchrest bekommt Restplätze, Gleichstand Holz/Stein/Nahrung/Öl. Konservative Reichweitenprüfung: Distanz × positive Ölrate je Einheit ≤ deren Traglast; daneben muss eigene Ladung + gesamtes Startbetriebsöl in den gemeinsamen Frachtraum passen. Mehr LKWs garantieren keine größere Reichweite. Der Dialog nennt konkrete Kapazitäts-/Tank-/Reserve-/Ölmangelgründe; es wird keine pauschale maximale Kartenentfernung behauptet.
+
+Frachtmigration 14 → 15 verändert historische Missionen/Berichte nicht. Neue Einsätze speichern Originalmengen, Regeln, Zeitpunkte und exakte rationale Brennstoffgrundlagen. Kein zusätzlicher Timer, REST-Spielendpunkt oder Reiseunterhalt. Journal behandelt NPC-Beute und Missionsresultat sowie Rückkehr weiterhin atomar; vollständige Weltbackups einschließlich Journal und Versorgungshistorie bleiben erforderlich.
+
+Prüfungen: `npm test`, `npm run build`; gezielt `node --test test/cargo.test.js test/cargo-storage.test.js`. Der Testuhr-Browserablauf sowie lokale Container-/Startprüfung sind in [CARGO_VALIDATION.md](CARGO_VALIDATION.md) dokumentiert. Screenshots/Testwelten bleiben unter `work/` und werden nicht committet.
