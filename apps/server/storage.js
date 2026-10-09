@@ -1,3 +1,5 @@
+import { validateCities, migrateCities, canonicalJSON, exposeCity, commitCity, advanceCities, refreshCities, settleCities } from '../../packages/game-core/multicity.js';
+import { expireClaims, FIELD_RAID_RULESET, FIELD_SCOUT_RULESET } from '../../packages/game-core/settlement.js';
 import { CARGO_RAID_RULESET, resolveCargoArrival, unloadCargo, operatingFuel, validateMissionCargo } from '../../packages/game-core/cargo.js';
 import { LOGISTICS_RAID_RULESET, missionUnits, missionCapacity, truckCombatLosses } from '../../packages/game-core/logistics.js';
 import { normalizeResearch } from '../../packages/game-core/research.js';
@@ -11,11 +13,11 @@ import { promisify } from 'node:util';
 import { join, resolve } from 'node:path';
 import { allSlots, constructionQuote, newCity, resourceCapacities, RULESET } from '../../packages/game-core/index.js';
 import { GENERAL_SKILL_RULES, MILITARY_RULES, generalLevel, newMilitary, normalizeGeneral, resolveMissionCombat, skillSummary } from '../../packages/game-core/military.js';
-import { advanceSupplyHistory, refreshSupplyAt, SUPPLY_RULES, settleSupplyAt } from '../../packages/game-core/supply.js';
+import { SUPPLY_RULES } from '../../packages/game-core/supply.js';
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 15;
+export const PLAYER_SCHEMA_VERSION = 16;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -84,9 +86,12 @@ export class WorldStorage {
         npc.resources.food.updatedAt = activatedAt;
       }
       await atomicWrite(this.worldFile, this.world);
+    } else if (this.world.schemaVersion === 3) {
+      this.world.schemaVersion = 4; this.world.fields = {}; await this.saveWorld();
     } else if (this.world.schemaVersion !== WORLD_SCHEMA_VERSION || !this.world.map) {
       throw new Error(`Unbekannte Welt-Schemaversion: ${this.world.schemaVersion}.`);
     }
+    this.world.fields ??= {};
     if (!Number.isFinite(this.world.supplyActivatedAt)) {
       this.world.supplyActivatedAt = this.clock();
       await atomicWrite(this.worldFile, this.world);
@@ -110,8 +115,9 @@ export class WorldStorage {
     if (JSON.stringify(this.supplyRules) !== JSON.stringify(this.config.supply)) {
       this.world.supplyRuleHistory.push({ effectiveAt: transitionAt, rules: structuredClone(this.config.supply) });
       for (const player of players.values()) {
-        player.supply.rules = structuredClone(this.config.supply);
-        Object.assign(player, refreshSupplyAt(player, transitionAt));
+        for (const city of player.cities) if (city.supply) city.supply.rules = structuredClone(this.config.supply);
+        exposeCity(player);
+        Object.assign(player, refreshCities(player, transitionAt));
       }
       await this.#commitTransaction([...players.values()], true);
     }
@@ -121,7 +127,7 @@ export class WorldStorage {
   }
 
   get supplyRules() { return this.world.supplyRuleHistory.at(-1).rules; }
-  advanceSupply(player, at, options = {}) { return advanceSupplyHistory(player, at, this.world.supplyActivatedAt, this.world.supplyRuleHistory, options); }
+  advanceSupply(player, at, options = {}) { return advanceCities(player, at, this.world.supplyActivatedAt, this.world.supplyRuleHistory, options); }
 
   exclusive(operation) {
     const result = this.#queue.then(operation, operation);
@@ -138,7 +144,7 @@ export class WorldStorage {
       const playerId = randomUUID();
       const now = this.clock();
       const player = {
-        schemaVersion: PLAYER_SCHEMA_VERSION, ruleset: RULESET, playerId, commanderName: displayName,
+        schemaVersion: 15, ruleset: RULESET, playerId, commanderName: displayName,
         city: { ...newCity(now), name: typeof cityName === 'string' && cityName.trim().length >= 3 && cityName.trim().length <= 32 ? cityName.trim() : `${displayName}s Stadt` },
         military: newMilitary(playerId), generalSkillRuleset: GENERAL_SKILL_RULES.version, processedCommands: [], createdAt: now,
       };
@@ -147,8 +153,9 @@ export class WorldStorage {
       assignMissingPortraits(player, randomInt);
       const account = { playerId, displayName, normalized, password: credentials, createdAt: now };
       const entity = this.#allocatePlayerCity(player, account);
+      migrateCities(player, this.world.map.entities);
       await atomicWrite(this.worldFile, this.world);
-      try { await atomicWrite(this.playerFile(playerId), player); }
+      try { await this.savePlayer(player); }
       catch (error) { this.#removeEntity(entity.id); await atomicWrite(this.worldFile, this.world); throw error; }
       const session = this.#prepareSession(playerId);
       this.accounts.accounts.push(account);
@@ -250,7 +257,7 @@ export class WorldStorage {
         return normalized;
       });
       for (const mission of player.military.missions) {
-        if (mission.type === 'raid') mission.ruleset ??= MILITARY_RULES.raidRuleset;
+        if (['raid', 'conquest'].includes(mission.type)) mission.ruleset ??= MILITARY_RULES.raidRuleset;
       }
       player.generalSkillRuleset = GENERAL_SKILL_RULES.version;
       player.schemaVersion = 8;
@@ -287,7 +294,10 @@ export class WorldStorage {
       player.schemaVersion = 14;
     }
     if (player.schemaVersion === 14) { migrated = true; player.schemaVersion = 15; }
+    if (player.schemaVersion === 15) { migrated = true; migrateCities(player, this.world.map.entities); }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
+    validateCities(player);
+    exposeCity(player);
     for (const mission of player.military.missions) validateMissionCargo(mission);
     if (!Number.isFinite(player.city.resources.oil) || player.city.resources.oil < 0 || !Number.isSafeInteger(player.military.units.truck) || player.military.units.truck < 0) throw new Error('Inkonsistente Öl- oder LKW-Bestände in Schema 13.');
     normalizeResearch(player.city);
@@ -295,7 +305,7 @@ export class WorldStorage {
     if (migrated) await this.savePlayer(player);
     return player;
   }
-  savePlayer(player) { return atomicWrite(this.playerFile(player.playerId), player); }
+  savePlayer(player) { return atomicWrite(this.playerFile(player.playerId), canonicalJSON(player)); }
   saveWorld() { return atomicWrite(this.worldFile, this.world); }
 
   // Caller holds the world's exclusive queue. Delivery and sender copy share its recovery journal.
@@ -336,25 +346,29 @@ export class WorldStorage {
       if (mission.status === 'outbound' && mission.arrivesAt <= now) events.push({ at: mission.arrivesAt, sequence: mission.eventSequence ?? Number.MAX_SAFE_INTEGER, phase: 'arrival', player, mission });
       if ((mission.status === 'outbound' || mission.status === 'returning') && mission.returnsAt <= now) events.push({ at: mission.returnsAt, sequence: mission.eventSequence ?? Number.MAX_SAFE_INTEGER, phase: 'return', player, mission });
     }
-    events.sort((a, b) => a.at - b.at || a.sequence - b.sequence || a.player.playerId.localeCompare(b.player.playerId) || a.phase.localeCompare(b.phase));
+    events.sort((a, b) => a.at - b.at || eventOrder(a).localeCompare(eventOrder(b)) || a.player.playerId.localeCompare(b.player.playerId) || a.phase.localeCompare(b.phase));
     let worldChanged = false;
     const changed = new Set();
     for (const [eventIndex, event] of events.entries()) {
       const { player, mission: scheduledMission, at } = event;
+      worldChanged = expireClaims(this.world, at) || worldChanged;
       Object.assign(player, this.advanceSupply(player, at, { deferLossAtEnd: true }));
+      exposeCity(player, scheduledMission.originCityId);
       const mission = player.military.missions.find(candidate => candidate.id === scheduledMission.id);
       if (event.phase === 'arrival' && mission.status === 'outbound') {
+        const field = [FIELD_RAID_RULESET, FIELD_SCOUT_RULESET].includes(mission.ruleset) ? this.world.fields[mission.targetId] : null;
+        const fieldOccupied = field && this.world.map.entities.some(e => e.x === field.x && e.y === field.y);
         const npcIndex = this.world.map.entities.findIndex(entity => entity.id === mission.targetId && entity.kind === 'npc');
-        if (npcIndex < 0) throw new Error('Einsatzziel existiert nicht mehr.');
-        const npc = advanceNpc(this.world.map.entities[npcIndex], at);
-        if (mission.type === 'raid') {
+        if (npcIndex < 0 && !field) throw new Error('Einsatzziel existiert nicht mehr.');
+        const npc = field ? { garrison: { amount: fieldOccupied ? 0 : field.defenders }, resources: { food: { amount: 0, capacity: 0 } } } : advanceNpc(this.world.map.entities[npcIndex], at);
+        if (['raid', 'conquest'].includes(mission.type)) {
           const attackers = missionUnits(mission).infantry;
-          const combat = attackers > 0 ? resolveMissionCombat(mission, attackers, npc.garrison.amount) : { victory: false, attackerLosses: 0, defenderLosses: 0, survivors: 0,
+          const combat = attackers > 0 && !fieldOccupied ? resolveMissionCombat(mission, attackers, npc.garrison.amount) : { victory: false, attackerLosses: 0, defenderLosses: 0, survivors: fieldOccupied ? attackers : 0,
             ...(mission.ruleset === MILITARY_RULES.skillRaidRuleset ? { combatBonuses: mission.combatBonuses } : {}) };
           npc.garrison.amount -= combat.defenderLosses;
           npc.garrison.updatedAt = at;
           let truckLosses = 0;
-          if ([LOGISTICS_RAID_RULESET, CARGO_RAID_RULESET].includes(mission.ruleset)) {
+          if ([LOGISTICS_RAID_RULESET, CARGO_RAID_RULESET, FIELD_RAID_RULESET].includes(mission.ruleset)) {
             const before = { ...mission.units };
             truckLosses = truckCombatLosses(before.truck ?? 0, combat.attackerLosses, attackers);
             mission.units.infantry = combat.survivors;
@@ -370,12 +384,24 @@ export class WorldStorage {
           npc.resources.food.amount -= loadedFood;
           mission.result = { ...combat, loadedFood, capacity: raidCapacity, ...(cargoArrival ?? {}), generalExperience: combat.defenderLosses * 2,
             combatScore: combat.defenderLosses - combat.attackerLosses - truckLosses, defenders: combat.defenderLosses + npc.garrison.amount, hungerLosses: mission.hungerLosses ?? 0 };
+          if (field) {
+            mission.result.cancelled = Boolean(fieldOccupied);
+            mission.result.reason = fieldOccupied ? 'Feld inzwischen besetzt oder reserviert; kein Kampf.' : null;
+            if (!fieldOccupied) {
+              field.defenders = npc.garrison.amount; field.revision++;
+              if (combat.victory && mission.units.infantry > 0 && player.cities.length < 5) {
+                field.claim = { id: `claim-${mission.id}`, playerId: player.playerId, originCityId: mission.originCityId, expiresAt: at + mission.settlementRules.claimTtlMs };
+                this.world.map.entities.push({ id: field.claim.id, kind: 'claim', playerId: player.playerId, name: 'Reserviertes Feld', x: field.x, y: field.y });
+                this.world.map.revision++; mission.result.claimId = field.claim.id;
+              }
+            }
+          }
         } else {
           mission.intelligence = missionUnits(mission).scout > 0
-            ? { capturedAt: at, food: { amount: npc.resources.food.amount, capacity: npc.resources.food.capacity }, garrison: { amount: npc.garrison.amount, capacity: npc.garrison.capacity } }
+            ? field ? (fieldOccupied ? null : { capturedAt: at, fieldRevision: field.revision, defenders: field.defenders, coordinates: { x: field.x, y: field.y } }) : { capturedAt: at, food: { amount: npc.resources.food.amount, capacity: npc.resources.food.capacity }, garrison: { amount: npc.garrison.amount, capacity: npc.garrison.capacity } }
             : null;
         }
-        this.world.map.entities[npcIndex] = npc;
+        if (!field) this.world.map.entities[npcIndex] = npc;
         mission.status = 'returning';
         worldChanged = true;
       } else if (event.phase === 'return' && mission.status === 'returning') {
@@ -383,7 +409,7 @@ export class WorldStorage {
         const general = player.military.generals.find(item => item.id === mission.generalId);
         if (!general) throw new Error('Einsatzgeneral existiert nicht mehr.');
         general.status = 'idle';
-        if (mission.type === 'raid') {
+        if (['raid', 'conquest'].includes(mission.type)) {
           const result = mission.result;
           for (const [unit, amount] of Object.entries(missionUnits(mission))) player.military.units[unit] = (player.military.units[unit] ?? 0) + amount;
           const capacity = resourceCapacities(player.city).food;
@@ -395,7 +421,7 @@ export class WorldStorage {
           general.level = generalLevel(general.experience); general.leadership = general.level * 20;
           general.version += 1;
           player.military.combatScore = (player.military.combatScore ?? 0) + result.combatScore;
-          if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'raid', missionId: mission.id,
+          if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: mission.type, originCityId: mission.originCityId, coordinates: mission.coordinates, missionId: mission.id,
             targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, startedAt: mission.startedAt,
             arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, infantry: mission.initialUnits?.infantry ?? mission.initialInfantry ?? mission.infantry + (mission.hungerLosses ?? 0), ...result,
             hungerLosses: mission.hungerLosses ?? 0, originalLoadedFood: result.loadedFood + (mission.foodLostInTransit ?? 0), foodLostInTransit: mission.foodLostInTransit ?? 0,
@@ -404,20 +430,23 @@ export class WorldStorage {
             ...(mission.units ? { initialUnits: mission.initialUnits, returnedUnits: { ...mission.units }, hungerLossesByUnit: mission.hungerLossesByUnit, paidOil: mission.paidOil, fuelCalculation: mission.fuelCalculation, normalOneWayOil: mission.normalOneWayOil, outboundTravelMs: mission.outboundTravelMs, travelMs: mission.travelMs, delayMinutes: mission.delayMinutes, baseOil: mission.baseOil, delayOil: mission.delayOil, outboundOil: mission.outboundOil, returnOil: mission.returnOil, logistics: mission.logistics, distanceFields: mission.distanceFields, combatBonuses: mission.combatBonuses, finalCapacity: missionCapacity(mission) } : {}) });
         } else {
           player.military.units.scout += missionUnits(mission).scout;
-          if (mission.intelligence && !player.military.rewardedNpcIds.includes(mission.targetId)) { player.military.rewardedNpcIds.push(mission.targetId); general.experience += 10; general.level = generalLevel(general.experience); general.leadership = general.level * 20; }
+          if (mission.type === 'scout' && mission.intelligence && !player.military.rewardedNpcIds.includes(mission.targetId)) { player.military.rewardedNpcIds.push(mission.targetId); general.experience += 10; general.level = generalLevel(general.experience); general.leadership = general.level * 20; }
           general.version += 1;
-          if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: 'scout', missionId: mission.id, targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, coordinates: mission.coordinates, capturedAt: mission.intelligence?.capturedAt, startedAt: mission.startedAt, arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, intelligence: mission.intelligence, ...(mission.cargo ? { cargo: structuredClone(mission.cargo), operatingFuel: operatingFuel(mission, at), travelMs: mission.travelMs } : {}), ...(mission.units ? { initialUnits: mission.initialUnits, returnedUnits: { ...mission.units }, hungerLossesByUnit: mission.hungerLossesByUnit, paidOil: mission.paidOil, logistics: mission.logistics, distanceFields: mission.distanceFields } : {}) });
+          if (!player.military.reports.some(report => report.missionId === mission.id)) player.military.reports.push({ id: `report-${mission.id}`, type: mission.type === 'field-scout' ? 'field-scout' : 'scout', originCityId: mission.originCityId, missionId: mission.id, targetId: mission.targetId, targetName: mission.targetName, generalId: mission.generalId, generalName: mission.generalName, coordinates: mission.coordinates, capturedAt: mission.intelligence?.capturedAt, startedAt: mission.startedAt, arrivedAt: mission.arrivesAt, returnedAt: mission.returnsAt, intelligence: mission.intelligence, ...(mission.cargo ? { cargo: structuredClone(mission.cargo), operatingFuel: operatingFuel(mission, at), travelMs: mission.travelMs } : {}), ...(mission.units ? { initialUnits: mission.initialUnits, returnedUnits: { ...mission.units }, hungerLossesByUnit: mission.hungerLossesByUnit, paidOil: mission.paidOil, logistics: mission.logistics, distanceFields: mission.distanceFields } : {}) });
         }
       } else continue;
+      commitCity(player, { ...player, military: { ...player.military, missions: player.military.missions.filter(m => m.originCityId === player.cityId) } });
+      exposeCity(player);
       changed.add(player.playerId);
       const hasAnotherPlayerEventAtSameTime = events.slice(eventIndex + 1).some(candidate => candidate.at === at && candidate.player.playerId === player.playerId);
-      if (!hasAnotherPlayerEventAtSameTime) Object.assign(player, settleSupplyAt(player, at));
+      if (!hasAnotherPlayerEventAtSameTime) Object.assign(player, settleCities(player, at));
     }
+    worldChanged = expireClaims(this.world, now) || worldChanged;
     for (const player of players.values()) {
-      const before = JSON.stringify([player.city, player.military, player.supply]);
+      const before = JSON.stringify(canonicalJSON(player));
       Object.assign(player, this.advanceSupply(player, now));
       syncCandidates(player, now, this.config.officers, randomInt, randomUUID, this.world.officerIntervalHistory);
-      if (before !== JSON.stringify([player.city, player.military, player.supply])) changed.add(player.playerId);
+      if (before !== JSON.stringify(canonicalJSON(player))) changed.add(player.playerId);
     }
     if (worldChanged || changed.size) await this.#commitTransaction([...changed].map(id => players.get(id)), worldChanged);
     return players;
@@ -426,7 +455,7 @@ export class WorldStorage {
   async commitPlayers(players, worldChanged = false) { return this.#commitTransaction(players, worldChanged); }
 
   async #commitTransaction(players, worldChanged) {
-    const transaction = { id: randomUUID(), world: worldChanged ? this.world : null, players };
+    const transaction = { id: randomUUID(), world: worldChanged ? this.world : null, players: players.map(canonicalJSON) };
     try {
     await atomicWrite(this.journalFile, transaction);
     if (transaction.world) await atomicWrite(this.worldFile, transaction.world);
@@ -506,3 +535,5 @@ function createMap(instanceId, activatedAt = Date.now(), requested = WORLD_CONFI
 }
 
 function createWorld(worldName, activatedAt, config) { const instanceId = randomUUID(); return { schemaVersion: WORLD_SCHEMA_VERSION, instanceId, worldName, nextEventSequence: 1, map: createMap(instanceId, activatedAt, config) }; }
+
+function eventOrder(event) { return event.mission.type === 'conquest' || event.mission.type === 'field-scout' ? `field:${event.mission.id}` : `npc:${String(event.sequence).padStart(18, '0')}:${event.mission.id}`; }

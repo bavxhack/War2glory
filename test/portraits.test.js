@@ -1,3 +1,4 @@
+import { legacyPlayer } from './support/player.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -47,12 +48,12 @@ test('schema 10 migration saves random portraits once for all generals and open 
   assert.ok(GENERAL_PORTRAITS.some(p => p.id === player.military.generals[0].portraitId));
   Object.assign(player.city.militarySlots[0], { building: 'barracks', level: 1 });
   syncCandidates(player, 100000, OFFICER_RULES, () => 0, (() => { let n = 0; return () => `candidate-${++n}`; })());
-  player.schemaVersion = 10;
+  legacyPlayer(player); player.schemaVersion = 10;
   delete player.military.generals[0].portraitId;
   for (const c of player.military.candidatePool.candidates) delete c.portraitId;
   const before = structuredClone(player); await storage.savePlayer(player);
-  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 15);
-  const compare = structuredClone(player); compare.schemaVersion = 10;
+  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 16);
+  const compare = structuredClone(player); legacyPlayer(compare); compare.schemaVersion = 10;
   for (const c of [...compare.military.generals, ...compare.military.candidatePool.candidates]) delete c.portraitId;
   assert.deepEqual(compare, before);
   for (const c of [...player.military.generals, ...player.military.candidatePool.candidates]) assert.ok(GENERAL_PORTRAITS.some(p => p.id === c.portraitId));

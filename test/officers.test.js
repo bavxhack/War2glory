@@ -1,3 +1,4 @@
+import { legacyPlayer } from './support/player.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -129,10 +130,10 @@ test('schema 9/8, larger counts, legacy research, eligibility timestamp and save
   const directory = await mkdtemp(join(tmpdir(), 'officers-')); t.after(() => rm(directory, { recursive: true, force: true }));
   let now = 0, storage = await new WorldStorage(directory, 'test', () => now).initialize();
   let { player } = await storage.register('OfficersMigration', 'sicheres-passwort');
-  player.schemaVersion = 8; delete player.city.research; delete player.military.acquiredCount;
+  legacyPlayer(player); player.schemaVersion = 8; delete player.city.research; delete player.military.acquiredCount;
   await storage.savePlayer(player); player = await storage.loadPlayer(player.playerId);
-  assert.equal(player.schemaVersion, 15); assert.equal(player.military.acquiredCount, 1); assert.equal(player.military.researcherGeneralId, null);
-  player.schemaVersion = 9; player.military.acquiredCount = 9; await storage.savePlayer(player);
+  assert.equal(player.schemaVersion, 16); assert.equal(player.military.acquiredCount, 1); assert.equal(player.military.researcherGeneralId, null);
+  legacyPlayer(player); player.schemaVersion = 9; player.military.acquiredCount = 9; await storage.savePlayer(player);
   player = await storage.loadPlayer(player.playerId); assert.equal(player.military.acquiredCount, 9); assert.equal(player.military.generals.length, 1);
   player.city = enqueueConstruction(player.city, { id: 'b', slotId: player.city.militarySlots[0].id, building: 'barracks' }, 0);
   await storage.savePlayer(player); now = 20000; await storage.advanceWorld(now); player = await storage.loadPlayer(player.playerId);

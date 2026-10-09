@@ -23,7 +23,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft, stationärer Unterhalt und verzögerte Ankunft mit proportionalem Ölbedarf | Auftrag 13 vom Nutzer am 09.10.2026 als abgeschlossen bestätigt |
 | 4d | Freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite | Auftrag 14 als getesteter Prototyp implementiert; neue Balancewerte vorläufig |
 | Luft/Militär | Kampfflugzeuge, Raketenwerfer und Generalfähigkeiten für Luftvorteile | Nutzeranforderung vom 09.10.2026; spätere Phase, nicht Auftrag 13 |
-| 4e | Bis fünf eigene Städte, Stadtwechsel, Aufklärung/Eroberung freier Felder und Gründungsgebühr | Neuer Auftrag 15 spezifiziert; Umsetzung ausstehend |
+| 4e | Bis fünf eigene Städte, Stadtwechsel, Aufklärung/Eroberung freier Felder und Gründungsgebühr | Als getesteter Prototyp implementiert; vorläufige Balance |
 | 5a | Ressourcenlieferungen zwischen eigenen und fremden Spielerstädten | Auf Auftrag 16 verschoben; Mehrstadtgrundlage zuerst |
 | 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -523,7 +523,7 @@ Die Implementierung und Nachweise zu Auftrag 14 sind unter Implementierungsstand
 
 ## Neuer Auftrag 15 vom 09.10.2026: Fünf Städte, Felderoberung und Gründung
 
-Ersetzt den zuvor geplanten Lieferauftrag. Status: spezifiziert, noch nicht implementiert. Vollständige Anweisungen in CODEX_PROMPT.md. Auftrag 14 ist laut Nutzer abgeschlossen.
+Ersetzt den zuvor geplanten Lieferauftrag. Status: als Prototyp implementiert und geprüft; Nachweise in [MULTICITY_VALIDATION.md](MULTICITY_VALIDATION.md). Vollständige Anweisungen in CODEX_PROMPT.md. Auftrag 14 ist laut Nutzer abgeschlossen.
 
 ### Verbindliche Nutzerentscheidungen
 
