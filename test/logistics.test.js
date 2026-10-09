@@ -145,13 +145,13 @@ test('stationed upkeep excludes convoy; historical cargo clamp and zero food-rat
   assert.equal(forceSummary(p.military, ['truck']).truck.deployed, 0);
 });
 
-test('shared journal settles 900 food, +4 score, 20 XP and one return/report across restart', async t => {
+test('shared journal settles 877 food, +4 score, 20 XP and one return/report across restart', async t => {
   const f = await storageFixture(t); const c = command(f.player, { targetId: f.npc.id });
   const p = startLogisticsMission(f.player, { ...c, preview: missionQuote(f.player, c, f.home, f.npc, f.storage.config.logistics) }, 0, f.home, f.npc, f.storage.config.logistics);
   await f.storage.savePlayer(p); await f.storage.advanceWorld(25000);
   let current = await f.storage.loadPlayer(p.playerId), m = current.military.missions[0];
-  assert.equal(m.result.loadedFood, 900); assert.deepEqual(m.units, { infantry: 15, truck: 3 }); assert.equal(m.result.combatScore, 4); assert.equal(m.result.generalExperience, 20);
-  assert.equal(f.storage.world.map.entities.find(n => n.id === f.npc.id).resources.food.amount, 100);
+  assert.equal(m.result.loadedFood, 877); assert.deepEqual(m.units, { infantry: 15, truck: 3 }); assert.equal(m.result.combatScore, 4); assert.equal(m.result.generalExperience, 20);
+  assert.equal(f.storage.world.map.entities.find(n => n.id === f.npc.id).resources.food.amount, 123);
   const restarted = await new WorldStorage(f.dir, 'test', () => 50000, parseConfiguration(), { warn() {} }).initialize();
   current = await restarted.loadPlayer(p.playerId); assert.deepEqual(current.military.units, { infantry: 15, truck: 3, scout: 2 });
   assert.equal(current.military.combatScore, 4); assert.equal(current.military.generals[0].experience, 20); assert.equal(current.military.reports.length, 1);
@@ -161,7 +161,7 @@ test('shared journal settles 900 food, +4 score, 20 XP and one return/report acr
 
 test('return loss 900 ->700 ->600 stores separate hunger and overflow without restoring NPC food', async t => {
   const f = await storageFixture(t), p = start(f.player); const m = p.military.missions[0]; m.targetId = f.npc.id;
-  m.status = 'returning'; m.units = { infantry: 15, truck: 3 }; m.result = { survivors: 15, loadedFood: 900, capacity: 900, combatScore: 4, generalExperience: 20, combatLossesByUnit: { infantry: 5, truck: 1 } };
+  delete m.cargo; m.ruleset = LOGISTICS_RAID_RULESET; m.status = 'returning'; m.units = { infantry: 15, truck: 3 }; m.result = { survivors: 15, loadedFood: 900, capacity: 900, combatScore: 4, generalExperience: 20, combatLossesByUnit: { infantry: 5, truck: 1 } };
   m.units.truck = 2; m.hungerLossesByUnit.truck = 1; clampMissionCargo(m);
   p.city.resources.food = 1400; p.supply.rules = parseConfiguration({ UPKEEP_INFANTRY_PER_HOUR: '0', UPKEEP_TRUCK_PER_HOUR: '0', UPKEEP_SCOUT_PER_HOUR: '0' }).supply;
   p.city.buildingSlots[2].level = 0; f.storage.world.supplyRuleHistory = [{ effectiveAt: 0, rules: p.supply.rules }];
@@ -189,7 +189,7 @@ test('migration 12 retains portraits, read status, resources, investments, queue
   Object.assign(p.city.militarySlots[0], { building: 'barracks', level: 1 });
   p.military.missions = [1, 2, 3].map((v, i) => ({ id: `old-${v}`, type: 'raid', ruleset: ['npc-pve-1-provisional', 'npc-pve-2-skills-provisional', 'npc-pve-3-general-bases-provisional'][i], infantry: 1, status: 'outbound', arrivesAt: 60000, returnsAt: 120000 }));
   const portrait = p.military.generals[0].portraitId, messages = structuredClone(p.mailbox); await f.storage.savePlayer(p);
-  p = await f.storage.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 14); assert.equal(p.city.resources.oil, 0); assert.equal(p.military.units.truck, 0);
+  p = await f.storage.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 15); assert.equal(p.city.resources.oil, 0); assert.equal(p.military.units.truck, 0);
   assert.equal(p.city.research.levels.motorization, 0); assert.deepEqual(p.mailbox, messages); assert.equal(p.military.generals[0].portraitId, portrait);
   assert.equal(p.military.trainingQueue[0].trainingSlotId, 'military-plot-1'); assert.equal(p.city.research.active.finishesAt, 60000);
   assert.ok(p.military.missions.every(m => !m.units && !m.paidOil)); assert.deepEqual(await f.storage.loadPlayer(p.playerId), p);
@@ -260,11 +260,11 @@ test('journal recovery after NPC debit and failed player rename never duplicates
   };
   await mkdir(join(f.dir, 'blocked-player'));
   await assert.rejects(f.storage.advanceWorld(25000), /directory|EISDIR/i);
-  assert.equal(JSON.parse(await readFile(f.storage.worldFile, 'utf8')).map.entities.find(e => e.id === f.npc.id).resources.food.amount, 100);
+  assert.equal(JSON.parse(await readFile(f.storage.worldFile, 'utf8')).map.entities.find(e => e.id === f.npc.id).resources.food.amount, 123);
   assert.ok(JSON.parse(await readFile(f.storage.journalFile, 'utf8')).players.length > 0);
   f.storage.playerFile = oldFile;
   await f.storage.advanceWorld(50000);
-  const current = await f.storage.loadPlayer(p.playerId); assert.equal(current.military.reports.length, 1); assert.equal(current.military.reports[0].originalLoadedFood, 900); assert.equal(current.military.combatScore, 4);
+  const current = await f.storage.loadPlayer(p.playerId); assert.equal(current.military.reports.length, 1); assert.equal(current.military.reports[0].originalLoadedFood, 877); assert.equal(current.military.combatScore, 4);
   await assert.rejects(readFile(f.storage.journalFile), /ENOENT/);
 });
 
@@ -278,7 +278,7 @@ test('active missions freeze oil/cargo across config restart; historical missing
   let current = await restart.loadPlayer(p.playerId); assert.equal(current.city.resources.food, 1000); assert.equal(current.city.resources.oil, 40);
   assert.equal(current.military.missions[0].logistics.cargoPerUnit.truck, 200);
   await restart.advanceWorld(20000); current = await restart.loadPlayer(p.playerId); assert.equal(current.city.resources.food, 1000);
-  await restart.advanceWorld(50000); current = await restart.loadPlayer(p.playerId); assert.equal(current.military.reports[0].originalLoadedFood, 900); assert.equal(current.military.reports[0].paidOil, 60);
+  await restart.advanceWorld(50000); current = await restart.loadPlayer(p.playerId); assert.equal(current.military.reports[0].originalLoadedFood, 877); assert.equal(current.military.reports[0].paidOil, 60);
   assert.equal(restart.world.supplyRuleHistory[0].rules.upkeepPerSecond.truck, undefined);
 });
 

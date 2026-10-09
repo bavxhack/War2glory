@@ -1,6 +1,7 @@
+import { CARGO_RULES, CARGO_RAID_RULESET, CARGO_SCOUT_RULESET, validateCargo, cargoAmount, oneWayFuelMilli, goodsCapacity } from './cargo.js';
 import { combatBonuses, effectiveAttributes, MILITARY_RULES, validateMissionUnits } from './military.js';
 
-export const LOGISTICS_RULES = Object.freeze({ version: 'fuel-2-positive-ratio-provisional', maxAttackDelayMinutes: 1440, oilMilliPerField: Object.freeze({ infantry: 100, scout: 200, truck: 1000 }), cargoPerUnit: Object.freeze({ infantry: 20, scout: 0, truck: 200 }) });
+export const LOGISTICS_RULES = Object.freeze({ version: 'fuel-3-cargo-ratio-provisional', scoutFuelCapacity: 20, cargoRules: CARGO_RULES, maxAttackDelayMinutes: 1440, oilMilliPerField: Object.freeze({ infantry: 100, scout: 200, truck: 1000 }), cargoPerUnit: Object.freeze({ infantry: 20, scout: 0, truck: 200 }) });
 export const LOGISTICS_RAID_RULESET = 'npc-pve-4-logistics-provisional';
 
 // Legacy scalar missions are read only through this adapter. New missions have one authoritative inventory.
@@ -58,12 +59,25 @@ export function missionQuote(player, command, origin, target, rules = LOGISTICS_
   if (!origin || !target || target.kind !== 'npc') throw new Error('Nur eigene Einsätze gegen NPC-Städte sind erlaubt.');
   const distanceFields = Math.max(1, Math.ceil(Math.hypot(target.x - origin.x, target.y - origin.y)));
   if (!Number.isSafeInteger(distanceFields)) throw new Error('Ungültige Einsatzdistanz.');
-  const oneWayMilli = BigInt(distanceFields) * Object.entries(units).reduce((sum, [unit, amount]) => sum + BigInt(amount) * BigInt(rules.oilMilliPerField[unit]), 0n);
+  const oneWayMilli = oneWayFuelMilli(units, distanceFields, rules.oilMilliPerField);
   const travelMs = Math.max(MILITARY_RULES.minimumTravelMs, distanceFields * MILITARY_RULES.scoutTravelMsPerField);
   const times = missionTimes(now, travelMs, delayMinutes);
   const delayMs = delayMinutes * 60_000;
   const fuel = fuelPlan(oneWayMilli, travelMs, delayMinutes);
-  if ((player.city.resources.oil ?? 0) < fuel.totalOil) throw new Error('Nicht genügend Öl für Hin- und Rückweg.');
+  const ownCargo = validateCargo(command.cargo);
+  const ownCargoAmount = cargoAmount(ownCargo);
+  const capacity = cargoCapacity(units, rules.cargoPerUnit);
+  const startOccupancy = ownCargoAmount + fuel.totalOil;
+  if (!Number.isSafeInteger(startOccupancy)) throw new Error('Startladung überschreitet den sicheren Zahlenbereich.');
+  if (type === 'scout') {
+    if (ownCargoAmount) throw new Error('Späher haben keine Gütertraglast; ihre Tanks sind ausschließlich für Betriebsöl.');
+    if (!Number.isSafeInteger(rules.scoutFuelCapacity) || rules.scoutFuelCapacity < 1) throw new Error('Ungültige Spähertankkapazität.');
+    if (fuel.totalOil > units.scout * rules.scoutFuelCapacity) throw new Error('Spähertankkapazität zu klein für das gesamte Betriebsöl.');
+  } else {
+    for (const [unit, amount] of Object.entries(units)) if (amount > 0 && BigInt(distanceFields) * BigInt(rules.oilMilliPerField[unit]) > BigInt(rules.cargoPerUnit[unit]) * 1000n) throw new Error(`Rückwegreserve für ${unit} zu groß: Öl je Einheit überschreitet deren Traglast.`);
+    if (startOccupancy > capacity) throw new Error(`Ladung zu schwer: eigene Güter und Betriebsöl belegen ${startOccupancy} von ${capacity} Plätzen.`);
+  }
+  for (const [resource, amount] of Object.entries(ownCargo)) if ((player.city.resources[resource] ?? 0) < amount + (resource === 'oil' ? fuel.totalOil : 0)) throw new Error(resource === 'oil' ? 'Nicht genügend Öl in der Stadt für freiwillige Ölladung und Betriebsöl für Hin- und Rückweg.' : `Nicht genügend ${resource} für eigene Ladung.`);
   const upkeepPerHour = Object.entries(units).reduce((sum, [unit, amount]) => sum + amount * (player.supply?.rules.upkeepPerSecond[unit] ?? 0) * 3600, 0);
   const upkeepBeforePerHour = Object.entries(military.units).reduce((sum, [unit, amount]) => sum + amount * (player.supply?.rules.upkeepPerSecond[unit] ?? 0) * 3600, 0);
   return { type, targetId: target.id, generalId: general.id, generalVersion: general.version, units: { ...units },
@@ -73,7 +87,11 @@ export function missionQuote(player, command, origin, target, rules = LOGISTICS_
     ...fuel,
     upkeepBeforePerHour, upkeepAfterPerHour: Math.max(0, upkeepBeforePerHour - upkeepPerHour),
     logistics: structuredClone(rules), supplyVersion: player.supply?.rules.version, upkeepPerHour,
-    capacity: cargoCapacity(units, rules.cargoPerUnit), effectiveAttributes: effectiveAttributes(general), combatBonuses: combatBonuses(general) };
+    capacity, ownCargo, ownCargoAmount, startOccupancy, freeStartCapacity: type === 'raid' ? capacity - startOccupancy : 0,
+    tankCapacity: type === 'scout' ? units.scout * rules.scoutFuelCapacity : 0,
+    outboundConsumption: fuel.totalOil - fuel.returnOil, returnReserve: fuel.returnOil,
+    projectedLootCapacity: type === 'raid' ? goodsCapacity(capacity, oneWayMilli) - ownCargoAmount : 0,
+    effectiveAttributes: effectiveAttributes(general), combatBonuses: combatBonuses(general) };
 }
 export function startLogisticsMission(previous, command, now, origin, target, rules = LOGISTICS_RULES) {
   const quote = missionQuote(previous, command, origin, target, rules, now);
@@ -82,10 +100,12 @@ export function startLogisticsMission(previous, command, now, origin, target, ru
   if (!command.preview || JSON.stringify(binding(command.preview)) !== JSON.stringify(binding(quote))) throw new Error('Einsatzvorschau geändert. Bitte erneut prüfen und bestätigen.');
   const player = structuredClone(previous);
   player.city.resources.oil -= quote.totalOil;
+  for (const [resource, amount] of Object.entries(quote.ownCargo)) player.city.resources[resource] -= amount;
   for (const [unit, amount] of Object.entries(quote.units)) player.military.units[unit] -= amount;
   const general = player.military.generals.find(g => g.id === quote.generalId);
   general.status = quote.type === 'raid' ? 'raiding' : 'scouting'; general.version++;
-  player.military.missions.push({ ...quote, id: command.id, ruleset: quote.type === 'raid' ? LOGISTICS_RAID_RULESET : 'npc-scout-2-logistics-provisional',
+  player.military.missions.push({ ...quote, id: command.id, ruleset: quote.type === 'raid' ? CARGO_RAID_RULESET : CARGO_SCOUT_RULESET,
+    cargo: { version: CARGO_RULES.version, initial: { ...quote.ownCargo }, retained: { ...quote.ownCargo }, lost: { wood: 0, stone: 0, food: 0, oil: 0 }, returnFuelMilli: quote.fuelCalculation.oneWayMilli, lostFuelMilli: '0' },
     initialUnits: { ...quote.units }, paidOil: quote.totalOil, targetName: target.name, coordinates: { x: target.x, y: target.y }, generalName: general.name,
     hungerLossesByUnit: {}, status: 'outbound', startedAt: now, ...missionTimes(now, quote.travelMs, quote.delayMinutes) });
   return player;

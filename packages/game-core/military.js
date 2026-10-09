@@ -1,3 +1,4 @@
+import { CARGO_RAID_RULESET } from './cargo.js';
 import { LOGISTICS_RAID_RULESET } from './logistics.js';
 export const MILITARY_RULES = Object.freeze({
   trainingQueueLength: 3,
@@ -248,7 +249,7 @@ export function resolveNpcCombat(attackers, defenders) {
 
 export function resolveMissionCombat(mission, attackers, defenders) {
   if (!mission.ruleset || mission.ruleset === MILITARY_RULES.raidRuleset) return resolveNpcCombat(attackers, defenders);
-  if (![MILITARY_RULES.skillRaidRuleset, MILITARY_RULES.baseRaidRuleset, LOGISTICS_RAID_RULESET].includes(mission.ruleset)) throw new Error('Unbekannte Kampfregelversion.');
+  if (![MILITARY_RULES.skillRaidRuleset, MILITARY_RULES.baseRaidRuleset, LOGISTICS_RAID_RULESET, CARGO_RAID_RULESET].includes(mission.ruleset)) throw new Error('Unbekannte Kampfregelversion.');
   const { attackPercent, defensePercent } = mission.combatBonuses ?? {};
   if (![attackPercent, defensePercent].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 50)) throw new Error('Ungültige gespeicherte Kampfboni.');
   if (!Number.isSafeInteger(attackers) || attackers <= 0 || !Number.isSafeInteger(defenders) || defenders < 0) throw new Error('Ungültige Kampftruppen.');
