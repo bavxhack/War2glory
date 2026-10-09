@@ -50,3 +50,19 @@ test('Skillanfragen verwenden den zentralen Socket und verwerfen Antworten nach 
   assert.equal(FakeSocket.instances.length, 1);
   transport.stop();
 });
+
+test('connection greeting preserves resumed token and logistics previews resolve on the central socket', async () => {
+  FakeSocket.instances = []; const session = storage(); session.setItem('strategy.session', 'saved-token');
+  const transport = new GameTransport({ WebSocketImpl: FakeSocket, storage: session, location: { protocol: 'http:', host: 'localhost' } });
+  transport.start(); const socket = FakeSocket.instances[0]; socket.readyState = FakeSocket.OPEN; socket.emit('open');
+  assert.equal(socket.sent[0].type, 'auth.resume');
+  socket.emit('message', { data: JSON.stringify({ type: 'auth.required', requestId: 'connection', payload: { message: 'Sitzung wiederaufnehmen' } }) });
+  socket.emit('message', { data: JSON.stringify({ type: 'auth.success', payload: {} }) });
+  assert.equal(session.getItem('strategy.session'), 'saved-token'); assert.equal(transport.state.authenticated, true);
+  for (const type of ['raid.preview', 'scouting.preview']) {
+    const promise = transport.request(type, { generalId: 'general', targetId: 'npc' });
+    socket.emit('message', { data: JSON.stringify({ type, requestId: socket.sent.at(-1).requestId, payload: { totalOil: 40 } }) });
+    assert.equal((await promise).totalOil, 40);
+  }
+  transport.stop();
+});

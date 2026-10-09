@@ -1,3 +1,4 @@
+import { LOGISTICS_RAID_RULESET } from './logistics.js';
 export const MILITARY_RULES = Object.freeze({
   trainingQueueLength: 3,
   maxTrainingAmount: 1000,
@@ -13,8 +14,9 @@ export const MILITARY_RULES = Object.freeze({
 });
 
 export const UNITS = Object.freeze({
-  scout: Object.freeze({ label: 'Späher', cost: { wood: 10, stone: 5, food: 5 }, baseDurationMs: 2000 }),
-  infantry: Object.freeze({ label: 'Infanterie', cost: { wood: 15, stone: 10, food: 10 }, baseDurationMs: 3000 }),
+  truck: Object.freeze({ label: 'LKW', building: 'vehicleFactory', cost: { wood: 100, stone: 100 }, baseDurationMs: 10000 }),
+  scout: Object.freeze({ label: 'Späher', building: 'barracks', cost: { wood: 10, stone: 5, food: 5 }, baseDurationMs: 2000 }),
+  infantry: Object.freeze({ label: 'Infanterie', building: 'barracks', cost: { wood: 15, stone: 10, food: 10 }, baseDurationMs: 3000 }),
 });
 
 export const GENERAL_NAME_MAX_CODE_POINTS = 40;
@@ -156,7 +158,7 @@ export function validateMissionUnits(units) {
 }
 
 export function trainingQueueForBarracks(military, barracksSlotId) {
-  return military.trainingQueue.filter(job => job.barracksSlotId === barracksSlotId);
+  return military.trainingQueue.filter(job => (job.trainingSlotId ?? job.barracksSlotId) === barracksSlotId);
 }
 
 export function barracksIsBusy(military, barracksSlotId) {
@@ -164,7 +166,7 @@ export function barracksIsBusy(military, barracksSlotId) {
 }
 
 export function newMilitary(playerId) {
-  return { units: { scout: 0, infantry: 0 }, trainingQueue: [], generals: [normalizeGeneral({ id: `general-${playerId}`, ownerId: playerId, name: 'General', level: 1, experience: 0, leadership: 20, status: 'idle' })], missions: [], reports: [], rewardedNpcIds: [] };
+  return { combatScore: 0, units: { scout: 0, infantry: 0, truck: 0 }, trainingQueue: [], generals: [normalizeGeneral({ id: `general-${playerId}`, ownerId: playerId, name: 'General', level: 1, experience: 0, leadership: 20, status: 'idle' })], missions: [], reports: [], rewardedNpcIds: [] };
 }
 
 export function advanceMilitary(previous, now, npcById = new Map()) {
@@ -201,18 +203,20 @@ export function enqueueTraining(previous, city, command, now) {
   const military = structuredClone(previous); const definition = UNITS[command.unit];
   if (!definition) throw new Error('Unbekannter Einheitentyp.');
   if (!Number.isInteger(command.amount) || command.amount < 1 || command.amount > MILITARY_RULES.maxTrainingAmount) throw new Error('Ungültige Ausbildungsmenge.');
-  if (typeof command.barracksSlotId !== 'string') throw new Error('Eine eigene Kaserne muss ausgewählt werden.');
-  const barracks = city.militarySlots?.find(slot => slot.id === command.barracksSlotId && slot.building === 'barracks');
-  if (!barracks) throw new Error('Eine eigene fertige Kaserne wird benötigt.');
+  const trainingSlotId = command.trainingSlotId ?? command.barracksSlotId;
+  if (typeof trainingSlotId !== 'string') throw new Error('Ein eigenes Ausbildungsgebäude muss ausgewählt werden.');
+  const barracks = city.militarySlots?.find(slot => slot.id === trainingSlotId && slot.building === definition.building && slot.level > 0);
+  if (!barracks) throw new Error('Ein eigenes fertiges Ausbildungsgebäude des passenden Typs wird benötigt.');
+  if (command.unit === 'truck' && !city.research?.levels.motorization) throw new Error('Motorisierung erforderlich.');
   const barracksQueue = trainingQueueForBarracks(military, barracks.id);
-  if (barracksQueue.length >= MILITARY_RULES.trainingQueueLength) throw new Error('Die Ausbildungswarteschlange dieser Kaserne ist voll.');
-  if (city.constructionQueue.some(job => job.slotId === barracks.id)) throw new Error('Die Kaserne wird gerade ausgebaut.');
+  if (barracksQueue.length >= MILITARY_RULES.trainingQueueLength) throw new Error('Die Ausbildungswarteschlange dieses Gebäudes ist voll.');
+  if (city.constructionQueue.some(job => job.slotId === barracks.id)) throw new Error('Das Ausbildungsgebäude wird gerade ausgebaut.');
   for (const [resource, unitCost] of Object.entries(definition.cost)) if (city.resources[resource] < unitCost * command.amount) throw new Error('Nicht genügend Rohstoffe.');
   const nextCity = structuredClone(city);
   for (const [resource, unitCost] of Object.entries(definition.cost)) nextCity.resources[resource] -= unitCost * command.amount;
   const startsAt = barracksQueue.at(-1)?.finishesAt ?? now;
   const durationMs = Math.ceil(definition.baseDurationMs * command.amount / barracks.level);
-  military.trainingQueue.push({ id: command.id, barracksSlotId: barracks.id, unit: command.unit, amount: command.amount, barracksLevel: barracks.level, startsAt, finishesAt: startsAt + durationMs });
+  military.trainingQueue.push({ id: command.id, trainingSlotId: barracks.id, barracksSlotId: barracks.id, paidCost: Object.fromEntries(Object.entries(definition.cost).map(([key, cost]) => [key, cost * command.amount])), unit: command.unit, amount: command.amount, barracksLevel: barracks.level, startsAt, finishesAt: startsAt + durationMs });
   return { city: nextCity, military };
 }
 
@@ -244,7 +248,7 @@ export function resolveNpcCombat(attackers, defenders) {
 
 export function resolveMissionCombat(mission, attackers, defenders) {
   if (!mission.ruleset || mission.ruleset === MILITARY_RULES.raidRuleset) return resolveNpcCombat(attackers, defenders);
-  if (![MILITARY_RULES.skillRaidRuleset, MILITARY_RULES.baseRaidRuleset].includes(mission.ruleset)) throw new Error('Unbekannte Kampfregelversion.');
+  if (![MILITARY_RULES.skillRaidRuleset, MILITARY_RULES.baseRaidRuleset, LOGISTICS_RAID_RULESET].includes(mission.ruleset)) throw new Error('Unbekannte Kampfregelversion.');
   const { attackPercent, defensePercent } = mission.combatBonuses ?? {};
   if (![attackPercent, defensePercent].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 50)) throw new Error('Ungültige gespeicherte Kampfboni.');
   if (!Number.isSafeInteger(attackers) || attackers <= 0 || !Number.isSafeInteger(defenders) || defenders < 0) throw new Error('Ungültige Kampftruppen.');

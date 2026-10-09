@@ -76,7 +76,7 @@ test('Migration und altes offenes Journal erhalten Rollen, Skillzähler, Hunger 
   await writeFile(storage.journalFile, JSON.stringify({ id: 'old-journal', world: null, players: [player] }));
   storage = await new WorldStorage(directory, 'test', () => now).initialize();
   const migrated = await storage.loadPlayer(player.playerId);
-  assert.equal(migrated.schemaVersion, 12); assert.equal(migrated.generalSkillRuleset, GENERAL_SKILL_RULES.version);
+  assert.equal(migrated.schemaVersion, 14); assert.equal(migrated.generalSkillRuleset, GENERAL_SKILL_RULES.version);
   assert.deepEqual(migrated.military.generals, preserved.military.generals);
   assert.equal(migrated.military.mayorGeneralId, mayor.id);
   assert.equal(migrated.military.missions[0].ruleset, MILITARY_RULES.raidRuleset);
@@ -132,6 +132,7 @@ test('Vollständiger Hungerabgang vor neuem Kampf erzeugt keine Skillstärke, Be
   t.after(() => rm(directory, { recursive: true, force: true }));
   let now = 10_000;
   const storage = await new WorldStorage(directory, 'test', () => now).initialize();
+  storage.world.supplyRuleHistory = [{ effectiveAt: now, rules: { ...SUPPLY_RULES, upkeepScope: 'all-living' } }];
   const registration = await storage.register('HungrySkills', 'sicheres-passwort-6', 'Hungerstadt');
   let player = await storage.loadPlayer(registration.player.playerId);
   player.city.resources.food = 0; player.city.buildingSlots[2].level = 0; player.military.units.infantry = 1;
@@ -157,6 +158,7 @@ test('gleichzeitige Beuterückkehr versorgt die Stadt vor der Hungerwelle', asyn
   t.after(() => rm(directory, { recursive: true, force: true }));
   let now = 2_000_000;
   const storage = await new WorldStorage(directory, 'test', () => now).initialize();
+  storage.world.supplyRuleHistory = [{ effectiveAt: now, rules: { ...SUPPLY_RULES, upkeepScope: 'all-living' } }];
   const registration = await storage.register('Versorger', 'sicheres-passwort-3', 'Versorgungsstadt');
   const player = await storage.loadPlayer(registration.player.playerId);
   const target = storage.world.map.entities.find(entity => entity.kind === 'npc');

@@ -6,6 +6,18 @@ Repository: https://github.com/bavxhack/War2glory
 
 **Weiterentwicklung mit Codex:** Der Startauftrag steht in [CODEX_PROMPT.md](CODEX_PROMPT.md). Projektregeln stehen in [AGENTS.md](AGENTS.md).
 
+## Ölwirtschaft und LKW-Farmzüge (Auftrag 13)
+
+Implementiert mit vorläufigen eigenen Balancewerten: Universität 2 und Forschungsleitung → Ölverarbeitung → zivile Ölraffinerie → Lagerlogistik 1 und Motorisierung → militärische Fahrzeugfabrik → LKW-Herstellung → gemischter NPC-Farmzug → Nahrung und Bericht in der Postbox. Der [vollständige geprüfte Spielablauf](docs/LOGISTICS_VALIDATION.md) beschreibt Voraussetzungen, Zeitpunkte, Browserdurchlauf und Grenzen.
+
+Öl startet bei 0. Raffinerien produzieren 1 Öl/Sekunde je fertiger Stufe; Lagerhaus und Lagerlogistik gelten auch für Öl. LKWs kosten je 100 Holz/100 Stein und nutzen die bestehende Ausbildungsqueue mit Hungerpause. Standardmäßig tragen sie 200 Nahrung, verbrauchen 180 Nahrung/Stunde und kosten 1 Öl/Feld/einfache Strecke. Infanterie kämpft und trägt weiterhin 20; Späher bleiben Aufklärungseinheiten. Neue Angriffe und Aufklärungen benötigen ebenfalls Öl: vorläufig 0,1 je Infanterist und 0,2 je Späher pro Feld/einfache Strecke. Ohne Öl erst Ölverarbeitung erforschen und eine Raffinerie bauen.
+
+„Einsatz prüfen“ liefert verbindliche Typmengen, Traglast, Öl für beide Wege und Unterhalt. 20 Infanteristen/4 LKW über fünf Felder kosten einmalig 60 Öl und 7920 Nahrung/Stunde. Gegen zehn Verteidiger ohne Generalboni überleben 15 Infanteristen/3 LKW, tragen maximal 900 Nahrung, geben 20 General-XP und +4 Kampfpunkte. Unterwegs entfällt Stadtunterhalt; Hungerverluste betreffen nur stationierte Einheiten. Historische Reise-/Ladungsverluste bleiben erhalten; Nahrung wird erst bei Rückkehr bis zur freien Lagerkapazität eingelagert. LKWs erhöhen keine Kampfkraft.
+
+Zusatzverzögerung wird in ganzen Minuten gewählt, Standard 0, maximal 1440 (konfigurierbar). Bei normaler Hinreise T, Zusatzzeit D und ungerundetem Ölbedarf E je Richtung gilt: Hinwegöl = E × (T+D)/T, Rückwegöl = E; bezahlt wird einmal `ceil(E × (2T+D)/T)`. Der Rückweg bleibt normal lang. Beispiel E=10/T=1 Minute: 9 Zusatzminuten ergeben 10 Minuten Hinreise, 100+10=110 Öl und Rückkehr nach 11 Minuten. 20 Infanteristen/4 LKW bei Distanz 5 kosten unverzögert 60, mit einer Zusatzminute 132 Öl. Jede neue Bewegung einschließlich Aufklärung benötigt positive Typ-Raten; Aufklärung unterstützt keine Zusatzzeit.
+
+Spielerschema 14 migriert über Schema 13 verlustfrei ab Schema 12; alte bezahlte Forschung, Missionen, Bewerber, Porträts und Postbox bleiben erhalten. Neue Ölbuchungen werden zusammen mit Einsatz und Wiederholungsbeleg gespeichert. Betriebswerte stehen in [.env.example](.env.example), Regeln/Protokoll in [docs/WEBSOCKET.md](docs/WEBSOCKET.md).
+
 ## Starten
 
 Voraussetzung: Node.js 24 oder neuer. Abhängigkeiten installieren und den React-Client bauen:
@@ -82,7 +94,7 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Vollständige NPC-Farmzüge mit reserviertem General und Infanterie, chronologischem Kampf, begrenzter Nahrungsbeute, Rückkehr, privaten Berichten, General-XP und vorzeichenbehaftetem Kampfbeitrag.
 - Truppenübersicht je Einheitentyp: Gesamtbestand, stationiert, lebend unterwegs und separat in Ausbildung. Zurückkehrende Farmzüge zählen nur Überlebende; abgeschlossene Einsätze werden nicht doppelt gezählt.
 - Gemeinsame NPC-Garnisonen und Nahrung regenerieren zeitbasiert. Ein wiederaufnehmbares Transaktionsjournal schützt Welt-/Spieleränderungen; fällige Einsätze werden auch offline und nach Neustarts stabil geordnet verarbeitet.
-- Laufender Nahrungsunterhalt erfasst stationierte und marschierende Truppen genau einmal. Nach einer Schonfrist verursacht anhaltender Mangel nachvollziehbare Hungerverluste; Ausbildung pausiert dabei, und verringerte Traglast kann Beute auf dem Rückweg kosten.
+- Laufender Nahrungsunterhalt erfasst ausschließlich stationierte lebende Truppen. Unterwegs gibt es ab dem gespeicherten Regelwechsel weder Stadtunterhalt noch Stadt-Hungerverluste oder Beuteverbrauch. Frühere Zeiträume/Verluste bleiben historisch erhalten; Herstellung pausiert bei Stadtmangel.
 - Ein freier General kann serverseitig geprüft als Bürgermeister eingesetzt, gewechselt oder abberufen werden. Seine Führung erhöht ausschließlich die laufende Nahrungsproduktion.
 - Universität auf zivilen Bauplätzen, eine dauerhafte Stadtforschung gleichzeitig, vier Wirtschafts-/Lagertechnologien und abgeleitete Forschungspunkte.
 - Validierte `.env`-/Prozesskonfiguration mit gespeicherter Versorgungsregelhistorie; Bestandskarten bleiben verbindlich, Unterhaltsänderungen gelten erst ab gespeichertem Neustartzeitpunkt.
@@ -158,7 +170,7 @@ Forstwirtschaft, Steinverarbeitung und Landwirtschaft erhöhen jeweils die passe
 
 Nahrung = Gebäudegrundproduktion × Landwirtschaftsfaktor × Bürgermeisterfaktor, minus einmaliger laufender Unterhalt. Beispiel: `2 × 1,10 × 1,20 = 2,64/s`; bei 3/s Bedarf netto −0,36/s. Lager = `floor((Grundkapazität + Gebäudebeiträge) × Lagerfaktor)`: 2500 × 1,10 = 2750 Platz, ohne Ressourcen zu erzeugen. Forschung wirkt ab tatsächlichem Abschluss, läuft offline und bei Hunger weiter und bleibt nach Universitätsabriss erhalten. Forschungspunkte = 10 × Summe abgeschlossener Stufen; Gesamtpunkte = Gebäude + Forschung + signierter Kampfbeitrag, nur die Gesamtsumme mindestens null.
 
-Spielerschema 9 ergänzt fehlende Forschung mit Stufe 0. Forschung bleibt privat; Startkosten, Auftrag und Wiederholungsbeleg werden vor Erfolg gespeichert. Wirtschaftsabschlüsse einschließlich Forschung kommen bei gleichem Zeitpunkt vor Missionseinlagerung, Hunger danach. Details in [docs/WEBSOCKET.md](docs/WEBSOCKET.md). Verifikation und Einschränkungen stehen im Audit; Forschungsleitung folgt in Auftrag 12 unten; militärische Freischaltungen, Öl/LKWs und Föderation bleiben nächste Etappen.
+Spielerschema 9 ergänzt fehlende Forschung mit Stufe 0. Forschung bleibt privat; Startkosten, Auftrag und Wiederholungsbeleg werden vor Erfolg gespeichert. Wirtschaftsabschlüsse einschließlich Forschung kommen bei gleichem Zeitpunkt vor Missionseinlagerung, Hunger danach. Details in [docs/WEBSOCKET.md](docs/WEBSOCKET.md). Verifikation und Einschränkungen stehen im Audit; Forschungsleitung folgt in Auftrag 12 unten; Ölfreischaltungen/LKWs sind mit Auftrag 13 ergänzt; weitere Militärtechnologien und Föderation bleiben geplant.
 
 ## Offiziersbewerber und Forschungsleitung (Auftrag 12)
 

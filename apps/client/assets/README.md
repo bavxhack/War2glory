@@ -15,3 +15,9 @@ Die älteren SVGs bleiben für bisherige URLs verfügbar; die aktuelle Oberfläc
 Stabile Kennungen `general-portrait-01` bis `general-portrait-20` stehen im gemeinsamen Katalog `packages/game-core/portraits.js`. `GeneralPortrait` zeigt den zugehörigen Ausschnitt quadratisch in Bewerberkarten, Generalübersicht und Modal. Der Server wählt zufällig und speichert vor Auslieferung; Bewerber behalten ihr Bild bei Verpflichtung. Bei einer neuen Vergabe werden bereits verwendete Porträts im eigenen Bestand/Pool bevorzugt vermieden; sind alle 20 belegt, sind Wiederholungen möglich. Bestehende Vergaben werden nicht umgewürfelt.
 
 Schema 11 ergänzt fehlende Porträts einmalig bei vorhandenen Generälen und gespeichertem Bewerberpool. Namen, Identitäten, Werte, XP, Rollen, Kosten und Aufträge bleiben unverändert. Geschlecht und Aussehen haben keine Spielwirkung; Namen werden bei Migration nicht verändert.
+
+## Auftrag 13
+
+`logistics-art.png` ist eine am 08.10.2026 mit OpenAI Image Generation eigens erstellte Bildtafel im Stil von `game-art.png`: realistische Materialien, warmes Licht und gedeckte Olivfarben. Drei gleich große quadratische Motive stehen nebeneinander: Ölraffinerie, Fahrzeugfabrik und LKW. `GameArt` zeigt den jeweiligen Ausschnitt mit CSS-Hintergrundpositionen und `background-size: 300% 100%`. Vite importiert und versioniert die lokal ausgelieferte Datei mit einem Inhalts-Hash. Keine übernommenen War2Glory-Grafiken oder externen Bildanfragen.
+
+Die bisherigen eigenen SVGs `refinery.svg`, `vehicleFactory.svg` und `truck.svg` bleiben für ältere URLs verfügbar. Die aktuelle Oberfläche verwendet die neue Bildtafel.

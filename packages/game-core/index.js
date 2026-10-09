@@ -1,10 +1,12 @@
 import { newResearch, researchFactor, finishResearch, RESEARCH_RULES } from './research.js';
 export const RULESET = 'prototype-0.5';
-export const RESOURCE_KEYS = Object.freeze(['wood', 'stone', 'food']);
+export const RESOURCE_KEYS = Object.freeze(['wood', 'stone', 'food', 'oil']);
 export const BUILDINGS = Object.freeze({
   sawmill: Object.freeze({ label: 'Sägewerk', resource: 'wood', area: 'civil' }),
   quarry: Object.freeze({ label: 'Steinbruch', resource: 'stone', area: 'civil' }),
   farm: Object.freeze({ label: 'Bauernhof', resource: 'food', area: 'civil' }),
+  refinery: Object.freeze({ label: 'Ölraffinerie', resource: 'oil', area: 'civil', technology: 'oilProcessing' }),
+  vehicleFactory: Object.freeze({ label: 'Fahrzeugfabrik', resource: null, area: 'military', technology: 'motorization' }),
   warehouse: Object.freeze({ label: 'Lagerhaus', resource: null, area: 'civil' }),
   university: Object.freeze({ label: 'Universität', resource: null, area: 'civil' }),
   barracks: Object.freeze({ label: 'Kaserne', resource: null, area: 'military' }),
@@ -22,7 +24,7 @@ const buildingId = commandId => `building-${commandId}`;
 
 export function newCity(now) {
   return {
-    name: 'Gründerstadt', resources: { wood: 200, stone: 200, food: 200 },
+    name: 'Gründerstadt', resources: { wood: 200, stone: 200, food: 200, oil: 0 },
     buildingSlots: Array.from({ length: BUILDING_SLOT_COUNT }, (_, index) => ({
       id: slotId(index), area: 'civil', building: index < 3 ? Object.keys(BUILDINGS)[index] : null,
       level: index < 3 ? 1 : 0, buildingId: index < 3 ? `initial-${slotId(index)}` : null,
@@ -65,7 +67,7 @@ export function capacityBreakdown(city) {
 }
 
 export function cityOffers(city) {
-  const build = Object.fromEntries(Object.keys(BUILDINGS).map(building => [building, { ...constructionQuote(1), capacityAfter: quoteCapacity(city, null, building, 1) }]));
+  const build = Object.fromEntries(Object.keys(BUILDINGS).map(building => [building, { ...constructionQuote(1), reason: BUILDINGS[building].technology && !city.research?.levels[BUILDINGS[building].technology] ? 'Erforderliche Forschung noch nicht abgeschlossen.' : null, capacityAfter: quoteCapacity(city, null, building, 1) }]));
   const upgrade = Object.fromEntries(allSlots(city).filter(slot => slot.building && slot.level < MAX_LEVEL && !city.constructionQueue.some(job => job.slotId === slot.id)).map(slot => [slot.id, { ...constructionQuote(slot.level + 1), capacityAfter: quoteCapacity(city, slot, slot.building, slot.level + 1) }]));
   return { build, upgrade };
 }
@@ -124,6 +126,8 @@ export function enqueueConstruction(previous, command, now) {
   if (BUILDINGS[command.building].area !== (slot.area ?? 'civil')) throw new Error('Dieses Gebäude ist auf diesem Baubereich nicht erlaubt.');
   if (city.constructionQueue.some(job => job.slotId === slot.id)) throw new Error('Für diesen Bauplatz ist bereits ein Auftrag vorgemerkt.');
   const isBuild = slot.building === null;
+  const technology = BUILDINGS[command.building].technology;
+  if (isBuild && technology && !city.research?.levels[technology]) throw new Error('Erforderliche Forschung noch nicht abgeschlossen.');
   if (!isBuild && slot.building !== command.building) throw new Error('Der Bauplatz ist bereits belegt.');
   const quote = constructionQuote(isBuild ? 1 : slot.level + 1);
   for (const [resource, amount] of Object.entries(quote.cost)) if (city.resources[resource] < amount) throw new Error('Nicht genügend Rohstoffe.');
