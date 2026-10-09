@@ -23,7 +23,8 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft, stationärer Unterhalt und verzögerte Ankunft mit proportionalem Ölbedarf | Auftrag 13 vom Nutzer am 09.10.2026 als abgeschlossen bestätigt |
 | 4d | Freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite | Auftrag 14 als getesteter Prototyp implementiert; neue Balancewerte vorläufig |
 | Luft/Militär | Kampfflugzeuge, Raketenwerfer und Generalfähigkeiten für Luftvorteile | Nutzeranforderung vom 09.10.2026; spätere Phase, nicht Auftrag 13 |
-| 5a | Ressourcenlieferungen zwischen Spielerstädten mit Rücktransport nicht angenommener Ladung | Auftrag 15 spezifiziert; Umsetzung ausstehend |
+| 4e | Bis fünf eigene Städte, Stadtwechsel, Aufklärung/Eroberung freier Felder und Gründungsgebühr | Neuer Auftrag 15 spezifiziert; Umsetzung ausstehend |
+| 5a | Ressourcenlieferungen zwischen eigenen und fremden Spielerstädten | Auf Auftrag 16 verschoben; Mehrstadtgrundlage zuerst |
 | 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -520,13 +521,50 @@ Die Implementierung und Nachweise zu Auftrag 14 sind unter Implementierungsstand
 2. Danach Spielerlieferungen/Versorgung zwischen Städten auf demselben Frachtmodell spezifizieren.
 3. Forschung/weitere Militärtechnik, spätere Luft-/Raketenphase und Matrix-Föderation gesondert fortführen.
 
-## Beauftragter Auftrag 15 vom 09.10.2026: Ressourcenlieferungen zwischen Spielerstädten
+## Neuer Auftrag 15 vom 09.10.2026: Fünf Städte, Felderoberung und Gründung
 
-Der Nutzer bestätigt Auftrag 14 als abgeschlossen und beauftragt den nächsten Ausbauschritt. Auftrag 15 ist spezifiziert, noch nicht als umgesetzt bestätigt. Vollständige Implementierungsanweisungen und Abnahme stehen in CODEX_PROMPT.md.
+Ersetzt den zuvor geplanten Lieferauftrag. Status: spezifiziert, noch nicht implementiert. Vollständige Anweisungen in CODEX_PROMPT.md. Auftrag 14 ist laut Nutzer abgeschlossen.
+
+### Verbindliche Nutzerentscheidungen
+
+- Maximal fünf eigene Städte insgesamt, einschließlich Ausgangsstadt.
+- Zwischen eigenen Städten wechseln.
+- Für eine neue Stadt zuerst ein freies Feld aufklären und erobern, anschließend gegen Gebühr gründen.
+- Verteidigeranzahl variiert; genaue Informationen erst durch Aufklärung.
+- Weltkarte bleibt von Anfang an sichtbar.
+
+### Vorläufige Ausgestaltung für die Umsetzung
+
+- Städte haben stabile IDs, eigene Gebäude/zivile und militärische Bauplätze, Lager, Produktion, Truppen, Queues, Versorgung und Bürgermeister. Alle Städte schreiten auch inaktiv/offline fort.
+- Generäle, Bewerber, Forschungsstand/eine Forschungsqueue, Postbox und Punkte bleiben spielerweit. Forschung/Rekrutierung aus expliziter Stadt bezahlen. Keine Verdopplung von Generalrollen, Forschungspunkten oder Kandidaten beim Stadtwechsel.
+- Auswahl pro Tab; Befehle/Events mit cityId. Keine serverweit globale „aktive Stadt“, die Befehle anderer Tabs umlenkt. Missionen kehren zur gespeicherten originCityId zurück.
+- Gründbar sind freie Nicht-Wasser-Felder ohne Stadt/Anspruch. Verteidiger je Feld serverseitig persistent, vorläufig 5–30 Infanteristen über ENV-Min/Max. Nicht bei jeder Aufklärung neu würfeln, nicht öffentlich preisgeben.
+- Eigene abgeschlossene Feldaufklärung mit aktueller Feldrevision erforderlich. Bericht nach Scout-Rückkehr verfügbar. Vorläufig keine XP für freie-Feld-Aufklärung.
+- Eroberung mit Infanterie, optional LKWs und freiem General; bestehende Öl-/Verzögerungs-/Fracht-/Verlustregeln. Keine Ressourcenbeute. Kampfwertung nur nach bestehenden tatsächlichen Verlust-/Killregeln.
+- Vorläufig eine aktive Eroberung oder ein ungenutzter Anspruch je Spieler. Persönlichen Stadtplatz beim Start reservieren, aber Weltfeld erst nach Sieg exklusiv beanspruchen. Städte plus reservierte Plätze niemals über fünf.
+- Anspruch nur bei besiegten Verteidigern und mindestens einem überlebenden Infanteristen. Konkurrenz nach Zeit/Missions-ID auflösen; keine Angriffe auf inzwischen beanspruchte Felder.
+- Überlebende Feldverteidiger nach Niederlage bleiben gespeichert, vorläufig keine Regeneration. Anspruch nach Sieg 24 Stunden, ENV CITY_CLAIM_TTL_HOURS. Bei Ablauf gespeicherte ursprüngliche Verteidigung wiederherstellen, Revision ändern und Platz freigeben.
+- Gründung ab Sieg möglich; Armee kehrt trotzdem in Ausgangsstadt zurück. Keine Teleportation/Stationierung.
+- Gründungsgebühr vorläufig je 500 Holz/Stein/Nahrung × (neue Stadtnummer−1), kein zusätzliches Öl: je 500/1000/1500/2000 für Stadt 2/3/4/5. Basiswerte ENV-konfigurierbar; Obergrenze fünf verbindlich.
+- Zahlung nur aus gespeicherter Ausgangsstadt der Eroberung, keine gemeinsame Ressourcenkasse. Fehlende Gebühr lässt Anspruch bis Ablauf bestehen.
+- Neue Stadt: Standardbauplätze, Sägewerk/Steinbruch/Bauernhof Stufe 1, Ressourcen 0, normale Produktion ab Gründung. Keine Gratisarmee/Generäle/Forschung. Damit ohne vorgezogene Lieferungen spielbar.
+- Keine Stadtaufgabe, Eroberung bestehender Spieler-/NPC-Städte, Truppenverlegung oder Lieferungen in diesem Auftrag.
+
+### Technische Abnahme und Reihenfolge
+
+Spieler-/Weltschema versioniert migrieren; bisherige Stadt, Missionen, bezahltes Öl, Zeitpunkte und private Daten bewahren. Weltregister um mehrere Städte je Spieler erweitern. Mehrspielerqueue/Recovery-Journal für Kampf, Anspruch und Gründung nutzen. Neuspielerplatzierung respektiert Ansprüche.
+
+Tests für fünf-Städte-Grenze, Stadtwechsel/mehrere Tabs, lokale Wirtschaft, globale Forschung, Aufklärungsschutz, konkurrierende Eroberungen, Anspruchsablauf, Gebühren und Crash-Recovery. Vollständigen UI-Ablauf prüfen; tatsächliche Ergebnisse in docs/MULTICITY_VALIDATION.md. Planungschat hat keine Anwendungstests ausgeführt.
+
+Reihenfolge: Auftrag 15 Mehrstadt/Eroberung/Gründung → Auftrag 16 Lieferungen zwischen eigenen und fremden Städten → Bündnisse/Versorgung und geregelter Handel. Weitere Militärtechnik und Matrix-Föderation bleiben eigene Schritte.
+
+## Zurückgestellter Auftrag 16 vom 09.10.2026: Ressourcenlieferungen zwischen Spielerstädten
+
+Die frühere Lieferplanung für Auftrag 15 wird durch den neuen Mehrstadtauftrag ersetzt und als Auftrag 16 zurückgestellt. Erst die Mehrstadtgrundlage implementieren. Lieferungen anschließend zwischen eigenen und fremden Städten erlauben, mit expliziten originCityId/targetCityId; nur Lieferung an dieselbe Ausgangsstadt ausschließen. Weitere frühere Detailregeln vor Ausführung an den neuen Stand anpassen. CODEX_PROMPT.md enthält den aktuellen Mehrstadtauftrag. Die vollständige vorherige Lieferspezifikation bleibt in der Git-Historie unter Commit 24ca530a48fb77f31a395304e0a97019157ce1ed erhalten.
 
 ### Vorläufige neue Lieferregeln
 
-- Direkte unentgeltliche Lieferungen an andere Spielerstädte derselben Welt, auch bei offline Empfänger. Automatische Zustellung ohne Gegenleistung/Annahmedialog.
+- Direkte unentgeltliche Lieferungen an andere eigene oder fremde Spielerstädte derselben Welt, auch bei offline Empfänger. Automatische Zustellung ohne Gegenleistung/Annahmedialog.
 - Mindestens ein LKW, positive Ressourcenladung und ein eigener freier General. Zunächst ausschließlich LKWs, keine Begleitkämpfe oder stationierten Unterstützungstruppen.
 - Ladung aus Holz, Stein, Nahrung und freiwilligem Öl. Gemeinsame Kapazität und physisch mitgeführtes Betriebsöl aus Auftrag 14 wiederverwenden.
 - Normale Hin-/Rückreise ohne zusätzliche Verzögerung. Kein Rückruf oder nachträgliches Ändern in dieser ersten Stufe.
