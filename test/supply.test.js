@@ -34,8 +34,9 @@ test('Offline-Unterhalt endet bei null und erzeugt nach Schonfrist genau eine pr
   assert.equal(player.military.units.infantry, 80, 'Eingabe bleibt unverändert');
 });
 
-test('Unterwegs befindliche Truppen zählen einmal und verlieren bei Hunger Traglast', () => {
+test('Historische Regeln ohne Scope versorgen Reisegruppen und erhalten Ladungsverluste', () => {
   const player = playerAt();
+  player.supply = { rules: { ...SUPPLY_RULES, upkeepScope: 'all-living' }, updatedAt: 0, shortageMs: 0, recoveryStartedAt: null, events: [] };
   player.city.buildingSlots[2].level = 0;
   player.city.resources.food = 0;
   player.military.units.infantry = 10;
@@ -85,8 +86,9 @@ test('Unterhaltsaufschlüsselung enthält stationierte und marschierende Truppen
   player.military.missions.push({ id: 'raid-upkeep', type: 'raid', status: 'returning', infantry: 8, result: { survivors: 6 } });
   player.military.missions.push({ id: 'scout-upkeep', type: 'scout', status: 'outbound', scouts: 3 });
   const summary = supplySummary(player);
-  assert.deepEqual(summary.unitCounts, { infantry: 18, scout: 7 });
-  assert.equal(summary.upkeep, 2.15);
+  assert.deepEqual(summary.unitCounts, { infantry: 12, scout: 4 });
+  assert.equal(summary.upkeep, 1.4000000000000001);
+  assert.equal(summary.totalUnits, 25); assert.equal(summary.deployedUnits, 9);
 });
 
 test('Viele kleine Versorgungsschritte ergeben denselben Bestand wie ein Offline-Schritt', () => {

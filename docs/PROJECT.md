@@ -17,10 +17,10 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 3a | Sichtbare quadratische Weltkarte, Spielerpositionen, gemeinsame NPC-Städte und Entfernungen | Implementiert laut aktuellem Projektstand |
 | P | Kommandantenpunkte aus Gebäuden, Forschung und Kämpfen einschließlich Niederlagen | Gebäude-/Kampfwertung umgesetzt; Forschungspunkte mit Auftrag 11 umgesetzt |
 | 3b | Aufklärung und Truppenbewegung auf Grundlage der späteren Armeen | NPC-Aufklärung laut README als Prototyp umgesetzt |
-| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills, Universität/vier Stadtforschungen, Offiziersbewerber und Forschungsleitung umgesetzt; neue Freischaltungen in Auftrag 13 beauftragt |
+| 4a | Universitäten und Forschung, Truppen sowie Generäle mit Erfahrung, Leveln und Truppenzuweisung | Generäle/Skills, Universität/vier Stadtforschungen, Offiziersbewerber und Forschungsleitung umgesetzt; Ölfreischaltungen in Auftrag 13 als Prototyp implementiert |
 | 4b | Kämpfe, NPC-Farmzüge, typabhängige Traglast, Beute, Rückkehr, General-Erfahrung und Berichte | Als vorläufiger Prototyp mit Auftrag 8 implementiert; Balance im Review, Nahrungsunterhalt als Folgeschritt |
 | V | Nahrungsunterhalt, Hungerverluste nach Schonfrist und führungsabhängiger Bürgermeisterbonus | Als vorläufiger Prototyp mit Auftrag 9 implementiert |
-| 4c | LKWs, Ölraffinerien, Ölwirtschaft und typabhängiger Ölbedarf zur Mobilmachung | Auftrag 13 beauftragt; noch nicht als implementiert bestätigt |
+| 4c | LKWs, Ölraffinerien, Ölwirtschaft, stationärer Unterhalt und verzögerte Ankunft mit proportionalem Ölbedarf | Auftrag 13 als getesteter Prototyp im Review implementiert |
 | Luft/Militär | Kampfflugzeuge, Raketenwerfer und Generalfähigkeiten für Luftvorteile | Nutzeranforderung vom 09.10.2026; spätere Phase, nicht Auftrag 13 |
 | 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
@@ -28,6 +28,14 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 8 | Betrieb, Backups, Missbrauchsschutz, Community und Veröffentlichung | Geplant |
 
 Vor jeder Etappe definieren wir einen konkreten Spielablauf und dessen Erfolgskriterien. Keine Zeit- oder Aufwandszusage für das vollständige Spiel: Umfang und Detailtreue sind noch offen.
+
+## Implementierungsstand Auftrag 13
+
+Auf Basis der Präzisierung vom 09.10.2026 implementiert und getestet: Ölverarbeitung/Raffinerie, Motorisierung/Fahrzeugfabrik, gemeinsame Gruppenherstellung für LKWs, typisierte NPC-Farmzüge und serverseitige Vorschau. Neue Bewegungen aller vorhandenen Typen benötigen positive Ölraten (vorläufig Infanterie 0,1, Späher 0,2, LKW 1). Zusatzminuten verlängern nur den Hinweg; Hinwegöl steigt linear im Verhältnis zur normalen Hinreisedauer. Gesamte Zahlung und Mission werden beim Start einmalig gespeichert.
+
+Stadtunterhalt erfasst ab gespeichertem weltweitem Regelwechsel ausschließlich stationierte Truppen. Reise-Hunger-/Ladungsverluste vergangener Intervalle bleiben erhalten; neue Reisen verbrauchen keine Stadt- oder Beutenahrung. Schema 14 erhält alle früheren Ketten einschließlich Schema-13-Vorarbeit, Porträts und Postbox. Prüfbelege: [LOGISTICS_VALIDATION.md](LOGISTICS_VALIDATION.md). Die nachfolgenden Anforderungsabschnitte bleiben als Spezifikation/Historie erhalten; Implementation ist ein vorläufiger Prototyp im Review.
+
+Kampfflugzeuge, Raketenwerfer und Luftfähigkeiten sind ausschließlich für später vorgemerkt. PvP, Handel und aktive Föderation bleiben geplant.
 
 ## Implementierter Stand von Etappe 1
 

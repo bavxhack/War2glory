@@ -86,11 +86,11 @@ test('Produktion und Übergänge verändern den Ausgangszustand nicht', () => {
 test('Neubau und Ausbau reservieren feste Bauplätze und ziehen Kosten einmal ab', () => {
   const city = newCity(0);
   const building = enqueueConstruction(city, command('command-1', 'plot-4', 'farm'), 0);
-  assert.deepEqual(building.resources, { wood: 160, stone: 170, food: 200 });
+  assert.deepEqual(building.resources, { wood: 160, stone: 170, food: 200, oil: 0 });
   assert.equal(building.buildingSlots[3].building, null);
   assert.equal(building.constructionQueue[0].type, 'build');
   assert.throws(() => enqueueConstruction(building, command('command-2', 'plot-4', 'sawmill'), 0), /bereits/);
-  assert.deepEqual(city.resources, { wood: 200, stone: 200, food: 200 });
+  assert.deepEqual(city.resources, { wood: 200, stone: 200, food: 200, oil: 0 });
 });
 
 test('Mehrere Offline-Abschlüsse ändern Produktion zu den exakten Zeitpunkten', () => {
@@ -99,7 +99,7 @@ test('Mehrere Offline-Abschlüsse ändern Produktion zu den exakten Zeitpunkten'
   city = enqueueConstruction(city, command('command-2', 'plot-2', 'quarry'), 0);
   city = enqueueConstruction(city, command('command-3', 'plot-4', 'farm'), 0);
   const later = advanceCity(city, 30000);
-  assert.deepEqual(later.resources, { wood: 50, stone: 90, food: 235 });
+  assert.deepEqual(later.resources, { wood: 50, stone: 90, food: 235, oil: 0 });
   assert.deepEqual(later.buildingSlots.slice(0, 4).map(slot => slot.level), [2, 2, 1, 1]);
   assert.equal(later.constructionQueue.length, 0);
 });
@@ -112,7 +112,7 @@ test('Volle Warteschlange, belegte Plätze, unbekannte Gebäude und Rohstoffmang
   poorCity.resources.wood = 0;
   assert.throws(() => enqueueConstruction(poorCity, command('command-1', 'plot-4', 'farm'), 0), /Rohstoffe/);
 
-  city.resources = { wood: 1000, stone: 1000, food: 200 };
+  city.resources = { wood: 1000, stone: 1000, food: 200, oil: 0 };
   for (let index = 0; index < MAX_QUEUE_LENGTH; index += 1) {
     city = enqueueConstruction(city, command(`command-${index}`, `plot-${index + 1}`, Object.keys(cityOffers(city).build)[index]), 0);
   }
@@ -126,23 +126,23 @@ test('Lagergrenze und rückwärts laufende Uhr', () => {
 
 test('Produktionsgebäude und Lagerhäuser erhöhen ressourcenspezifische Kapazitäten erst nach Abschluss', () => {
   let city = newCity(0);
-  city.resources = { wood: 2000, stone: 2000, food: 2000 };
+  city.resources = { wood: 2000, stone: 2000, food: 2000, oil: 0 };
   city = enqueueConstruction(city, command('upgrade-sawmill', 'plot-1', 'sawmill'), 0);
   city = enqueueConstruction(city, command('warehouse-one', 'plot-4', 'warehouse'), 0);
-  city.resources = { wood: 2200, stone: 2200, food: 2200 };
-  assert.deepEqual(resourceCapacities(city), { wood: 2000, stone: 2000, food: 2000 });
+  city.resources = { wood: 2200, stone: 2200, food: 2200, oil: 0 };
+  assert.deepEqual(resourceCapacities(city), { wood: 2000, stone: 2000, food: 2000, oil: 2000 });
   city = advanceCity(city, 15_000);
-  assert.deepEqual(resourceCapacities(city), { wood: 2750, stone: 2500, food: 2500 });
+  assert.deepEqual(resourceCapacities(city), { wood: 2750, stone: 2500, food: 2500, oil: 2500 });
   assert.equal(city.resources.wood, 2210, 'im vollen Lager pausierte Produktion wird nicht nachgeholt');
 });
 
 test('Abriss erstattet nur nachgewiesene Investitionen und erhält Überbestand', () => {
   let city = newCity(0);
-  city.resources = { wood: 1000, stone: 1000, food: 2500 };
+  city.resources = { wood: 1000, stone: 1000, food: 2500, oil: 0 };
   city = advanceCity(enqueueConstruction(city, command('warehouse-build', 'plot-4', 'warehouse'), 0), 5000);
   const { preview } = demolitionPreview(city, 'plot-4', 5000);
-  assert.deepEqual(preview.refund, { wood: 4, stone: 3, food: 0 });
-  assert.deepEqual(preview.capacityAfter, { wood: 2000, stone: 2000, food: 2000 });
+  assert.deepEqual(preview.refund, { wood: 4, stone: 3, food: 0, oil: 0 });
+  assert.deepEqual(preview.capacityAfter, { wood: 2000, stone: 2000, food: 2000, oil: 2000 });
   const demolished = demolishBuilding(city, preview, 5000).city;
   assert.equal(demolished.resources.food, 2500);
   assert.equal(demolished.buildingSlots[3].building, null);
@@ -152,10 +152,10 @@ test('Abriss erstattet nur nachgewiesene Investitionen und erhält Überbestand'
 
 test('Unbekannte Altinvestitionen werden nicht aus aktuellen Preisen rekonstruiert', () => {
   const city = newCity(0); const slot = city.buildingSlots[0];
-  slot.investment = { complete: false, paid: { wood: 80, stone: 0, food: 0 } };
+  slot.investment = { complete: false, paid: { wood: 80, stone: 0, food: 0, oil: 0 } };
   const { preview } = demolitionPreview(city, slot.id, 0);
   assert.equal(preview.investmentComplete, false);
-  assert.deepEqual(preview.refund, { wood: 8, stone: 0, food: 0 });
+  assert.deepEqual(preview.refund, { wood: 8, stone: 0, food: 0, oil: 0 });
 });
 
 test('Kartendistanz verwendet dokumentierte euklidische Luftlinie', () => {
@@ -259,7 +259,7 @@ test('Skillgrundlage berechnet steigende Kosten und verteilt nur freie Punkte', 
 test('Eine große Ausbildungsgruppe blockiert die Kaserne bis zum gemeinsamen Abschluss', () => {
   const city = newCity(0);
   city.militarySlots[0] = { ...city.militarySlots[0], building: 'barracks', level: 1 };
-  city.resources = { wood: 2000, stone: 2000, food: 2000 };
+  city.resources = { wood: 2000, stone: 2000, food: 2000, oil: 0 };
   const result = enqueueTraining(newMilitary('batch-player'), city, { id: 'train-100', barracksSlotId: 'military-plot-1', unit: 'scout', amount: 100 }, 0);
 
   assert.equal(result.military.trainingQueue[0].finishesAt, 200_000);
@@ -276,13 +276,13 @@ test('Jede Kaserne besitzt drei eigene Slots und bildet parallel aus', () => {
   let city = newCity(0);
   city.militarySlots[0] = { ...city.militarySlots[0], building: 'barracks', level: 1 };
   city.militarySlots[1] = { ...city.militarySlots[1], building: 'barracks', level: 1 };
-  city.resources = { wood: 2000, stone: 2000, food: 2000 };
+  city.resources = { wood: 2000, stone: 2000, food: 2000, oil: 0 };
   let military = newMilitary('parallel-player');
 
   for (let index = 0; index < 3; index += 1) {
     ({ city, military } = enqueueTraining(military, city, { id: `first-${index}`, barracksSlotId: 'military-plot-1', unit: 'scout', amount: 1 }, 0));
   }
-  assert.throws(() => enqueueTraining(military, city, { id: 'first-full', barracksSlotId: 'military-plot-1', unit: 'scout', amount: 1 }, 0), /dieser Kaserne ist voll/);
+  assert.throws(() => enqueueTraining(military, city, { id: 'first-full', barracksSlotId: 'military-plot-1', unit: 'scout', amount: 1 }, 0), /dieses Gebäudes ist voll/);
   const second = enqueueTraining(military, city, { id: 'second-1', barracksSlotId: 'military-plot-2', unit: 'infantry', amount: 1 }, 0);
   assert.equal(second.military.trainingQueue.find(job => job.id === 'second-1').finishesAt, 3000);
   assert.equal(second.military.trainingQueue.find(job => job.id === 'first-2').finishesAt, 6000);

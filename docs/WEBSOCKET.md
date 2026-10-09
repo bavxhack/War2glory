@@ -110,3 +110,28 @@ Generäle und Bewerber besitzen seit Schema 11 eine private `portraitId` aus dem
 Sendungen sind in der Weltwarteschlange serialisiert; Senderkopie und Empfängerkopie werden gemeinsam mit dem bestehenden Transaktionsjournal gespeichert. Bestätigung und private Broadcasts erst danach. Derselbe Sender/requestId/Inhalt liefert dauerhaft dieselbe Nachricht-ID, ohne zweite Zustellung oder erneute Rate-Limit-Buchung; anderer Inhalt wird abgewiesen. Die Nachrichtenkopie enthält dafür `commandId`/`fingerprint`, unabhängig von der begrenzten allgemeinen Befehlshistorie. Lesestatusänderungen werden in der eigenen Spielerdatei gespeichert und an alle eigenen Verbindungen gesendet. Kein Nachrichten-Polling oder zusätzlicher Socket. Große ausgehende private Snapshots nutzen gültige 64-Bit-WebSocket-Längen.
 
 Migration 11 → 12 ergänzt leere Nachrichten und markiert ausschließlich bereits vorhandene Berichts-IDs als gelesen. Später abgeschlossene Einsätze liefern weiterhin neue ungelesene Berichte, auch bei Offline-Abrechnung. Keine rückwirkende Änderung der Berichtsinhalte.
+
+## Forschungsfreischaltungen und typisierte Logistik (Auftrag 13)
+
+Private Snapshots enthalten Ölressourcen/Kapazitäten, LKW-Bestand, zwei neue Technologien sowie bedingte Bauangebote (`reason`). `research-3-logistics-provisional` ergänzt `oilProcessing` (maximal 1, Universität 1, 300/300, 120 s) und `motorization` (maximal 1, Universität 2, Ölverarbeitung/Lagerlogistik 1, 500/500, 240 s). Kosten/Dauer der vier bisherigen Technologien bleiben unverändert. `research-1`-/`research-2`-Aufträge werden anhand gespeicherter Zeiten abgeschlossen, ohne Nachbelastung oder Generalbonusänderung. Freischaltungen geben jeweils zehn abgeleitete Forschungspunkte.
+
+`training.enqueue` akzeptiert `{trainingSlotId, unit, amount}` und den bisherigen Alias `barracksSlotId`. `truck` darf nur in der eigenen fertigen `vehicleFactory` mit abgeschlossener Motorisierung hergestellt werden; Infanterie/Späher nur in Kasernen. Kosten, Gebäudestufe und Dauer werden beim Einreihen festgehalten. Derselbe Ausbildungs-/Hungermechanismus gilt für beide Gebäudetypen.
+
+Neue Vorschauen:
+
+- `raid.preview`: `{targetId, generalId, units: {infantry: positive Ganzzahl, truck: nicht negative Ganzzahl}, delayMinutes: optionale nicht negative Ganzzahl}`. Standard 0, serverseitiges konfiguriertes Limit; Summe aller Typen maximal 10000.
+- `scouting.preview`: `{targetId, generalId, scouts}`. Positive Zusatzverzögerung wird abgewiesen; normale Ölzahlung bleibt erforderlich.
+
+Antwort enthält Typmengen/verfügbare Bestände, Generalversion/Boni, Distanz, `travelMs`, `delayMinutes`, `delayMs`, `outboundTravelMs`, `previewAt`, voraussichtliche `arrivesAt`/`returnsAt`, `normalOneWayOil`, `baseOil`, `delayOil`, `outboundOil`, `returnOil`, `totalOil`, `fuelCalculation`, Regeln, Traglast sowie `upkeepBeforePerHour`/`upkeepAfterPerHour`. Kein Live-NPC-Vorrat oder garantierte Beute. Positive Raten stammen aus `logistics.oilMilliPerField`.
+
+`raid.start`/`scouting.start` senden Eingaben und unverändertes `preview` zurück. Server prüft Regeln, Mengen, General, aktuelle Verfügbarkeit und Öl erneut. Sichtbare Mengen/Kosten/Dauer/Regeln binden die Bestätigung; normale Zeit zwischen Vorschau und Bestätigung verschiebt nur Abreise und absolute Termine. Gelieferte Zeitstempel werden nie übernommen. Veränderung verlangt erneute Vorschau. Fehlendes Öl reserviert weder General noch Truppen.
+
+Neue Zahlung: bei E als ungerundetem Normalöl einer Richtung, T als Grundreise und D als Zusatzzeit gilt `ceil(E × (2T+D)/T)`. Hinweg E × (T+D)/T, Rückweg E. Millisekunden und feste Tausendstel mit BigInt; rationale Grundlage als Dezimalstrings im Snapshot. Kein freier Minutenpreis. Aufklärung und reine Infanterie benötigen ebenfalls Öl.
+
+Start speichert Mission, komplette vorausbezahlte Ölmenge, Truppenreservierung, Generalbindung, Weltsequenz und dauerhaften Wiederholungsbeleg zusammen im Journal vor Erfolg. Derselbe Request mit unverändertem Payload wirkt einmal, widersprüchlicher Payload scheitert, auch nach Ablauf der allgemeinen Befehlshistorie. Interne Fingerprints erscheinen nicht in Snapshots. Neustart verändert keine gespeicherten Preise/Termine/Traglast.
+
+`military.reports` bleibt Quelle der vorhandenen Postbox. Neue gemischte Berichte enthalten Start-/Kampf-/Rückkehrmengen, Kampfverluste je Typ, Zeitplan, Ölgrundbedarf/-mehrkosten/-zahlung, Boni, Traglast, Einlagerung und Überlauf. Historische Reise-/Ladungsverluste werden ausdrücklich als solche angezeigt; Altberichte erhalten keine erfundene Ölzahlung. Nachrichten/Lesestatus bleiben unverändert.
+
+Private Snapshots enthalten `logisticsRules` mit den erlaubten Spielregeln und Versorgungssummary: `unitCounts`/`units` beziehen sich auf versorgungspflichtige Gruppen; `totalUnits` und `deployedUnits` zeigen alle lebenden Bestände getrennt. Ab `upkeepScope: stationed` sind unterwegs befindliche Einheiten auch während Zusatzzeit und Rückreise frei von Stadtverbrauch/Hunger. Kein Proviantabzug und kein Verbrauch von Beuteladung. Bei Rückkehr sind Überlebende wieder stationiert; gleichzeitige Hungerwelle folgt erst nach Einlagerung. Solche Verluste stehen in Stadtversorgungsereignissen, nicht im Reisebericht.
+
+Schema 14 führt alle bisherigen Migrationen über Schema 13 weiter. Fehlende Zusatzzeit wird 0, vorhandene Termine/Zahlungen bleiben verbindlich. Historische Versorgungsregeln ohne Scope bedeuten `all-living`; die gespeicherte weltweite Umstellung trennt alte Abrechnung von zukünftigem stationärem Unterhalt. Neue Ölformel und Scope ändern keine vergangenen Berichte. Die Abschnitte zu Schema 7–12 oben dokumentieren frühere Protokollstände; aktueller Unterhalt folgt diesem Abschnitt.
