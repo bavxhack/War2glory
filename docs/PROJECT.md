@@ -23,7 +23,8 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 4c | LKWs, Ölraffinerien, Ölwirtschaft, stationärer Unterhalt und verzögerte Ankunft mit proportionalem Ölbedarf | Auftrag 13 vom Nutzer am 09.10.2026 als abgeschlossen bestätigt |
 | 4d | Freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite | Auftrag 14 als getesteter Prototyp implementiert; neue Balancewerte vorläufig |
 | Luft/Militär | Kampfflugzeuge, Raketenwerfer und Generalfähigkeiten für Luftvorteile | Nutzeranforderung vom 09.10.2026; spätere Phase, nicht Auftrag 13 |
-| 5 | Bündnisse, Unterstützung und Handel innerhalb einer Welt | Geplant |
+| 5a | Ressourcenlieferungen zwischen Spielerstädten mit Rücktransport nicht angenommener Ladung | Auftrag 15 spezifiziert; Umsetzung ausstehend |
+| 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
 | 8 | Betrieb, Backups, Missbrauchsschutz, Community und Veröffentlichung | Geplant |
@@ -478,9 +479,9 @@ Verbindliche Präzisierung vom 09.10.2026: Keine pauschale Verzögerungsrate je 
 
 Zunächst Logistikkreislauf, stationären Unterhalt und verzögerte Ankünfte bewerten. Weitere Rohstoffbeute, Handel/Unterstützung, PvP und zusätzliche militärische Technologien einschließlich Flugzeugen/Raketenwerfern separat spezifizieren. Matrix-Föderation bleibt Kernziel; Identitäten, Regeln und Vertrauen benötigen weiterhin eine eigene Etappe.
 
-## Beauftragter Auftrag 14 vom 09.10.2026: Ressourcenladung, Betriebsöl und Einsatzreichweite
+## Abgeschlossener Auftrag 14 vom 09.10.2026: Ressourcenladung, Betriebsöl und Einsatzreichweite
 
-Status: zur Umsetzung spezifiziert, noch nicht als implementiert bestätigt. Auftrag13 ist laut Nutzer abgeschlossen. Das Verbrauchsmodell ist bestätigt: Betriebsöl wird auf der Reise verbraucht und gibt dadurch Transportplatz frei. Freiwillige Ölladung bleibt normale Ressource. Der vollständige ausführbare Auftrag steht in CODEX_PROMPT.md.
+Status: vom Nutzer am 09.10.2026 als abgeschlossen bestätigt; Implementierungsstand und Nachweise siehe oben. Auftrag13 ist ebenfalls abgeschlossen. Das Verbrauchsmodell ist bestätigt: Betriebsöl wird auf der Reise verbraucht und gibt dadurch Transportplatz frei. Freiwillige Ölladung bleibt normale Ressource. Die folgenden Regeln dokumentieren Auftrag 14; CODEX_PROMPT.md enthält inzwischen den aktuellen Folgeauftrag 15.
 
 ### Bestätigte Anforderungen
 
@@ -513,11 +514,44 @@ Die folgenden Regeln schließen Randfälle; sie sind Projekt-Balanceentscheidung
 
 ### Abnahme und weitere Reihenfolge
 
-CODEX_PROMPT.md enthält vollständige Rechenfälle und Tests für Treibstoff, Ladung, Verzögerung, Kampfverluste, Späher, Lagerüberlauf, Mehrspieler und Migration. Der Planungschat hat keine Anwendungstests ausgeführt.
+Die Implementierung und Nachweise zu Auftrag 14 sind unter Implementierungsstand Auftrag 14 und CARGO_VALIDATION.md dokumentiert. Der Planungschat hat keine Anwendungstests ausgeführt.
 
 1. Auftrag14: Fracht, physisches Betriebsöl, Verbrauch, Rückkehr und kapazitätsabhängige Reichweite vollständig implementieren und prüfen.
 2. Danach Spielerlieferungen/Versorgung zwischen Städten auf demselben Frachtmodell spezifizieren.
 3. Forschung/weitere Militärtechnik, spätere Luft-/Raketenphase und Matrix-Föderation gesondert fortführen.
+
+## Beauftragter Auftrag 15 vom 09.10.2026: Ressourcenlieferungen zwischen Spielerstädten
+
+Der Nutzer bestätigt Auftrag 14 als abgeschlossen und beauftragt den nächsten Ausbauschritt. Auftrag 15 ist spezifiziert, noch nicht als umgesetzt bestätigt. Vollständige Implementierungsanweisungen und Abnahme stehen in CODEX_PROMPT.md.
+
+### Vorläufige neue Lieferregeln
+
+- Direkte unentgeltliche Lieferungen an andere Spielerstädte derselben Welt, auch bei offline Empfänger. Automatische Zustellung ohne Gegenleistung/Annahmedialog.
+- Mindestens ein LKW, positive Ressourcenladung und ein eigener freier General. Zunächst ausschließlich LKWs, keine Begleitkämpfe oder stationierten Unterstützungstruppen.
+- Ladung aus Holz, Stein, Nahrung und freiwilligem Öl. Gemeinsame Kapazität und physisch mitgeführtes Betriebsöl aus Auftrag 14 wiederverwenden.
+- Normale Hin-/Rückreise ohne zusätzliche Verzögerung. Kein Rückruf oder nachträgliches Ändern in dieser ersten Stufe.
+- Truppen und General bleiben Eigentum des Absenders und bis zur Heimkehr gebunden. Kein Unterhalt unterwegs, keine XP/Punkte für Transfers.
+- Bei Ankunft tatsächliche freie Lagerplätze je Ressource prüfen. Nur passende ganze Mengen gutschreiben; nicht angenommene Güter automatisch zurücktransportieren. Kein Verwerfen wegen voller Ziellager.
+- Ungültig gewordenes Ziel oder geänderter Empfänger: gesamte Ladung zurück. Technische Speicherfehler recovern, nicht als Zielverlust interpretieren.
+- Rückwegöl bleibt beim Transport, wird nicht geliefert und vollständig verbraucht. Freiwillige Ölladung bleibt normale lieferbare Ressource.
+- Bei Heimkehr gelten vorhandene Lagergrenzen und dokumentierter Heimlagerüberlauf.
+
+### Technische Leitplanken
+
+- Ausgangsschema 15; nächste freie Version vor Umsetzung prüfen. Bestehende NPC-Missionen unverändert nach ihren Versionen beenden.
+- Gemeinsame Berechnungen aus logistics.js/cargo.js verwenden; kein zweites Logistiksystem.
+- Empfängergutschrift und Reduktion der Missionsladung gemeinsam über exklusive Weltqueue und vorhandenes Mehrspieler-Recovery-Journal buchen.
+- requestId, Ankunft, Rückkehr und beidseitige Postboxberichte idempotent behandeln.
+- Offlineereignisse nach Zeit und stabiler Missions-ID ordnen. Nahrungslieferung vor späteren Hungerereignissen anwenden, unabhängig von Login-Reihenfolge.
+- Nur bestehende WebSocket-Spielkommunikation erweitern. Absender und Empfänger bekommen berechtigte Informationen, Unbeteiligte keine privaten Transportdaten.
+- Vorschau zeigt keine privaten Zielbestände oder Lagerausbauten; tatsächliche Annahme entscheidet sich erst bei Ankunft.
+- Beispiel mit Defaultwerten: 5 LKW × 200 Traglast = 1000; Distanz 10 × 5 LKW × 1 Öl = 50 Öl je Weg, 100 gesamt, daher maximal 900 Güter. Bei 600 Holz/300 Nahrung und Zielplatz 250 Holz/200 Nahrung werden diese Mengen zugestellt, 350 Holz/100 Nahrung kehren zurück.
+
+### Abnahme und Folgeplanung
+
+Zwei-Spieler-Ablauf, Teilannahme, volle Lager, freiwilliges Öl, parallele Lieferungen, Crash-Recovery, doppelte Befehle, Offlineversorgung und Datenschutz gezielt testen. Tatsächliche Ergebnisse in docs/DELIVERY_VALIDATION.md dokumentieren. Der Planungschat hat keine Anwendungstests ausgeführt.
+
+Danach Bündnisse/gemeinsame Versorgung und anschließend geregelten Tauschhandel abstimmen. Stationierte Unterstützung, weitere Militärtechnik und Matrix-Föderation sind separate Schritte.
 
 ## Bestätigte spätere Phase vom 09.10.2026: Luftstreitkräfte, Raketenwerfer und Generalfähigkeiten
 
