@@ -1,3 +1,4 @@
+import { resolveMissionCombat } from './military.js';
 import { isCoordinate, terrainAt } from './world.js';
 import { MAX_CITIES, foundedCity, ownedCity } from './multicity.js';
 import { missionQuote, startLogisticsMission } from './logistics.js';
@@ -29,7 +30,9 @@ export function fieldMissionQuote(player, world, command, origin, field, rules, 
   const conquest = command.type === 'conquest';
   if (conquest) checkConquest(player, world, field, command); else freeField(world, field.x, field.y);
   const quote = missionQuote(player, { ...command, type: conquest ? 'raid' : 'scout' }, origin, { ...field, kind: 'npc', name: `Feld (${field.x}, ${field.y})` }, rules, now);
-  return { ...quote, type: command.type, originCityId: origin.id, fieldRevision: field.revision, reportId: conquest ? command.reportId : null, projectedLootCapacity: 0 };
+  const report = conquest ? player.military.reports.find(r => r.id === command.reportId) : null;
+  const combatForecast = conquest ? { ...resolveMissionCombat({ ruleset: FIELD_RAID_RULESET, combatBonuses: quote.combatBonuses }, quote.units.infantry, report.intelligence.defenders), defenders: report.intelligence.defenders, observedAt: report.intelligence.capturedAt, reportId: report.id } : null;
+  return { ...quote, ...(combatForecast ? { combatForecast } : {}), type: command.type, originCityId: origin.id, fieldRevision: field.revision, reportId: conquest ? command.reportId : null, projectedLootCapacity: 0 };
 }
 export function startFieldMission(player, world, command, now, origin, field, rules, settlementRules) {
   const quote = fieldMissionQuote(player, world, command, origin, field, rules, now);

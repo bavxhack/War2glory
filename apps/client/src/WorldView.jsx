@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { finishMapPointer, mapSelectionCoordinate } from '../map-navigation.js';
 import { ActionButton, GameArt, Dialog } from './ui.jsx';
 
@@ -105,7 +105,7 @@ export function WorldView({ state, map, details, transport }) {
               role="gridcell"
               key={key}
               data-map-coordinate={key}
-              className={`world-tile ${terrain.type}${entity ? ` has-city ${entity.type}` : ''}${details?.entity?.id === entity?.id ? ' selected' : ''}`}
+              className={`world-tile ${terrain.type}${entity ? ` has-city ${entity.type}` : ''}${details?.terrain?.x === terrain.x && details?.terrain?.y === terrain.y ? ' selected' : ''}`}
               aria-label={entity ? `${entity.name}, ${terrain.x}, ${terrain.y}` : `${terrain.type}, ${terrain.x}, ${terrain.y}`}
             >
               <span className="coordinates">{terrain.x},{terrain.y}</span>
@@ -168,39 +168,73 @@ function MissionDialog({ target, state, transport, onClose, type }) {
 }
 
 function FieldActions({ selection, state, transport }) {
-  const [name, setName] = useState('Neue Stadt'), [error, setError] = useState(''), [preview, setPreview] = useState(null), [kind, setKind] = useState(''), [busy, setBusy] = useState(false);
-  const [infantry, setInfantry] = useState(1), [trucks, setTrucks] = useState(0), [scouts, setScouts] = useState(1), [delayMinutes, setDelayMinutes] = useState(0);
-  const [cargo, setCargo] = useState({ wood: 0, stone: 0, food: 0, oil: 0 });
-  const [generalId, setGeneralId] = useState('');
+  const [dialog, setDialog] = useState(null);
+  const closeDialog = useCallback(() => setDialog(null), []);
   const terrain = selection?.terrain;
   if (!terrain || terrain.type === 'water') return null;
-  const { x, y } = terrain;
-  const claim = state.claims?.find(c => c.x === x && c.y === y);
+  const sameField = item => item.coordinates?.x === terrain.x && item.coordinates?.y === terrain.y;
+  const claim = state.claims?.find(c => c.x === terrain.x && c.y === terrain.y);
   if (selection.entity && !claim) return null;
-  const report = [...state.military.reports].reverse().find(r => r.type === 'field-scout' && r.coordinates?.x === x && r.coordinates?.y === y && r.intelligence);
-  const general = generalId || state.military.generals.find(g => g.status === 'idle')?.id;
-  const payload = { x, y, generalId: general, scouts, units: { infantry, truck: trucks }, delayMinutes, cargo, reportId: report?.id, claimId: claim?.id };
-  const check = async type => {
-    setBusy(true); setError(''); setKind(type); setPreview(null);
-    try { setPreview(await transport.request(type === 'found' ? 'city.found.preview' : `field.${type}.preview`, payload)); }
+  const report = [...state.military.reports].reverse().find(r => r.type === 'field-scout' && sameField(r) && r.intelligence);
+  const mission = state.fieldMissions?.find(sameField);
+  const reservation = state.claims?.length || state.fieldMissions?.some(m => m.type === 'conquest' && m.status === 'outbound');
+  const general = state.military.generals.some(g => g.status === 'idle');
+  const stale = report?.fieldCurrent === false;
+  const limit = (state.cities?.length ?? 1) >= 5;
+  const scoutReason = !general ? 'Kein freier General in deinem Generalstab.' : state.military.units.scout < 1 ? 'In der Ausgangsstadt fehlen Späher.' : null;
+  const conquestReason = limit ? 'Du besitzt bereits fünf Städte.' : reservation && !claim ? 'Ein Eroberungszug oder Anspruch reserviert bereits deinen Stadtplatz.' : !report ? 'Zuerst aufklären und die Rückkehr des Berichts abwarten.' : stale ? 'Das Feld hat sich verändert. Erneut aufklären.' : !general ? 'Kein freier General verfügbar.' : state.military.units.infantry < 1 ? 'In der Ausgangsstadt fehlt Infanterie.' : null;
+  return <section className="card field-actions" aria-label="Feldaktionen">
+    <ol className="field-steps" aria-label="Weg zur neuen Stadt"><li className={report ? 'done' : 'active'}>1 · Aufklären</li><li className={claim ? 'done' : report ? 'active' : ''}>2 · Erobern</li><li className={claim ? 'active' : ''}>3 · Gründen</li></ol>
+    {claim ? <><h3>Das Feld gehört dir</h3><p>Gründe hier deine nächste Stadt. Bezahlt wird aus <strong>{state.cities.find(c => c.id === claim.originCityId)?.name}</strong>.</p><p className="field-status">Noch {Math.max(0, Math.ceil((claim.expiresAt - state.serverTime) / 60000))} Minuten Zeit.</p><ActionButton label="Stadt gründen" detail="Name wählen und Gründungsgebühr prüfen" onClick={() => setDialog('found')}/></> : <>
+      <h3>{report ? 'Aufgeklärtes Feld' : 'Unbekannte Verteidigung'}</h3>
+      {report ? <div className={`field-intelligence${stale ? ' stale' : ''}`}><strong>{report.intelligence.defenders} Infanterie-Verteidiger</strong><span>Beobachtung vom {new Date(report.intelligence.capturedAt ?? report.returnedAt).toLocaleString('de-DE')}</span><small>{stale ? 'Bericht veraltet · neue Aufklärung erforderlich' : 'Aufklärung abgeschlossen · bereit zur Einsatzplanung'}</small></div> : <p>Schicke Späher. Nach ihrer Rückkehr kennst du die Verteidigung und kannst deine Armee planen.</p>}
+      {mission && <div className="field-status" role="status"><strong>{mission.type === 'conquest' ? 'Eroberungszug' : 'Aufklärung'} · {mission.status === 'outbound' ? 'Hinreise' : 'Rückreise'}</strong><span>{mission.status === 'outbound' ? 'Ankunft' : 'Rückkehr'} in {Math.max(0, Math.ceil(((mission.status === 'outbound' ? mission.arrivesAt : mission.returnsAt) - state.serverTime) / 1000))} s</span>{mission.type === 'field-scout' && <small>Der Bericht wird erst bei Rückkehr freigegeben.</small>}{mission.result && <small>{mission.result.cancelled ? mission.result.reason : mission.result.victory ? 'Sieg · dein Anspruch ist bereit zur Gründung.' : 'Niederlage · Armee kehrt zurück. Erkunde die verbliebene Verteidigung erneut.'}</small>}</div>}
+      <ActionButton label={stale ? 'Erneut aufklären' : 'Feld aufklären'} detail={scoutReason ?? 'Späher und General wählen · Öl und Reisezeit prüfen'} disabled={Boolean(scoutReason)} onClick={() => setDialog('scout')}/>
+      <ActionButton label="Feld erobern" detail={conquestReason ?? 'Armee zusammenstellen und Kampfprognose prüfen'} disabled={Boolean(conquestReason)} onClick={() => setDialog('conquest')}/>
+    </>}
+    <p className="field-footnote">{state.cities?.length ?? 1}/5 Städte · Die Armee kehrt zur Ausgangsstadt zurück.</p>
+    {dialog && (dialog !== 'found' || claim) && <FieldDialog key={`${dialog}-${terrain.x}-${terrain.y}`} kind={dialog} terrain={terrain} report={report} claim={claim} state={state} transport={transport} onClose={closeDialog}/>}
+  </section>;
+}
+
+function FieldDialog({ kind, terrain, report, claim, state, transport, onClose }) {
+  const conquest = kind === 'conquest', founding = kind === 'found';
+  const [generalId, setGeneralId] = useState(state.military.generals.find(g => g.status === 'idle')?.id ?? '');
+  const [infantry, setInfantry] = useState(Math.min(state.military.units.infantry, Math.max(1, (report?.intelligence.defenders ?? 0) + 1)));
+  const [trucks, setTrucks] = useState(0), [scouts, setScouts] = useState(1), [delayMinutes, setDelayMinutes] = useState(0);
+  const [cargo, setCargo] = useState({ wood: 0, stone: 0, food: 0, oil: 0 }), [name, setName] = useState('Neue Stadt');
+  const [preview, setPreview] = useState(null), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const close = useCallback(() => { if (!busy) onClose(); }, [busy, onClose]);
+  const payload = founding ? { claimId: claim?.id, name } : { x: terrain.x, y: terrain.y, generalId, ...(conquest ? { units: { infantry, truck: trucks }, delayMinutes, cargo, reportId: report?.id } : { scouts }) };
+  const check = async () => {
+    setBusy(true); setError(''); setPreview(null);
+    try { setPreview(await transport.request(founding ? 'city.found.preview' : `field.${kind}.preview`, payload)); }
     catch (cause) { setError(cause.message); } finally { setBusy(false); }
   };
   const confirm = async () => {
     setBusy(true); setError('');
-    try { await transport.request(kind === 'found' ? 'city.found' : `field.${kind}.start`, { ...payload, name, preview }); setPreview(null); }
-    catch (cause) { setError(cause.message); setPreview(null); } finally { setBusy(false); }
+    try { await transport.request(founding ? 'city.found' : `field.${kind}.start`, { ...payload, preview }); onClose(); }
+    catch (cause) { setPreview(null); setError(`${cause.message} Bitte erneut prüfen.`); } finally { setBusy(false); }
   };
   const edit = setter => event => { setter(event.target.type === 'number' ? Number(event.target.value) : event.target.value); setPreview(null); };
-  return <section className="card"><h3>{claim ? 'Eigener Feldanspruch' : 'Felderkundung und Eroberung'}</h3>
-    {claim ? <><p>Anspruch bis {new Date(claim.expiresAt).toLocaleString('de-DE')} · noch {Math.max(0, Math.ceil((claim.expiresAt - state.serverTime) / 60000))} Minuten.</p><p>Zahlung aus {state.cities.find(c => c.id === claim.originCityId)?.name}. Armee kehrt dorthin zurück.</p><label>Stadtname<input value={name} onChange={edit(setName)}/></label><button disabled={busy} onClick={() => check('found')}>Gründungskosten prüfen</button></> : <>
-      <p>{report ? `Beobachtet: ${report.intelligence.defenders} Verteidiger · ${new Date(report.returnedAt).toLocaleString('de-DE')} · Revision ${report.intelligence.fieldRevision}` : 'Verteidigung unbekannt. Erst Späher entsenden und Rückkehrbericht abwarten.'}</p>
-      <label>General<select value={general ?? ''} onChange={edit(setGeneralId)}>{state.military.generals.map(g => <option key={g.id} value={g.id} disabled={g.status !== 'idle'}>{g.name} · {g.status}</option>)}</select></label>
-      <label>Späher<input type="number" min="1" value={scouts} onChange={edit(setScouts)}/></label><button disabled={busy || !general} onClick={() => check('scout')}>Feld aufklären · Vorschau</button>
-      <label>Infanterie<input type="number" min="1" value={infantry} onChange={edit(setInfantry)}/></label><label>LKW<input type="number" min="0" value={trucks} onChange={edit(setTrucks)}/></label>
-      <label>Zusätzliche Verzögerung (Minuten)<input type="number" min="0" value={delayMinutes} onChange={edit(setDelayMinutes)}/></label>
-      <fieldset><legend>Eigene Rückfracht</legend>{Object.entries({ wood: 'Holz', stone: 'Stein', food: 'Nahrung', oil: 'Freiwilliges Öl' }).map(([key,label]) => <label key={key}>{label}<input type="number" min="0" value={cargo[key]} onChange={e => { setCargo({ ...cargo, [key]: Number(e.target.value) }); setPreview(null); }}/></label>)}</fieldset>
-      <button disabled={busy || !report || !general} onClick={() => check('conquest')}>Feld erobern · Vorschau</button><p>Keine Feldbeute. Ein aktiver Eroberungszug oder Anspruch je Spieler; maximal fünf Städte.</p></>}
-    {preview && <><p>{kind === 'found' ? `Gebühr: ${preview.cost.wood} Holz, ${preview.cost.stone} Stein, ${preview.cost.food} Nahrung` : `Ausgangsstadt: ${state.city.name} · Betriebsöl ${preview.totalOil} · eigene Ladung ${preview.ownCargoAmount} · Belegung ${preview.startOccupancy} · Traglast ${preview.capacity} · Tank ${preview.tankCapacity} · Hinweg ${preview.outboundTravelMs / 1000}s, Rückweg ${preview.travelMs / 1000}s · Hinwegöl ${preview.outboundConsumption}, Rückwegreserve ${preview.returnReserve}`}</p><button disabled={busy} onClick={confirm}>{kind === 'found' ? 'Gebühr bezahlen und Stadt gründen' : 'Öl bezahlen und Einsatz starten'}</button></>}
-    {error && <p role="alert">{error}</p>}
-  </section>;
+  const origin = state.cities?.find(c => c.id === (founding ? claim?.originCityId : state.cityId));
+  const title = founding ? 'Neue Stadt gründen' : conquest ? 'Feld erobern' : 'Feld aufklären';
+  const valid = founding ? Boolean(name.trim()) : Boolean(generalId) && (conquest ? Number.isSafeInteger(infantry) && infantry > 0 && infantry <= state.military.units.infantry && Number.isSafeInteger(trucks) && trucks >= 0 && trucks <= state.military.units.truck : Number.isSafeInteger(scouts) && scouts > 0 && scouts <= state.military.units.scout);
+  const feeAvailable = !founding || !preview || Object.entries(preview.cost).every(([key, amount]) => origin?.resources[key] >= amount);
+  return <Dialog open className="field-dialog" kicker={founding ? 'STADTGRÜNDUNG' : 'FELDEINSATZ'} title={title} onClose={close} actions={<><button disabled={busy || !valid} onClick={check}>{founding ? 'Gründungsgebühr prüfen' : 'Einsatz prüfen'}</button><button disabled={busy || !preview || !feeAvailable} onClick={confirm}>{founding ? 'Gebühr bezahlen und gründen' : conquest ? preview?.combatForecast?.victory === false ? 'Trotz Risiko angreifen' : 'Eroberung starten' : 'Aufklärung starten'}</button></>}>
+    <div className="field-dialog-target"><GameArt type={founding ? 'town' : conquest ? 'infantry' : 'scout'}/><div><strong>Feld {terrain.x}, {terrain.y}</strong><span>{terrainLabels[terrain.type]} · Ausgangsstadt {origin?.name ?? state.city.name}</span>{conquest && <span>{report.intelligence.defenders} beobachtete Verteidiger</span>}</div></div>
+    {founding ? <><label>Stadtname<input disabled={busy} value={name} onChange={edit(setName)}/></label><p>Die neue Stadt beginnt mit Sägewerk, Steinbruch und Bauernhof. Deine Armee kehrt weiterhin zur Ausgangsstadt zurück.</p></> : <>
+      <label>General<select disabled={busy} value={generalId} onChange={edit(setGeneralId)}><option value="" disabled>Freien General auswählen</option>{state.military.generals.map(g => <option key={g.id} value={g.id} disabled={g.status !== 'idle'}>{g.name} · {g.status === 'idle' ? 'frei' : 'gebunden'}</option>)}</select></label>
+      {conquest ? <><div className="field-unit-inputs"><label>Infanterie · {state.military.units.infantry} verfügbar<input type="number" disabled={busy} min="1" max={state.military.units.infantry} step="1" value={infantry} onChange={edit(setInfantry)}/></label><label>LKW · {state.military.units.truck} verfügbar<input type="number" disabled={busy} min="0" max={state.military.units.truck} step="1" value={trucks} onChange={edit(setTrucks)}/></label></div><p>Infanterie kämpft, LKWs transportieren. Keine Ressourcenbeute.</p><details className="field-options"><summary>Zusätzliche Verzögerung und eigene Ladung</summary><label>Zusätzliche Verzögerung (Minuten)<input disabled={busy} type="number" min="0" max={state.logisticsRules.maxAttackDelayMinutes} step="1" value={delayMinutes} onChange={edit(setDelayMinutes)}/></label><fieldset className="cargo-inputs"><legend>Eigene Ressourcenladung · kehrt zurück</legend>{Object.entries({ wood: 'Holz', stone: 'Stein', food: 'Nahrung', oil: 'Freiwilliges Öl' }).map(([key,label]) => <label key={key}>{label}<input disabled={busy} type="number" min="0" max={Math.floor(state.city.resources[key])} step="1" value={cargo[key]} onChange={e => { setCargo({ ...cargo, [key]: Number(e.target.value) }); setPreview(null); }}/></label>)}</fieldset></details></> : <><label>Späher · {state.military.units.scout} verfügbar<input disabled={busy} type="number" min="1" max={state.military.units.scout} step="1" value={scouts} onChange={edit(setScouts)}/></label><p>Der Bericht erscheint nach der Rückkehr. Späher benötigen Betriebsöl und tragen keine Ressourcen.</p></>}
+    </>}
+    {preview && <section className="field-preview" aria-label="Verbindliche Einsatzvorschau">
+      {founding ? <><h3>Gründungsgebühr</h3><div className="field-preview-facts">{Object.entries(preview.cost).map(([key, amount]) => <div key={key}><span>{{wood:'Holz',stone:'Stein',food:'Nahrung'}[key]}</span><strong>{amount}</strong></div>)}</div><p>Zahlung aus {origin?.name}. Dein Anspruch bleibt bei fehlenden Rohstoffen bestehen.</p>{!feeAvailable && <p className="notice" role="alert">In der Ausgangsstadt fehlen Rohstoffe für die Gebühr.</p>}</> : <>
+        {preview.combatForecast && <div className={`field-combat ${preview.combatForecast.victory ? 'victory' : 'defeat'}`} role="status"><strong>{preview.combatForecast.victory ? 'Sieg erwartet' : 'Niederlage erwartet'}</strong><span>Voraussichtlich {preview.combatForecast.survivors} überlebende Infanteristen · {preview.combatForecast.attackerLosses} Infanterieverluste.</span><small>Prognose aus deiner Aufklärung. Andere Spieler können das Feld bis zur Ankunft verändern.</small></div>}
+        <div className="field-preview-facts"><div><span>Betriebsöl · einmalig</span><strong>{preview.totalOil}</strong></div><div><span>Hinreise</span><strong>{Math.ceil(preview.outboundTravelMs / 1000)} s</strong></div><div><span>Rückreise</span><strong>{Math.ceil(preview.travelMs / 1000)} s</strong></div></div>
+        <p>Hinwegverbrauch {preview.outboundConsumption} Öl · Rückwegreserve {preview.returnReserve} Öl.</p>
+        {conquest ? <><progress aria-label="Transportbelegung" max={preview.capacity} value={preview.startOccupancy}/><p>Belegung {preview.startOccupancy}/{preview.capacity} · eigene Ladung {preview.ownCargoAmount} · freier Platz {preview.freeStartCapacity}.</p><p>Bei einem Sieg reservierst du das Feld. Danach gründest du gegen Gebühr eine Stadt.</p></> : <p>Betriebsöltanks: {preview.totalOil}/{preview.tankCapacity} belegt.</p>}
+      </>}
+    </section>}
+    {error && <p className="notice" role="alert">{error}</p>}
+  </Dialog>;
 }

@@ -272,3 +272,32 @@ for (const phase of ['victory', 'founding']) for (const boundary of ['journal', 
   if (phase === 'founding' && boundary === 'journal') assert.ok(Object.values(restart.world.fields).some(f => f.claim));
   const before = canonicalJSON(done); await restart.advanceWorld(mission.returnsAt); assert.deepEqual(canonicalJSON(await restart.loadPlayer(done.playerId)), before);
 });
+
+test('conquest preview forecasts the known defense, reveals no new scout intelligence, and binds the chosen army', async t => {
+  const f = await fixture(t), report = await scout(f);
+  const origin = f.home, base = { type: 'conquest', generalId: f.player.military.generals[0].id, reportId: report.id, units: { infantry: 1, truck: 0 } };
+  const losing = fieldMissionQuote(f.player, f.storage.world, base, origin, f.field, f.config.logistics, f.now);
+  assert.equal(losing.combatForecast.victory, false); assert.equal(losing.combatForecast.survivors, 0);
+  const command = { ...base, units: { infantry: report.intelligence.defenders + 1, truck: 0 } };
+  const winning = fieldMissionQuote(f.player, f.storage.world, command, origin, f.field, f.config.logistics, f.now);
+  assert.equal(winning.combatForecast.victory, true); assert.equal(winning.combatForecast.defenders, report.intelligence.defenders);
+  assert.ok(winning.combatForecast.survivors > 0);
+  assert.throws(() => startFieldMission(f.player, f.storage.world, { ...command, preview: losing }, f.now, origin, f.field, f.config.logistics, f.config.settlement), /vorschau/);
+  const scoutPreview = fieldMissionQuote(f.player, f.storage.world, { type: 'field-scout', generalId: base.generalId, scouts: 1 }, origin, f.field, f.config.logistics, f.now);
+  assert.equal(scoutPreview.combatForecast, undefined); assert.equal(scoutPreview.defenders, undefined);
+});
+
+test('WebSocket field intelligence stays private until return and reports indicate changed field revisions', async t => {
+  const f = await fixture(t), mission = await f.send('field-scout'); let now = f.now;
+  const running = await start(f.dir, () => now, 'test', f.config); t.after(() => close(running.server));
+  const client = await websocket(running.port); t.after(() => client.close()); await authenticate(client, 'login', 'CityOwner', 'test-password-long');
+  async function snapshot(at) { now = at; const id = client.send('city.sync'); return (await client.next('city.snapshot', id)).payload; }
+  const atArrival = await snapshot(mission.arrivesAt);
+  assert.equal(atArrival.military.reports.length, 0); assert.equal(atArrival.military.missions.at(-1).intelligence, undefined);
+  assert.equal(atArrival.fieldMissions[0].status, 'returning'); assert.equal(atArrival.fieldMissions[0].result, undefined);
+  const atReturn = await snapshot(mission.returnsAt);
+  assert.equal(atReturn.military.reports.at(-1).fieldCurrent, true); assert.equal(atReturn.military.reports.at(-1).intelligence.defenders, 5);
+  await running.server.storage.exclusive(async () => { running.server.storage.world.fields[f.field.id].revision++; await running.server.storage.saveWorld(); });
+  const changed = await snapshot(mission.returnsAt);
+  assert.equal(changed.military.reports.at(-1).fieldCurrent, false);
+});

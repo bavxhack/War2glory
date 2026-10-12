@@ -168,3 +168,9 @@ Neue Ereignisse:
 | `city.found` | `cityId, claimId, name, preview`; Zahlung aus gespeicherter Ausgangsstadt, `command.ok` enthält neue `cityId` |
 
 Feldmissionen haben `originCityId`, Koordinaten und eigene Regelversionen `field-scout-1-provisional` / `field-conquest-1-provisional`. Aufklärungsbericht `type:field-scout` enthält private `intelligence:{capturedAt,fieldRevision,defenders,coordinates}`. `type:conquest` berichtet Kampf, Anspruch oder Abbruch bei inzwischen besetztem Feld und getrennte Fracht-/Ölbilanzen; keine Beute. Alle IDs/Bestände, Rollen und Bindungen prüft der Server. Wiederholte Start-/Gründungsbefehle bleiben dedupliziert; geänderte Inhalte zur gleichen ID werden abgewiesen. Öffentliche Reservierungen werden als `type:claim` dargestellt und sind weder NPCs noch angreifbare Städte.
+
+### Feldplanung im Modal (12.10.2026)
+
+`field.conquest.preview` enthält zusätzlich `combatForecast` aus dem vorhandenen Kampfalgorithmus: `victory`, `survivors`, `attackerLosses`, `defenderLosses`, `combatBonuses`, `defenders`, `observedAt`, `reportId`. Grundlage ist ausschließlich der eigene aktuelle Rückkehrbericht; keine zusätzliche kostenlose Aufklärung. Die gesamte Vorschau bindet den Start weiterhin. Scoutvorschauen enthalten keine Verteidigung oder Kampfprognose.
+
+Private Stadtsnapshots ergänzen `fieldMissions` mit aktiven Feldmissionen aller eigenen Ausgangsstädte (ID, Typ, Status, Ausgangsstadt, Koordinaten, Ankunft/Rückkehr; für bereits abgewickelte Kämpfe kompakter Ausgang). Feldscout-Berichte haben ein abgeleitetes `fieldCurrent` für ihre Revisionsgültigkeit. Genaue `intelligence` wird in laufenden Missionen nicht vor Rückkehr übertragen. Öffentliche Kartenverträge bleiben unverändert.

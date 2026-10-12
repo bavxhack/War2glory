@@ -525,6 +525,8 @@ Die Implementierung und Nachweise zu Auftrag 14 sind unter Implementierungsstand
 
 Ersetzt den zuvor geplanten Lieferauftrag. Status: als Prototyp implementiert und geprüft; Nachweise in [MULTICITY_VALIDATION.md](MULTICITY_VALIDATION.md). Vollständige Anweisungen in CODEX_PROMPT.md. Auftrag 14 ist laut Nutzer abgeschlossen.
 
+Nachbesserung vom 12.10.2026: kompakte Feldaktionen und Modals für Aufklärung, Eroberung und Gründung. Eroberung nutzt eine sinnvolle Truppenvorgabe sowie serverseitige Sieg-/Verlustprognose aus der eigenen Aufklärung. Laufende Reisen und veraltete Berichte sind sichtbar. Keine Balanceänderung. Prüfungen: [MULTICITY_VALIDATION.md](MULTICITY_VALIDATION.md).
+
 ### Verbindliche Nutzerentscheidungen
 
 - Maximal fünf eigene Städte insgesamt, einschließlich Ausgangsstadt.

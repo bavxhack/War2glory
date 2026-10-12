@@ -253,3 +253,40 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 @media (max-width: 480px) { .cargo-inputs { grid-template-columns: 1fr; } }
 
 .demolition-preview > .building-art { max-width:330px; margin-inline:auto; }
+
+/* Feldaktionen bleiben kurz; die Einsatzplanung nutzt das gemeinsame Modal. */
+.field-actions .field-steps { display:flex; gap:.4rem; list-style:none; padding:0; margin:0 0 1.2rem; }
+.field-steps li { flex:1; padding:.55rem .2rem; border-bottom:2px solid #465345; font-size:.72rem; color:#aeb9a9; text-align:center; }
+.field-steps li.active { color:#eef7bd; border-color:#d5e59b; font-weight:800; }
+.field-steps li.done { color:#b3d9a5; border-color:#7da16d; }
+.field-intelligence,.field-status { display:grid; gap:.4rem; padding:.9rem; margin:.8rem 0; border:1px solid #617454; border-radius:.65rem; background:#142112; }
+.field-intelligence span,.field-status span,.field-footnote { font-size:.8rem; color:#bdc8b6; }
+.field-intelligence.stale { border-color:#b89657; }
+.field-actions .action { margin:.5rem 0; width:100%; }
+.field-dialog-target { display:flex; align-items:center; gap:1rem; border-bottom:1px solid #465345; padding-bottom:1rem; }
+.field-dialog-target .game-art { flex:0 0 82px; height:82px; border-radius:.7rem; }
+.field-dialog-target > div { display:grid; gap:.35rem; min-width:0; }
+.field-dialog-target span { color:#becab5; font-size:.85rem; }
+.field-unit-inputs { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+.field-options { border:1px solid #52634a; border-radius:.6rem; padding:.85rem; }
+.field-options summary { cursor:pointer; font-weight:700; }
+.field-options[open] summary { margin-bottom:1rem; }
+.field-options fieldset { margin-top:1rem; }
+.field-preview { background:#0b140b; border:1px solid #60734f; border-radius:.8rem; padding:1rem; }
+.field-preview-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.7rem; }
+.field-preview-facts > div { display:grid; gap:.4rem; }
+.field-preview-facts span { color:#bbc8b1; font-size:.75rem; }
+.field-preview-facts strong { font-size:1.2rem; }
+.field-combat { display:grid; gap:.4rem; margin-bottom:1rem; border-left:3px solid #97c67e; padding:.25rem .75rem; }
+.field-combat.defeat { border-color:#db9677; color:#ffd2be; }
+.field-preview progress { width:100%; margin-top:1rem; accent-color:#cee798; }
+@media(max-width:560px) { .field-unit-inputs { grid-template-columns:repeat(2,minmax(0,1fr)); } .field-dialog-target .game-art { flex-basis:64px; height:64px; } }
+.field-dialog { width:min(640px,calc(100% - 2rem)); max-height:calc(100dvh - 2rem); overflow-y:auto; }
+.field-dialog .dialog-actions { grid-template-columns:.7fr 1fr 1.3fr; position:sticky; bottom:0; background:#172017; padding-top:.6rem; }
+@media(max-width:560px) { .field-dialog .dialog-actions { grid-template-columns:1fr; position:static; } }
+@media(max-width:560px) {
+  .field-dialog .dialog-actions { grid-template-columns:.75fr 1.25fr; position:sticky; bottom:0; }
+  .field-dialog .dialog-actions button:last-child { grid-column:1 / -1; }
+}
+
+@media(max-width:340px) { .field-unit-inputs { grid-template-columns:1fr; } }
