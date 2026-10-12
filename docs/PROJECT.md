@@ -24,7 +24,8 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 4d | Freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite | Auftrag 14 als getesteter Prototyp implementiert; neue Balancewerte vorläufig |
 | Luft/Militär | Kampfflugzeuge, Raketenwerfer und Generalfähigkeiten für Luftvorteile | Nutzeranforderung vom 09.10.2026; spätere Phase, nicht Auftrag 13 |
 | 4e | Bis fünf eigene Städte, Stadtwechsel, Aufklärung/Eroberung freier Felder und Gründungsgebühr | Als getesteter Prototyp implementiert; vorläufige Balance |
-| 5a | Ressourcenlieferungen zwischen eigenen und fremden Spielerstädten | Auf Auftrag 16 verschoben; Mehrstadtgrundlage zuerst |
+| 5a | Generalfreie Ressourcenlieferungen und dauerhafte Truppen-/Generalverlegung zwischen eigenen Städten | Auftrag 16 spezifiziert; Umsetzung ausstehend |
+| UI 16 | Erkennbare Hauptnavigation, kompakter Stadtkopf, Aktionen vor Statuslisten, mobile Drawer | Auftrag 16, Konzept in UI_CONCEPT_16.md |
 | 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -521,7 +522,7 @@ Die Implementierung und Nachweise zu Auftrag 14 sind unter Implementierungsstand
 2. Danach Spielerlieferungen/Versorgung zwischen Städten auf demselben Frachtmodell spezifizieren.
 3. Forschung/weitere Militärtechnik, spätere Luft-/Raketenphase und Matrix-Föderation gesondert fortführen.
 
-## Neuer Auftrag 15 vom 09.10.2026: Fünf Städte, Felderoberung und Gründung
+## Abgeschlossener Auftrag 15 vom 09.10.2026: Fünf Städte, Felderoberung und Gründung
 
 Ersetzt den zuvor geplanten Lieferauftrag. Status: als Prototyp implementiert und geprüft; Nachweise in [MULTICITY_VALIDATION.md](MULTICITY_VALIDATION.md). Vollständige Anweisungen in CODEX_PROMPT.md. Auftrag 14 ist laut Nutzer abgeschlossen.
 
@@ -562,38 +563,47 @@ Tests für fünf-Städte-Grenze, Stadtwechsel/mehrere Tabs, lokale Wirtschaft, g
 
 Reihenfolge: Auftrag 15 Mehrstadt/Eroberung/Gründung → Auftrag 16 Lieferungen zwischen eigenen und fremden Städten → Bündnisse/Versorgung und geregelter Handel. Weitere Militärtechnik und Matrix-Föderation bleiben eigene Schritte.
 
-## Zurückgestellter Auftrag 16 vom 09.10.2026: Ressourcenlieferungen zwischen Spielerstädten
+## Beauftragter Auftrag 16 vom 12.10.2026: Lieferungen, Verlegung und UI-Redesign
 
-Die frühere Lieferplanung für Auftrag 15 wird durch den neuen Mehrstadtauftrag ersetzt und als Auftrag 16 zurückgestellt. Erst die Mehrstadtgrundlage implementieren. Lieferungen anschließend zwischen eigenen und fremden Städten erlauben, mit expliziten originCityId/targetCityId; nur Lieferung an dieselbe Ausgangsstadt ausschließen. Weitere frühere Detailregeln vor Ausführung an den neuen Stand anpassen. CODEX_PROMPT.md enthält den aktuellen Mehrstadtauftrag. Die vollständige vorherige Lieferspezifikation bleibt in der Git-Historie unter Commit 24ca530a48fb77f31a395304e0a97019157ce1ed erhalten.
+Auftrag15 ist laut Nutzer abgeschlossen. Diese Fassung ersetzt die zurückgestellte Lieferplanung, insbesondere deren Generalpflicht. Vollständiger Arbeitsauftrag in CODEX_PROMPT.md; neues UI-Konzept in [UI_CONCEPT_16.md](UI_CONCEPT_16.md). Status: spezifiziert, noch nicht implementiert.
 
-### Vorläufige neue Lieferregeln
+### Verbindliche Ergänzungen
 
-- Direkte unentgeltliche Lieferungen an andere eigene oder fremde Spielerstädte derselben Welt, auch bei offline Empfänger. Automatische Zustellung ohne Gegenleistung/Annahmedialog.
-- Mindestens ein LKW, positive Ressourcenladung und ein eigener freier General. Zunächst ausschließlich LKWs, keine Begleitkämpfe oder stationierten Unterstützungstruppen.
-- Ladung aus Holz, Stein, Nahrung und freiwilligem Öl. Gemeinsame Kapazität und physisch mitgeführtes Betriebsöl aus Auftrag 14 wiederverwenden.
-- Normale Hin-/Rückreise ohne zusätzliche Verzögerung. Kein Rückruf oder nachträgliches Ändern in dieser ersten Stufe.
-- Truppen und General bleiben Eigentum des Absenders und bis zur Heimkehr gebunden. Kein Unterhalt unterwegs, keine XP/Punkte für Transfers.
-- Bei Ankunft tatsächliche freie Lagerplätze je Ressource prüfen. Nur passende ganze Mengen gutschreiben; nicht angenommene Güter automatisch zurücktransportieren. Kein Verwerfen wegen voller Ziellager.
-- Ungültig gewordenes Ziel oder geänderter Empfänger: gesamte Ladung zurück. Technische Speicherfehler recovern, nicht als Zielverlust interpretieren.
-- Rückwegöl bleibt beim Transport, wird nicht geliefert und vollständig verbraucht. Freiwillige Ölladung bleibt normale lieferbare Ressource.
-- Bei Heimkehr gelten vorhandene Lagergrenzen und dokumentierter Heimlagerüberlauf.
+- Ressourcenlieferungen ohne General möglich; General darf optional begleiten.
+- Truppen und Generäle zwischen eigenen Städten dauerhaft transferieren. Nach Ankunft gehören sie zum dortigen Stadtbestand.
+- Navigation/Seitenleisten neu gestalten: Funktionen leichter erkennbar und ohne langes Scrollen erreichbar.
 
-### Technische Leitplanken
+### Lieferungen und Verlegung
 
-- Ausgangsschema 15; nächste freie Version vor Umsetzung prüfen. Bestehende NPC-Missionen unverändert nach ihren Versionen beenden.
-- Gemeinsame Berechnungen aus logistics.js/cargo.js verwenden; kein zweites Logistiksystem.
-- Empfängergutschrift und Reduktion der Missionsladung gemeinsam über exklusive Weltqueue und vorhandenes Mehrspieler-Recovery-Journal buchen.
-- requestId, Ankunft, Rückkehr und beidseitige Postboxberichte idempotent behandeln.
-- Offlineereignisse nach Zeit und stabiler Missions-ID ordnen. Nahrungslieferung vor späteren Hungerereignissen anwenden, unabhängig von Login-Reihenfolge.
-- Nur bestehende WebSocket-Spielkommunikation erweitern. Absender und Empfänger bekommen berechtigte Informationen, Unbeteiligte keine privaten Transportdaten.
-- Vorschau zeigt keine privaten Zielbestände oder Lagerausbauten; tatsächliche Annahme entscheidet sich erst bei Ankunft.
-- Beispiel mit Defaultwerten: 5 LKW × 200 Traglast = 1000; Distanz 10 × 5 LKW × 1 Öl = 50 Öl je Weg, 100 gesamt, daher maximal 900 Güter. Bei 600 Holz/300 Nahrung und Zielplatz 250 Holz/200 Nahrung werden diese Mengen zugestellt, 350 Holz/100 Nahrung kehren zurück.
+- Liefern: andere eigene/fremde Stadt derselben Welt, mindestens ein LKW, positive Holz-/Stein-/Nahrungs-/Ölladung. Normale Hin-/Rückfahrt, General optional.
+- Gesamtfracht plus Betriebsöl beider Wege muss in LKW-Kapazität passen; separate Güter-/Treibstoffbilanzen aus Auftrag14.
+- Nur am Ziel einlagerbare ganze Mengen zustellen. Rest zurück, Heimatüberlauf nach bisherigen Regeln. Kein Tauschhandel oder XP/Punkte.
+- Verlegen: andere eigene Stadt, auswählbare stationierte Infanterie/Späher/LKWs und freie Generäle, Einwegfahrt ohne Generalpflicht. Reine Generalverlegung erlaubt.
+- Vorläufig keine zusätzliche Ressourcenfracht im Verlegemodus; Ressourcen liefern ist der getrennte Hin-/Rückreiseablauf.
+- Einwegöl ceil(exaktem Einwegbedarf), vollständig bei Ankunft verbraucht. Spähertanks und normale Infanterie-/LKW-Traglast korrekt zuordnen; kein kostenloser Rückweg.
+- Kein Stadtunterhalt unterwegs, Zielunterhalt ab Stationierung. General im Transit nicht einsetzbar.
+- Generäle bleiben einzigartiger gemeinsamer Pool mit tatsächlichem Stadtstandort. Rekrutierung in bezahlender Stadt; Rollen/Einsätze nur bei lokalem Standort. Die freie Verwaltungszuordnung aus Auftrag15 ist historische Regel und für neue Aktionen ersetzt.
+- Reine Generalreisen vorläufig abstrakter Diensttransport: Ölrate0,1/Feld/General und reiner Tank20/General, ENV-konfigurierbar. Keine trainierbare Einheit, Kampfkraft oder Güterkapazität. Generalbegleitung mit Einheiten ohne zusätzlichen Ölposten.
+- Bürgermeister/Forschungsleiter vor Verlegung freigeben; keine automatische Rolle am Ziel.
 
-### Abnahme und Folgeplanung
+### UI-Konzept
 
-Zwei-Spieler-Ablauf, Teilannahme, volle Lager, freiwilliges Öl, parallele Lieferungen, Crash-Recovery, doppelte Befehle, Offlineversorgung und Datenschutz gezielt testen. Tatsächliche Ergebnisse in docs/DELIVERY_VALIDATION.md dokumentieren. Der Planungschat hat keine Anwendungstests ausgeführt.
+- Links beschriftete Navigation: Stadt, Weltkarte, Militär, Logistik, Generäle, Forschung, Postbox.
+- Oben kompakter Stadtkopf/Ressourcen, Stadtwahl bleibt erkennbar.
+- Rechts Kontextpanel mit Tabs Aktionen/Aktivitäten/Versorgung; Aktionen zuerst, lange Statuslisten separat.
+- Mobile Menü-/Aktionsdrawer und feste Kurz-Navigation statt Sidebar unter dem gesamten Inhalt.
+- Lieferung und dauerhafte Verlegung klar unterscheidbar. Bestehende Gebäude-/Feldmodals und sämtliche Spielaktionen erhalten.
+- Abnahme unter anderem Desktop1366×768, Mobile390×844/320px, Tastatur und200% Zoom. Vollständiges Konzept mit Zuordnung und Abläufen in UI_CONCEPT_16.md.
 
-Danach Bündnisse/gemeinsame Versorgung und anschließend geregelten Tauschhandel abstimmen. Stationierte Unterstützung, weitere Militärtechnik und Matrix-Föderation sind separate Schritte.
+### Persistenz und Abnahme
+
+Ausgangsschema16/Weltschema4, nächste freie Version prüfen. Alte Generalstandorte aus Rollen/Missionen/erster Stadt einmalig rekonstruieren; alte Missionen ohne rückwirkendes Öl erhalten.
+
+Atomare Sender-/Empfänger-/Missionsbuchungen über Weltqueue/Recovery-Journal; innerhalb eines Spielers kanonische Städte gemeinsam ändern. Ankünfte/Unterhalt/Versorgung chronologisch unabhängig von Login-Reihenfolge. Idempotente Requests und deduplizierte Postboxberichte, keine privaten Daten an Unbeteiligte.
+
+Tests für generalfreie Lieferung, Teilannahme, Einwegtransfer, Generalstandorte, Spähertanks, Offlineversorgung, Crash-Recovery, parallele Tabs/Städte und tatsächliche UI-Bedienung. Nachweise in docs/LOGISTICS_UI_VALIDATION.md durch implementierenden Codex. Planung hat keine Anwendungstests ausgeführt.
+
+Danach Bündnisse/Unterstützung, geregelter Tauschhandel und weitere Militärtechnik; Matrix-Föderation bleibt eigenes Kernziel.
 
 ## Bestätigte spätere Phase vom 09.10.2026: Luftstreitkräfte, Raketenwerfer und Generalfähigkeiten
 
