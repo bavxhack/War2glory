@@ -527,6 +527,8 @@ Ersetzt den zuvor geplanten Lieferauftrag. Status: als Prototyp implementiert un
 
 Nachbesserung vom 12.10.2026: kompakte Feldaktionen und Modals für Aufklärung, Eroberung und Gründung. Eroberung nutzt eine sinnvolle Truppenvorgabe sowie serverseitige Sieg-/Verlustprognose aus der eigenen Aufklärung. Laufende Reisen und veraltete Berichte sind sichtbar. Keine Balanceänderung. Prüfungen: [MULTICITY_VALIDATION.md](MULTICITY_VALIDATION.md).
 
+Weitere UI-Nachbesserung vom 12.10.2026: gestaltete Stadtwahl und gemeinsame Seitenleiste mit Truppenbewegungen, Baufortschritt und Forschung in sämtlichen Ansichten. Kontextaktionen folgen darunter; keine Spielregeländerungen. Nachweise: [SIDEBAR_VALIDATION.md](SIDEBAR_VALIDATION.md).
+
 ### Verbindliche Nutzerentscheidungen
 
 - Maximal fünf eigene Städte insgesamt, einschließlich Ausgangsstadt.

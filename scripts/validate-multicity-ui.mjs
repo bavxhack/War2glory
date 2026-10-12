@@ -16,7 +16,7 @@ async function advanceMission(phase) { await waitUpdate(); const p=await server.
 try {
  await page.goto(`http://127.0.0.1:${server.address().port}`);
  await page.getByLabel('Kommandantenname').fill('BrowserCity'); await page.getByLabel('Passwort',{exact:true}).fill('browser-test-password'); await page.getByRole('button',{name:'Registrieren',exact:true}).click();
- await page.getByRole('heading',{name:'BrowserCitys Stadt'}).waitFor();
+ await page.getByRole('heading',{name:'BrowserCitys Stadt',level:1}).waitFor();
  const id=server.storage.accounts.accounts[0].playerId,p=await server.storage.loadPlayer(id);p.city.resources={wood:2000,stone:2000,food:2000,oil:2000};p.military.units={infantry:100,scout:10,truck:10}; await server.storage.savePlayer(p);now=1000; await waitUpdate();
  const world=server.storage.world,home=world.map.entities.find(e=>e.playerId===id); let target;
  for(let y=0;y<8;y++) for(let x=0;x<8;x++) if(!target && terrainAt(x,y,world.map.seed)!=='water' && !(x===home.x&&y===home.y)) target={x,y};
@@ -48,15 +48,22 @@ try {
  await page.getByLabel('Stadtname',{exact:true}).fill('Neue Hafenstadt');
  await page.getByRole('button',{name:'Gründungsgebühr prüfen',exact:true}).click();
  await page.getByRole('button',{name:'Gebühr bezahlen und gründen',exact:true}).click();
- await page.getByLabel(/Stadt wechseln/).locator('option',{hasText:'Neue Hafenstadt'}).waitFor({state:'attached'});
- const selector=page.getByLabel(/Stadt wechseln/),newId=await selector.locator('option',{hasText:'Neue Hafenstadt'}).getAttribute('value');
- await selector.selectOption(newId);await page.getByRole('heading',{name:'Neue Hafenstadt',exact:true}).waitFor();
+ await waitUpdate();
+ async function switchCity(name) {
+   await page.getByRole('button',{name:'Stadt wechseln',exact:true}).click();
+   await page.locator('dialog[open]').getByRole('button',{name:new RegExp(`^${name} \\(`)}).click();
+   await page.getByRole('heading',{name,exact:true,level:1}).waitFor();
+ }
+ const newId=(await server.storage.loadPlayer(id)).cities.find(c=>c.name==='Neue Hafenstadt').id;
+ await switchCity('Neue Hafenstadt');
  await page.getByRole('button',{name:'Stadt',exact:true}).click();
  await page.screenshot({path:new URL('../work/desktop-multicity.png',import.meta.url).pathname,fullPage:true});
  assert.equal((await server.storage.loadPlayer(id)).cities.length,2);
- // Keyboard selection in the real native select, and refresh restores this tab.
- await page.getByLabel(/Stadt wechseln/).focus(); await page.keyboard.press('Home'); await page.keyboard.press('Enter'); await page.waitForTimeout(500);
- await page.getByLabel(/Stadt wechseln/).selectOption(newId); await page.reload();await page.getByRole('heading',{name:'Neue Hafenstadt',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Stadt wechseln',exact:true}).focus(); await page.keyboard.press('Enter');
+ await page.keyboard.press('Escape');
+ assert.ok(await page.getByRole('button',{name:'Stadt wechseln',exact:true}).evaluate(el=>el===document.activeElement));
+ await switchCity('BrowserCitys Stadt'); await switchCity('Neue Hafenstadt');
+ await page.reload();await page.getByRole('heading',{name:'Neue Hafenstadt',exact:true,level:1}).waitFor();
  await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Militär',exact:true}).click();
  await page.screenshot({path:new URL('../work/mobile-multicity.png',import.meta.url).pathname,fullPage:true});
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));

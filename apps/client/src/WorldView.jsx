@@ -1,3 +1,4 @@
+import { SidebarActions } from './SidebarActions.jsx';
 import { useCallback, useRef, useState } from 'react';
 import { finishMapPointer, mapSelectionCoordinate } from '../map-navigation.js';
 import { ActionButton, GameArt, Dialog } from './ui.jsx';
@@ -118,10 +119,10 @@ export function WorldView({ state, map, details, transport }) {
         </div>
         <p className="map-hint">Karte mit Maus oder Finger ziehen · Pfeiltasten funktionieren ebenfalls</p>
       </div>
-      <aside className="map-sidebar">
+      <SidebarActions><div className="map-sidebar">
         <MapDetails selection={details} state={state} onScout={setScouting} onRaid={setRaiding}/><FieldActions key={`${state.cityId}-${details?.terrain?.x}-${details?.terrain?.y}`} selection={details} state={state} transport={transport}/>
         <section className="card legend"><h3>Legende</h3><span><i className="marker own"/>Eigene Stadt</span><span><i className="marker player"/>Spielerstadt</span><span><i className="marker npc"/>NPC-Stadt</span><small>Entfernung: Luftlinie in Kartenfeldern.</small></section>
-      </aside>
+      </div></SidebarActions>
     </div>
     <ScoutingDialog key={scouting?.id ?? 'scout-closed'} target={scouting} state={state} transport={transport} onClose={() => setScouting(null)}/>
     <RaidDialog key={raiding?.id ?? 'raid-closed'} target={raiding} state={state} transport={transport} onClose={() => setRaiding(null)}/>
