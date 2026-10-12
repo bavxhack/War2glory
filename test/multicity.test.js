@@ -50,7 +50,7 @@ test('schema 15 migration keeps one canonical city, cargo, mayor, global researc
   legacy.city.research.active = { cityId: undefined, universityId: 'old-university', finishesAt: 100000, researcher: { generalId: null } };
   await f.storage.savePlayer(legacy);
   const migrated = await f.storage.loadPlayer(legacy.playerId), again = await f.storage.loadPlayer(legacy.playerId);
-  assert.equal(migrated.schemaVersion, 16); assert.equal(migrated.cities.length, 1); assert.equal(migrated.cities[0].id, f.home.id);
+  assert.equal(migrated.schemaVersion, 17); assert.equal(migrated.cities.length, 1); assert.equal(migrated.cities[0].id, f.home.id);
   assert.equal(migrated.cities[0].military.mayorGeneralId, legacy.military.mayorGeneralId);
   assert.equal(migrated.research.active.cityId, f.home.id); assert.deepEqual(migrated.city.resources, legacy.city.resources);
   assert.deepEqual(migrated.military.generals, legacy.military.generals); assert.deepEqual(migrated, again);
@@ -206,7 +206,7 @@ test('local hunger/mayor and shared general exclusivity do not cross city bounda
   const f = await fixture(t, { UPKEEP_INFANTRY_PER_HOUR: '360' });
   const p = canonicalJSON(f.player), second = foundedCity('other-city', 'Andere', 0); p.cities.push(second);
   p.cities[0].resources.food = 0; p.cities[0].buildingSlots[2].level = 0;
-  const mayor = p.military.generals[0]; second.military.mayorGeneralId = mayor.id; mayor.status = 'mayor';
+  const mayor = p.military.generals[0]; second.military.mayorGeneralId = mayor.id; mayor.status = 'mayor'; mayor.cityId = second.id;
   await f.storage.savePlayer(p); await f.advance(1800000);
   const done = f.player;
   assert.ok(done.cities[0].military.units.infantry < 100); assert.equal(done.cities[1].military.units.infantry, 0);

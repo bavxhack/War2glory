@@ -30,7 +30,14 @@ export function validateRoles(player) {
     for (const city of player.cities) bind(city.id === player.cityId ? m.mayorGeneralId : city.military.mayorGeneralId, 'mayor');
   } else bind(m.mayorGeneralId, 'mayor');
   bind(m.researcherGeneralId, 'researcher');
-  for (const mission of m.missions.filter(x => x.status !== 'completed')) bind(mission.generalId, ['raid', 'conquest'].includes(mission.type) ? 'raiding' : 'scouting');
+  for (const mission of m.missions.filter(x => x.status !== 'completed')) {
+    if (['delivery', 'transfer'].includes(mission.type)) for (const general of mission.generals) bind(general.id, mission.type === 'transfer' ? 'transit' : 'delivering');
+    else bind(mission.generalId, ['raid', 'conquest'].includes(mission.type) ? 'raiding' : 'scouting');
+  }
+  if (player.schemaVersion >= 17) {
+    for (const general of m.generals) if (!player.cities.some(c => c.id === general.cityId)) throw new Error('Inkonsistenter Generalstandort.');
+    for (const city of player.cities) { const id = city.id === player.cityId ? m.mayorGeneralId : city.military.mayorGeneralId; if (id && m.generals.find(g => g.id === id)?.cityId !== city.id) throw new Error('Bürgermeister in falscher Stadt.'); }
+  }
   for (const g of m.generals) if (g.status !== 'idle' && !roles.has(g.id)) throw new Error('Generalstatus ohne Rollenreferenz.');
   const bound = (player.research ?? player.city.research)?.active?.researcher?.generalId;
   if (bound && bound !== m.researcherGeneralId) throw new Error('Forschungsauftrag ohne zugehörige Generalbindung.');
@@ -91,6 +98,7 @@ export function recruitGeneral(previous, command, now, rules = OFFICER_RULES, id
   const general = normalizeGeneral({ id: idFactory(), ownerId: player.playerId, name, portraitId: c.portraitId, level: 1, experience: 0, leadership: c.attributes.leadership, attributes: { ...c.attributes }, status: 'idle', acquisition: { ...quote, profile: c.profile, portraitId: c.portraitId, attributes: { ...c.attributes }, acquiredAt: now, paidCost: quote.cost } });
   for (const [r, n] of Object.entries(quote.cost)) player.city.resources[r] -= n;
   if (!Number.isSafeInteger(m.acquiredCount + 1)) throw new Error('Erwerbszähler überschreitet den sicheren Zahlenbereich.');
+  if (player.schemaVersion >= 17) general.cityId = player.cityId;
   m.generals.push(general); m.acquiredCount++; m.rosterVersion++; m.candidatePool.state = 'consumed'; m.candidatePool.version++;
   return player;
 }
@@ -108,6 +116,7 @@ export function assignResearcher(previous, command) {
   if (command.generalId === m.researcherGeneralId) return player;
   const next = command.generalId == null ? null : m.generals.find(g => g.id === command.generalId && g.ownerId === player.playerId);
   if (command.generalId != null && (!next || next.status !== 'idle')) throw new Error('Eigener freier General benötigt.');
+  if (next && player.schemaVersion >= 17 && next.cityId !== player.cityId) throw new Error('Forschungsleiter ist in einer anderen Stadt stationiert.');
   if (next && !player.city.buildingSlots.some(s => s.building === 'university' && s.level > 0)) throw new Error('Fertige Universität benötigt.');
   const old = m.generals.find(g => g.id === m.researcherGeneralId);
   if (old) { old.status = 'idle'; old.version++; }

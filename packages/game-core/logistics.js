@@ -55,6 +55,7 @@ export function missionQuote(player, command, origin, target, rules = LOGISTICS_
   const military = player.military;
   const general = military.generals.find(g => g.id === command.generalId);
   if (!general || general.status !== 'idle' || military.mayorGeneralId === general.id || military.researcherGeneralId === general.id || military.missions.some(m => m.generalId === general.id && m.status !== 'completed')) throw new Error('Kein eigener freier General ausgewählt.');
+  if (player.schemaVersion >= 17 && general.cityId !== player.cityId) throw new Error('General ist in einer anderen Stadt stationiert.');
   for (const [unit, amount] of Object.entries(units)) if (amount > (military.units[unit] ?? 0)) throw new Error('Nicht genügend verfügbare Truppen.');
   if (!origin || !target || target.kind !== 'npc') throw new Error('Nur eigene Einsätze gegen NPC-Städte sind erlaubt.');
   const distanceFields = Math.max(1, Math.ceil(Math.hypot(target.x - origin.x, target.y - origin.y)));

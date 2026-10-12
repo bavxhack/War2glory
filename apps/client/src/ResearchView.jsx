@@ -38,7 +38,7 @@ export function ResearchView({ state, transport }) {
         const generalId = e.target.value || null; setLoading(true); setError('');
         try { await transport.request('general.researcher', { generalId, expectedRoleVersion: state.military.roleVersion }); setPreview(null); }
         catch (cause) { setError(cause.message); } finally { setLoading(false); }
-      }}><option value="">Ohne Forschungsleitung</option>{state.military.generals.filter(g => g.status === 'idle' || g.id === state.military.researcherGeneralId).map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
+      }}><option value="">Ohne Forschungsleitung</option>{state.military.generals.filter(g => g.status === 'idle' && g.cityId === state.cityId || g.id === state.military.researcherGeneralId).map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
       {active && <p>Während der Forschung ist das Amt gesperrt. Gespeichert: {active.researcher?.generalName ?? 'ohne General'} · Geschwindigkeit +{active.researcher?.bonusPercent ?? 0} %. Nach Abschluss bleibt die Leitung im Amt.</p>}
     </section>
     <section className="card research-controls">

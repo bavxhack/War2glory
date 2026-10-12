@@ -178,7 +178,7 @@ export function advanceMilitary(previous, now, npcById = new Map()) {
   for (const mission of military.missions) {
     // Raids require the shared NPC state and are settled by WorldStorage.
     // Never run them through the legacy scout-only return path.
-    if (mission.type === 'raid') continue;
+    if (['raid', 'conquest', 'field-scout', 'delivery', 'transfer'].includes(mission.type)) continue;
     if (mission.status === 'outbound' && mission.arrivesAt <= now) {
       mission.status = 'returning';
       const npc = npcById.get(mission.targetId);

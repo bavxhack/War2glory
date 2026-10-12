@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
-const folders = [['inbox', 'Nachrichten'], ['scout', 'Aufklärung'], ['raid', 'Angriffe'], ['sent', 'Gesendet']];
+const folders = [['inbox', 'Nachrichten'], ['scout', 'Aufklärung'], ['raid', 'Angriffe'], ['transport', 'Logistik'], ['sent', 'Gesendet']];
 const date = value => Number.isFinite(value) ? new Date(value).toLocaleString('de-DE') : 'Zeitpunkt unbekannt';
 
 function Report({ report }) {
+  if (['delivery','transfer'].includes(report.type)) return <TransportReport report={report}/>;
   return <><h2>{report.targetName}</h2><p>Ausgangsstadt: {report.originCityId ?? 'Historische Ausgangsstadt'}</p>{report.reason && <p>{report.reason}</p>}<p>{report.generalName ?? 'General'} · {report.coordinates && `(${report.coordinates.x}, ${report.coordinates.y})`} · Rückkehr: {date(report.returnedAt)}</p>{['raid', 'conquest'].includes(report.type) ? <>
     {report.cargo && <CargoReport report={report}/>}<h3>{report.cancelled ? 'Angriff ausgefallen' : report.victory ? 'Sieg' : 'Niederlage'}</h3>{report.initialUnits && <LogisticsReport report={report}/>}<dl className="mail-facts">
       <dt>Angreifer</dt><dd>{report.initialUnits?.infantry ?? report.infantry} Infanteristen</dd>
@@ -38,8 +39,8 @@ export function Mailbox({ state, transport }) {
   const readReports = new Set(state.mailbox.readReportIds);
   const entries = state.mailbox.messages.map(message => ({ id: message.id, kind: 'message', folder: message.senderId === state.player.id ? 'sent' : 'inbox', title: message.subject,
     who: message.senderId === state.player.id ? message.recipientName : message.senderName, time: message.sentAt, unread: message.recipientId === state.player.id && message.readAt == null, data: message }))
-    .concat(state.military.reports.map(report => ({ id: report.id, kind: 'report', folder: ['raid', 'conquest'].includes(report.type) ? 'raid' : 'scout', title: `${report.targetName}${['raid', 'conquest'].includes(report.type) ? report.victory ? ' · Sieg' : ' · Niederlage' : ''}`,
-      who: report.generalName ?? 'General', time: report.returnedAt, unread: !readReports.has(report.id), data: report })));
+    .concat(state.military.reports.map(report => ({ id: report.id, kind: 'report', folder: ['delivery','transfer'].includes(report.type)?'transport':['raid', 'conquest'].includes(report.type) ? 'raid' : 'scout', title: `${report.targetName}${['raid', 'conquest'].includes(report.type) ? report.victory ? ' · Sieg' : ' · Niederlage' : ''}`,
+      who: report.senderName ?? report.generalName ?? (report.type==='delivery'?'Lieferung':'Verlegung'), time: report.returnedAt ?? report.stationedAt ?? report.receivedAt, unread: !readReports.has(report.id), data: report })));
   const filtered = entries.filter(entry => entry.folder === folder && (!unreadOnly || entry.unread) && `${entry.title} ${entry.who}`.toLocaleLowerCase('de-DE').includes(query.toLocaleLowerCase('de-DE')))
     .sort((a, b) => (b.time ?? 0) - (a.time ?? 0) || a.id.localeCompare(b.id));
   const lastPage = Math.max(0, Math.ceil(filtered.length / 10) - 1);
@@ -62,4 +63,14 @@ export function Mailbox({ state, transport }) {
       {!filtered.length && <p>Keine Einträge in diesem Bereich.</p>}<div className="mail-pagination"><button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Zurück</button><span>Seite {currentPage + 1} / {lastPage + 1} · {filtered.length} Einträge</span><button disabled={currentPage === lastPage} onClick={() => setPage(currentPage + 1)}>Weiter</button></div>
     </section><section className="card mail-detail" aria-label="Postbox-Detail">{compose ? <form onSubmit={submit}><h2>Neue Nachricht</h2><label>Empfänger (Kommandantenname)<input required maxLength={24} value={draft.recipient} onChange={event => setDraft({ ...draft, recipient: event.target.value })}/></label><label>Betreff<input required maxLength={100} value={draft.subject} onChange={event => setDraft({ ...draft, subject: event.target.value })}/></label><label>Nachricht<textarea required maxLength={4000} rows={10} value={draft.body} onChange={event => setDraft({ ...draft, body: event.target.value })}/></label><p>{draft.body.length} / 4000 Zeichen</p><button disabled={busy}>{busy ? 'Wird gesendet …' : 'Senden'}</button><button type="button" className="secondary" disabled={busy} onClick={() => setCompose(false)}>Abbrechen</button></form> : detail ? detail.kind === 'report' ? <Report report={detail.data}/> : <><h2>{detail.data.subject}</h2><p>Von {detail.data.senderName} an {detail.data.recipientName}</p><time>{date(detail.data.sentAt)}</time><p className="mail-body">{detail.data.body}</p>{detail.folder === 'inbox' && <button onClick={() => { setDraft({ recipient: detail.data.senderName, subject: `Re: ${detail.data.subject}`.slice(0, 100), body: '' }); setCompose(true); }}>Antworten</button>}</> : <p>Wähle einen Eintrag aus, um ihn zu lesen. Neue Berichte erscheinen nach der Rückkehr deiner Truppen.</p>}</section></div><p role="status">{status}</p>
   </section>;
+}
+
+function TransportReport({report}) {
+ const names={wood:'Holz',stone:'Stein',food:'Nahrung',oil:'Öl'}, delivery=report.type==='delivery';
+ return <><h2>{delivery?'Ressourcenlieferung':'Dauerhafte Verlegung'}</h2><p>{report.originName} → {report.targetName}</p><p>Start {date(report.startedAt)} · Ankunft {date(report.arrivedAt)}</p>
+ {report.stationedAt && <p>Stationiert am {date(report.stationedAt)}. Die Einheiten und Generäle bleiben in {report.targetName}.</p>}
+ {report.returnedAt && <p>Rückkehr am {date(report.returnedAt)}</p>}{report.senderName && <p>Absender: {report.senderName}</p>}
+ {report.operatingFuel && <p>Betriebsöl geladen {report.operatingFuel.loaded} · verbrannt {report.operatingFuel.burned} · verbleibend {report.operatingFuel.remaining}</p>}
+ {delivery ? <><div className="logistics-table" tabIndex="0" role="region" aria-label="Lieferbilanz"><table><thead><tr><th>Ressource</th>{report.loaded?<><th>Geladen</th><th>Zugestellt</th><th>Zuhause eingelagert</th><th>Heimatüberlauf</th></>:<th>Erhalten</th>}</tr></thead><tbody>{Object.entries(names).map(([k,n])=><tr key={k}><th>{n}</th>{report.loaded?<><td>{report.loaded[k]}</td><td>{report.delivered[k]}</td><td>{report.returnedCargo[k]}</td><td>{report.homeOverflow[k]}</td></>:<td>{report.received[k]}</td>}</tr>)}</tbody></table></div>{report.targetUnavailable&&<p>Ziel nicht mehr gültig. Gesamte Ladung zurückgeführt.</p>}</>:<><p>Einheiten: {Object.entries(report.units).map(([k,n])=>`${n} ${{infantry:'Infanterie',scout:'Späher',truck:'LKW'}[k]}`).join(' · ')}</p><p>Generäle: {report.generals.map(g=>g.name).join(', ')||'Ohne General'}</p></>}
+ </>;
 }

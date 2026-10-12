@@ -372,3 +372,102 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 .recruitment-actions>summary { cursor:pointer; font-weight:700; }
 .sidebar-actions .general-grid { grid-template-columns:minmax(0,1fr); }
 .sidebar-actions .general-section { min-width:0; }
+/* Auftrag 16: permanent navigation, compact city context, independent action panel. */
+.game-shell { display:grid; grid-template-columns:224px minmax(0,1fr); height:100dvh; overflow:hidden; }
+.game-main { width:100%; max-width:none; min-width:0; margin:0; padding:12px 16px; display:flex; flex-direction:column; overflow:hidden; }
+.main-navigation { padding:24px 16px 16px; background:#172317; border-right:2px solid #52624c; display:flex; flex-direction:column; gap:20px; min-height:0; }
+.main-navigation nav, dialog nav[aria-label="Hauptnavigation"] { display:grid; gap:7px; }
+.main-navigation nav button, dialog nav[aria-label="Hauptnavigation"] button { display:flex; align-items:center; gap:12px; padding:12px; background:#243422; color:#edf3df; border:1px solid #617656; border-radius:8px; text-align:left; }
+.main-navigation nav button.active, button[aria-current="page"] { border-left:5px solid #d5e59b; background:#3e5631; font-weight:800; }
+.account-status { margin-top:auto; display:grid; gap:10px; font-size:13px; overflow-wrap:anywhere; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline:3px solid #f0efaa; outline-offset:3px; }
+.city-header { display:grid; grid-template-columns:minmax(160px,240px) minmax(0,1fr); gap:10px; align-items:center; border-bottom:1px solid #52624c; padding-bottom:10px; }
+.city-header-title { min-width:0; }
+.city-header .city-switcher { width:100%; min-width:0; padding:6px; }
+.city-header .city-switcher .game-art { display:none; }
+.city-header .city-switcher strong { font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px; }
+.city-header .city-switcher .city-switcher-text { min-width:0; }
+.city-header .resources { margin:0; gap:6px; }
+.city-header .resource { padding:8px 6px; gap:6px; border-radius:8px; text-align:left; color:inherit; min-width:0; }
+.city-header .resource>span:last-child { min-width:0; display:grid; gap:2px; }
+.city-header .resource strong { font-size:13px; overflow-wrap:anywhere; }
+.city-header .resource small { font-size:10px; }
+.city-header .resource-icon { width:20px; height:20px; flex-shrink:0; }
+.compact-warning { grid-column:1/-1; padding:5px 8px; margin:0; background:#4d3726; border-radius:6px; font-size:12px; }
+.workspace-heading { display:flex; align-items:center; justify-content:space-between; padding:8px 0; gap:8px; min-width:0; overflow-wrap:anywhere; }
+.game-shell .workspace-layout { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:12px; overflow:hidden; }
+.game-shell .workspace-content { min-width:0; overflow:auto; padding:0 4px 16px 0; }
+.game-shell .persistent-sidebar { position:static; padding:12px; display:block; min-height:0; max-height:none; overflow:auto; border:1px solid #52624c; border-radius:12px; background:#1b261a; }
+.game-shell .persistent-sidebar>h2 { font-size:18px; margin:0 0 8px; }
+.context-tabs { display:flex; gap:4px; margin-bottom:12px; }
+.context-tabs button { flex:1; padding:7px 3px; font-size:12px; }
+.context-tabs button[aria-selected="true"] { background:#d5e59b; color:#182314; font-weight:bold; }
+.game-shell .sidebar-actions { padding:0; }
+.game-shell .sidebar-actions .card { margin:0 0 10px; padding:12px; }
+.game-shell .workspace-content .game-layout,.game-shell .workspace-content .world-layout { display:block; }
+.game-shell .city-scene { min-height:500px; padding:20px; }
+.game-shell .city-grid { gap:16px; }
+.game-shell .plot { min-height:125px; }
+.game-shell .plot .game-art { width:100px; height:90px; }
+.game-shell .world-toolbar { flex-wrap:wrap; margin-top:0; }
+.game-shell .world-map { max-height:65dvh; }
+.game-shell .message { margin:6px 0 0; font-size:12px; min-height:18px; }
+.mobile-resource-button,.mobile-bottom-nav { display:none; }
+.logistics-form label { display:grid; gap:5px; margin:12px 0; }
+.logistics-form input,.logistics-form select,.logistics-view select { width:100%; min-width:0; padding:9px; border:1px solid #617656; border-radius:6px; background:#111a10; color:#fff; }
+.logistics-inputs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.logistics-form .check-label { display:flex; align-items:center; gap:8px; }
+.logistics-form .check-label input { width:auto; }
+.logistics-form fieldset { min-width:0; }
+.transport-row { border-top:1px solid #52624c; padding:12px 0; overflow-wrap:anywhere; }
+.game-shell h2,.game-shell h3,.game-shell p,.game-shell strong { overflow-wrap:anywhere; }
+@media(max-width:1279px) {
+ .game-shell { grid-template-columns:minmax(0,1fr); }
+ .game-shell .workspace-layout { grid-template-columns:minmax(0,1fr); }
+ .game-main { padding:10px; }
+ .menu-toggle { padding:6px; margin-bottom:5px; }
+ .city-header { grid-template-columns:minmax(170px,240px) minmax(0,1fr); }
+ .game-shell .workspace-content .city-scene { min-height:450px; }
+ dialog .sidebar-actions { padding:0; }
+}
+@media(max-width:767px) {
+ .game-main { padding:8px 8px calc(66px + env(safe-area-inset-bottom)); }
+ .city-header { display:block; }
+ .city-header-title { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+ .city-header .city-switcher { width:auto; flex:1; }
+ .city-header .city-switcher strong { max-width:125px; font-size:14px; }
+ .city-header .city-switcher .kicker { display:none; }
+ .city-header .city-count { padding:3px; }
+ .city-header .header-resources { display:none; }
+ .mobile-resource-button { display:block; padding:7px; }
+ .compact-warning { margin-top:5px; }
+ .mobile-bottom-nav { display:flex; position:fixed; bottom:0; left:0; right:0; padding:6px 8px calc(6px + env(safe-area-inset-bottom)); gap:4px; z-index:5; background:#172317; border-top:2px solid #617656; }
+ .mobile-bottom-nav button { flex:1; min-width:0; padding:10px 3px; }
+ .game-shell .city-scene { padding:12px; }
+ .game-shell .city-grid { gap:12px; }
+ .game-shell .plot { min-height:110px; font-size:11px; }
+ .game-shell .plot .game-art { width:76px; height:72px; }
+ .game-shell .world-toolbar input { width:80px; }
+ .game-shell .world-toolbar form { flex-wrap:wrap; }
+ .game-shell .view-tabs { flex-wrap:wrap; }
+ .logistics-inputs { gap:8px; }
+ .game-shell .card { padding:12px; }
+ dialog .resources { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ dialog .resource { padding:8px; gap:5px; min-width:0; }
+ dialog .resource strong { font-size:14px; }
+ .mission-dialog { max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); }
+ .dialog-content { padding:14px; }
+ .dialog-actions { flex-wrap:wrap; }
+ .dialog-actions button { max-width:100%; overflow-wrap:anywhere; }
+}
+.game-shell .menu-toggle,.game-shell .workspace-heading button,.game-shell .mobile-resource-button,.mobile-bottom-nav button { background:#253522; color:#edf3df; border:1px solid #617656; border-radius:7px; }
+.sidebar-actions button:not(.secondary):not(.action):not(:disabled) { background:#d5e59b; color:#1c2817; padding:9px 12px; border:1px solid #b6ca80; border-radius:6px; }
+@media(max-width:767px) {
+ .city-header-title { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:5px; }
+ .city-header-title .menu-toggle { grid-column:1; grid-row:1; margin:0; }
+ .city-header-title .mobile-resource-button { grid-column:2; grid-row:1; }
+ .city-header .city-switcher { grid-column:1/-1; grid-row:2; width:100%; }
+ .city-header .city-switcher .city-switcher-text { flex:1; }
+ .city-header .city-switcher strong { max-width:none; }
+ .city-header .city-switcher small { white-space:nowrap; font-size:11px; }
+}

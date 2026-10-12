@@ -10,6 +10,16 @@ Repository: https://github.com/bavxhack/War2glory
 
 Alle acht Gebäudetypen besitzen zehn eigene Bilder für Stufe 1–10: Sägewerk, Steinbruch, Bauernhof, Lagerhaus, Universität, Ölraffinerie, Kaserne und Fahrzeugfabrik. Kleine Hütten und Werkstätten wachsen mit jedem Ausbau zu stattlichen Gebäuden und Anlagen. Bauplätze, Gebäudeauswahl, Forschung und Abrissvorschau zeigen die tatsächlich abgeschlossene Stufe; Neubauangebote beginnen mit Stufe 1. Die Bilddateien werden lokal ausgeliefert. Herkunft und Zuordnung stehen in [apps/client/assets/README.md](apps/client/assets/README.md).
 
+## Lieferungen, dauerhafte Verlegung und Spielrahmen (Auftrag 16)
+
+Die Hauptnavigation führt zu Stadt, Weltkarte, Militär, Logistik, Generälen, Forschung und Postbox. Im Kontextpanel stehen Aktionen zuerst; Aktivitäten und Versorgung haben eigene Tabs. Auf kleinen Bildschirmen öffnen sichtbare Menü-/Aktionsbuttons Dialoge. Ressourcen zeigen kompakte Bestände/Kapazitäten und öffnen ihre Details per Klick oder Tastatur. Ungesendete Stadtaktionen werden beim Stadtwechsel ausdrücklich verworfen; die Auswahl bleibt je Tab erhalten.
+
+**Ressourcen liefern:** Andere eigene oder fremde Stadt dieser Welt, mindestens ein LKW, positive Güterladung und optional ein freier General der Ausgangsstadt. Ladung und Hin-/Rückwegöl werden einmalig abgebucht. Am Ziel passende Mengen zustellen; Rest fährt zurück. Nur freiwillige Ölladung wird zugestellt. Keine Reiseversorgung, Kämpfe oder XP. LKWs und Begleiter kommen in ihre Ausgangsstadt zurück.
+
+**Truppen & Generäle verlegen:** Andere eigene Stadt, stationierte Infanterie/Späher/LKWs und/oder mehrere freie Generäle. Einwegöl, normale Reisezeit, keine Güterfracht oder Rückfahrt. Ab Ankunft gehören die Truppen zum Zielbestand und verbrauchen dort Nahrung. Auch reine Späher- und Generalreisen sind möglich. Vorläufige General-only-Diensttransportwerte: 0,1 Öl/Feld/General, 20 Tankplätze/General; über `GENERAL_TRANSFER_OIL_PER_FIELD` und `GENERAL_TRANSFER_FUEL_CAPACITY` konfigurierbar. Diese Werte sind eigene Balancevorschläge.
+
+Spielerschema **17** ergänzt tatsächliche Generalstandorte. Bürgermeister, laufende Forschungsleitung und historische Missionsgeneräle behalten den eindeutig zugeordneten Ort; freie Generäle starten in der ersten Stadt. Unklare unbeschäftigte Forschungsleitung wird sichtbar freigegeben. Neue Rollen und Einsätze prüfen den Standort. Welt bleibt Schema 4. Beide Reisemodi verwenden Weltqueue, chronologische Abrechnung und Recovery-Journal auch über zwei Spielerdateien. Ausgeführte Prüfungen: [LOGISTICS_UI_VALIDATION.md](docs/LOGISTICS_UI_VALIDATION.md).
+
 ## Mehrstadtbetrieb und Feldgründung (Auftrag 15)
 
 Bis zu fünf eigene Städte mit getrennten Gebäuden, Lagern, Produktion, Truppen, Bau-/Ausbildungsqueues, Versorgung und Bürgermeistern. Der Stadtwähler speichert die Auswahl je Tab; jeder Stadtbefehl nennt eine geprüfte `cityId`. Auch nicht ausgewählte Städte schreiten fort. Generäle, Bewerber/Erwerbszähler, Forschung mit einer Queue, Postbox und Punkte bleiben spielerweit. Forschung und Rekrutierung werden aus der expliziten Stadt bezahlt; Forschung wirkt ab Abschluss in allen Städten.
@@ -18,7 +28,7 @@ Neue Stadt: freies Nicht-Wasser-Feld aufklären → Rückkehrbericht mit Verteid
 
 Ein Eroberungszug oder ungenutzter Anspruch reserviert einen persönlichen Stadtplatz. Anspruch nach Sieg vorläufig 24 Stunden; bei Ablauf kehrt das ursprüngliche Feldkontingent zurück. Gründung kostet aus der Ausgangsstadt je 500/1000/1500/2000 Holz, Stein und Nahrung für Stadt 2/3/4/5. Neue Städte starten mit drei Produktionsgebäuden Stufe 1 und Ressourcen 0, ohne zusätzliche Generäle oder Truppen. Zahlen sind eigene vorläufige Balancewerte; die Grenze von fünf Städten ist verbindlich.
 
-Spielerschema 16 / Weltschema 4 migrieren bestehende Daten. `cities` ist der einzige gespeicherte Stadtbestand; vorhandene Stadt-ID und Position bleiben erhalten. Historische Missionen erhalten `originCityId` ohne Änderungen an Fracht, Bezahlung oder Terminen. ENV, Protokoll, ausgeführte Prüfungen und Grenzen: [MULTICITY_VALIDATION.md](docs/MULTICITY_VALIDATION.md). Lieferungen zwischen eigenen und fremden Städten sind Auftrag 16 und weiterhin geplant.
+Spielerschema 16 / Weltschema 4 migrieren bestehende Daten. `cities` ist der einzige gespeicherte Stadtbestand; vorhandene Stadt-ID und Position bleiben erhalten. Historische Missionen erhalten `originCityId` ohne Änderungen an Fracht, Bezahlung oder Terminen. ENV, Protokoll, ausgeführte Prüfungen und Grenzen: [MULTICITY_VALIDATION.md](docs/MULTICITY_VALIDATION.md). Lieferungen und dauerhafte Verlegungen sind mit Auftrag 16 implementiert (siehe oben).
 
 ## Ressourcenladung und Betriebsöl (Auftrag 14)
 
@@ -28,7 +38,7 @@ Bei exaktem Einwegbedarf E und Gesamtzahlung F = ceil(E × (2T+D)/T) verbraucht 
 
 Nach Kampf: Rückwegöl vor eigener Ladung vor neuer Beute. Güterplätze sind floor(Überlebendenkapazität − Rückwegöl); zu große eigene Ladung wird proportional mit stabilen Restplatzregeln gekürzt. Beispiel 20 Infanteristen/4 LKW, fünf Felder: 1200 Traglast/60 Startöl; nach 5 Infanterie-/1 LKW-Verlust bleiben 900 Traglast, 22,5 Rückwegöl und 877 Güterplätze. Bei 300 eigener Ladung sind höchstens 577 neue Nahrung möglich. Rückkehr lagert eigene Güter je Ressource zuerst ein, dann Beute; Verluste und Überläufe werden getrennt berichtet.
 
-Spielerschema 15 führt die gesamte Kette über Schema 14 weiter. Alte Einsätze erhalten keine rückwirkende Fracht, Reichweitensperre oder Ölzahlung. Neue Missionsversionen sind `npc-pve-5-cargo-provisional` und `npc-scout-3-cargo-provisional`. Prüfbelege und Grenzen: [CARGO_VALIDATION.md](docs/CARGO_VALIDATION.md). Spielerlieferungen/Handel und weitere Militärtechnik bleiben geplant. Alle neuen Balancewerte sind eigene vorläufige Projektentscheidungen.
+Spielerschema 15 führt die gesamte Kette über Schema 14 weiter. Alte Einsätze erhalten keine rückwirkende Fracht, Reichweitensperre oder Ölzahlung. Neue Missionsversionen sind `npc-pve-5-cargo-provisional` und `npc-scout-3-cargo-provisional`. Prüfbelege und Grenzen: [CARGO_VALIDATION.md](docs/CARGO_VALIDATION.md). Spielerlieferungen sind mit Auftrag 16 implementiert; Tauschhandel und weitere Militärtechnik bleiben geplant. Alle neuen Balancewerte sind eigene vorläufige Projektentscheidungen.
 
 ## Ölwirtschaft und LKW-Farmzüge (Auftrag 13)
 

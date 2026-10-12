@@ -174,3 +174,24 @@ Feldmissionen haben `originCityId`, Koordinaten und eigene Regelversionen `field
 `field.conquest.preview` enthält zusätzlich `combatForecast` aus dem vorhandenen Kampfalgorithmus: `victory`, `survivors`, `attackerLosses`, `defenderLosses`, `combatBonuses`, `defenders`, `observedAt`, `reportId`. Grundlage ist ausschließlich der eigene aktuelle Rückkehrbericht; keine zusätzliche kostenlose Aufklärung. Die gesamte Vorschau bindet den Start weiterhin. Scoutvorschauen enthalten keine Verteidigung oder Kampfprognose.
 
 Private Stadtsnapshots ergänzen `fieldMissions` mit aktiven Feldmissionen aller eigenen Ausgangsstädte (ID, Typ, Status, Ausgangsstadt, Koordinaten, Ankunft/Rückkehr; für bereits abgewickelte Kämpfe kompakter Ausgang). Feldscout-Berichte haben ein abgeleitetes `fieldCurrent` für ihre Revisionsgültigkeit. Genaue `intelligence` wird in laufenden Missionen nicht vor Rückkehr übertragen. Öffentliche Kartenverträge bleiben unverändert.
+
+## Stadtlogistik (Auftrag 16, Schema 17)
+
+Vier zusätzliche Ereignisse: `delivery.preview`, `delivery.start`, `transfer.preview`, `transfer.start`. Vorschauantwort hat denselben Typ; Start antwortet `command.ok` mit `missionId` und `duplicate`. Fehler: `command.error`. Alles über den bestehenden authentifizierten Socket und die Weltqueue, kein HTTP-Spielendpunkt/Polling.
+
+Gemeinsam: `cityId` muss `originCityId` entsprechen; `targetCityId` benennt eine andere stabile Spielerstadt-ID. Optionales `instanceId` muss die aktuelle Welt sein. `units` enthält nicht negative Ganzzahlen für `infantry/scout/truck`; Maximum insgesamt wie bestehende Einsätze. `delayMinutes` fehlt oder ist exakt 0 (auch null wird abgewiesen). Start ergänzt die unveränderte Server-`preview`. Vorschau bindet Zielbesitz, Regeln, Einheiten, Generalversionen, Ladung, Kapazität und Öl; absolute Abfahrtszeiten und rein informative eigene Zielversorgung werden beim Start aktualisiert.
+
+Lieferung: ausschließlich `units.truck >= 1`, positive `cargo` aus wood/stone/food/oil; `generalId:null` bzw. fehlend ist der normale generalfreie Fall. Optionaler Begleiter muss frei in der Ausgangsstadt sein. Transfer: eigene Zielstadt, beliebige zulässige Einheiten und/oder `generalIds:[]` (Mehrfachwahl); keine positive cargo. Bürgermeister/Forschungsleiter vor der Reise freigeben. Jeder General erhält in Schema 17 `cityId`; unterwegs zusätzlich `transitMissionId` und Status `transit` oder `delivering`. Historische scout/raid/conquest-Statuswerte bleiben erhalten.
+
+`city.snapshot`/`city.updated` ergänzen:
+- `logisticsTargets`: öffentliche Spielerstädte (id/name/commanderName/x/y/own), keine Bestände/Lager oder Skills fremder Spieler.
+- `transports`: eigene Lieferung/Verlegung, regelversionierte Mengen, Quell-/Ziel-IDs, Status, gespeicherte Termine, Ladungsmarker und abgeleitetes Betriebsöl. Nur Eigentümer erhält diese Details.
+- `incomingTransports`: für Empfänger angekündigte Fremdlieferungen mit Absender, Quell-/Zielname, Ziel-ID, Ladung und Ankunft; keine General-/Armeedetails, Quelllager oder Regeln.
+- `migrationNotices`: kontrollierte Freigabe nicht eindeutig zuordenbarer unbeschäftigter Forschungsleitung.
+- `cities[].inShortage`: eigene Warnungsübersicht im Stadtkopf.
+
+Lieferzustände: outbound → returning → completed. Verlegezustände: outbound → completed mit `stationedAt` und `returnsAt:null`. Ankunft des Empfängers wird genau bis zum Ereigniszeitpunkt fortgeschrieben; dieselbe Zeitgruppe stellt Güter/Truppen vor der Hungerprüfung zu. Bei fehlendem Verlegeziel stoppt Abrechnung kontrolliert zur Wiederherstellung. Ungültiges Lieferziel lässt die gesamte Ladung zurückfahren. Technische Schreibfehler werden durch das Journal wiederhergestellt.
+
+Berichte `delivery`/`transfer` in der bestehenden Postbox: Senderladung = zugestellt + unterwegs + zuhause eingelagert + Heimatüberlauf; Betriebsöl separat und nach Abschluss 0 verbleibend. Verlegebericht nennt Stationierungszeit statt Rückkehr. Eigene Lieferung erzeugt einen Bericht; fremde Lieferung je einen Sender-/Empfängerbericht, Empfänger nur erhaltene Güter und Absender. Empfängerbericht-IDs enthalten Senderidentität, damit gleiche requestIds verschiedener Absender nicht kollidieren. Keine XP/Punkte.
+
+Startbelege bleiben an der Mission persistiert; gleiche requestId und gleicher kanonischer JSON-Inhalt deduplizieren, abweichender Inhalt wird abgelehnt. Vorschauantworten nach Stadtwechsel werden verworfen; Stadtwahl wird pro Tab gespeichert. Fremdlieferung kündigt nach Start dem Empfänger ein privates city.updated an. Nach Reconnect werden laufende Reisen aus gespeicherten Zuständen projiziert.
