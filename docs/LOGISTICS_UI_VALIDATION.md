@@ -66,3 +66,13 @@ Schneller Stadtwechsel deckte eine leere Karte durch gedrosselte separate viewpo
 [Desktop Stadt](screenshots/task16/desktop-city.png) · [Desktop Logistik](screenshots/task16/desktop-logistics.png) · [Mobiler langer Stadtname](screenshots/task16/mobile-long-name.png) · [320-Pixel-Ansicht](screenshots/task16/mobile-320.png).
 
 Grenzen: Der JSON-Prototyp bleibt ein einzelner Serverprozess je Welt. Kein echter Geräte-/Screenreader-Test und keine Android-/iOS-Bildschirmtastatur. Der Browserdurchlauf verwendet eine Testuhr und vorgefüllte Testbestände; Reiseereignisse, Buchungen und Bedienwege laufen durch dieselbe Anwendung wie im Normalbetrieb. Bündnisse, fremde Stationierung, Tauschhandel, Rückruf und Föderation bleiben Folgeaufträge.
+
+## Nachprüfung: unabhängiges Scrollen und Kartensteuerung
+
+Die Nutzerkorrektur wurde mit `node scripts/validate-workspace-scroll.mjs` im echten Browser reproduziert: Die alte Grid-Ausrichtung `align-items:start` ließ die Aktionsseite auf 764 px anwachsen, obwohl im Arbeitsbereich nur etwa 594 px verfügbar waren. So wurde Inhalt außerhalb des Rahmens abgeschnitten statt innerhalb der Seitenleiste gescrollt. Die bisherigen Browserprüfungen hatten diese tatsächliche Mausradbedienung nicht geprüft.
+
+Der Arbeitsbereich hat jetzt eine begrenzte, gestreckte Grid-Zeile. Hauptinhalt und Seitenleiste können innerhalb dieser Höhe unabhängig scrollen. Die Karte besitzt `overflow:clip`, flexible Rasterzellen und eine zum verfügbaren Platz passende quadratische Größe; alte mobile Mindesthöhen und Mindestzellbreiten erzeugen keine Karten-Scrollfläche mehr. Kartenausschnitte werden über die Richtungsschaltflächen, Pfeiltasten und die bestehende Ziehsteuerung bewegt.
+
+Nachweise: `npm run build` bestanden; `node scripts/validate-workspace-scroll.mjs` bestanden. Bei 1366×768 wurde tatsächliches Scrollen langer Aktionslisten und des Logistikformulars mit dem Mausrad geprüft, ohne die jeweils andere Spalte zu bewegen. Bei 1366, 390 und 320 px passt das gesamte Kartenraster in seine Fläche, Mausrad und direkte scrollTop/scrollLeft-Zuweisung scrollen die Karte nicht; die Richtungsschaltfläche verändert dagegen die sichtbaren Koordinaten. Kein horizontaler Dokumentüberlauf und keine Browser-JavaScriptfehler. Testwelt, Screenshots und Messwerte liegen unter `work/workspace-scroll/`.
+
+Auch der vollständige Ablauf `node scripts/validate-logistics-ui.mjs` wurde nach der Layoutkorrektur erneut erfolgreich ausgeführt (Lieferung/Verlegung, Forschung/Skills/Postbox, Feldgründung, Mobilansichten, Tastatur und getrennte Tabs).
