@@ -10,6 +10,16 @@ Repository: https://github.com/bavxhack/War2glory
 
 Alle acht Gebäudetypen besitzen zehn eigene Bilder für Stufe 1–10: Sägewerk, Steinbruch, Bauernhof, Lagerhaus, Universität, Ölraffinerie, Kaserne und Fahrzeugfabrik. Kleine Hütten und Werkstätten wachsen mit jedem Ausbau zu stattlichen Gebäuden und Anlagen. Bauplätze, Gebäudeauswahl, Forschung und Abrissvorschau zeigen die tatsächlich abgeschlossene Stufe; Neubauangebote beginnen mit Stufe 1. Die Bilddateien werden lokal ausgeliefert. Herkunft und Zuordnung stehen in [apps/client/assets/README.md](apps/client/assets/README.md).
 
+## Mehrstadtbetrieb und Feldgründung (Auftrag 15)
+
+Bis zu fünf eigene Städte mit getrennten Gebäuden, Lagern, Produktion, Truppen, Bau-/Ausbildungsqueues, Versorgung und Bürgermeistern. Der Stadtwähler speichert die Auswahl je Tab; jeder Stadtbefehl nennt eine geprüfte `cityId`. Auch nicht ausgewählte Städte schreiten fort. Generäle, Bewerber/Erwerbszähler, Forschung mit einer Queue, Postbox und Punkte bleiben spielerweit. Forschung und Rekrutierung werden aus der expliziten Stadt bezahlt; Forschung wirkt ab Abschluss in allen Städten.
+
+Neue Stadt: freies Nicht-Wasser-Feld aufklären → Rückkehrbericht mit Verteidigung/Revision → mit Infanterie und optional LKWs erobern → eigenen Anspruch nutzen → Gründungsgebühr bezahlen. Feldverteidigung bleibt gespeichert, hat vorläufig 5–30 Infanteristen und regeneriert nicht. Aufklärung gibt keine XP; Eroberung keine Beute. Öl, eigene Ladung und Kampfverluste folgen Auftrag 14. Armeen kehren immer in ihre Ausgangsstadt zurück, auch wenn bereits gegründet wurde.
+
+Ein Eroberungszug oder ungenutzter Anspruch reserviert einen persönlichen Stadtplatz. Anspruch nach Sieg vorläufig 24 Stunden; bei Ablauf kehrt das ursprüngliche Feldkontingent zurück. Gründung kostet aus der Ausgangsstadt je 500/1000/1500/2000 Holz, Stein und Nahrung für Stadt 2/3/4/5. Neue Städte starten mit drei Produktionsgebäuden Stufe 1 und Ressourcen 0, ohne zusätzliche Generäle oder Truppen. Zahlen sind eigene vorläufige Balancewerte; die Grenze von fünf Städten ist verbindlich.
+
+Spielerschema 16 / Weltschema 4 migrieren bestehende Daten. `cities` ist der einzige gespeicherte Stadtbestand; vorhandene Stadt-ID und Position bleiben erhalten. Historische Missionen erhalten `originCityId` ohne Änderungen an Fracht, Bezahlung oder Terminen. ENV, Protokoll, ausgeführte Prüfungen und Grenzen: [MULTICITY_VALIDATION.md](docs/MULTICITY_VALIDATION.md). Lieferungen zwischen eigenen und fremden Städten sind Auftrag 16 und weiterhin geplant.
+
 ## Ressourcenladung und Betriebsöl (Auftrag 14)
 
 Neue NPC-Einsätze nutzen eine gemeinsame Kapazität für eigene Holz-/Stein-/Nahrungs-/Ölladung und das gesamte beim Start bezahlte Betriebsöl. Jede Ressourceneinheit wiegt vorläufig einen Platz. Freiwilliges Öl bleibt Güterladung; nur Betriebsöl wird verbrannt. Nahrung erzeugt keinen Reiseunterhalt. Vorschau und Start prüfen dieselben Bestände, Truppen, Generalversion, Reichweitenbedingungen und Regeln.

@@ -1,3 +1,4 @@
+import { legacyPlayer } from './support/player.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
@@ -104,8 +105,8 @@ test('schema migration preserves existing data and research/return ordering surv
   const directory = await mkdtemp(join(tmpdir(), 'w2g-research-')); t.after(() => rm(directory, { recursive: true, force: true }));
   let now = 0; let storage = await new WorldStorage(directory, 'test', () => now).initialize();
   let { player } = await storage.register('ResearchState', 'long-test-password');
-  player.schemaVersion = 8; delete player.city.research; await storage.savePlayer(player);
-  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 15); assert.deepEqual(player.city.research, newResearch());
+  legacyPlayer(player); player.schemaVersion = 8; delete player.city.research; await storage.savePlayer(player);
+  player = await storage.loadPlayer(player.playerId); assert.equal(player.schemaVersion, 16); assert.deepEqual(player.city.research, newResearch());
   player.city = cityAt(); player.city.buildingSlots[3].level = 1;
   player.city = startResearch(player.city, { ...command('logistics'), expectedUniversityLevel: 1 }, 0);
   player.city.resources.food = 2000;
@@ -129,7 +130,7 @@ test('journal write failure/recovery in the same process preserves single comple
   // advanceWorld needs to load first, so inject the isolated snapshot as the reader result.
   const load = storage.loadPlayer.bind(storage); storage.loadPlayer = async () => structuredClone(player);
   now = 60000; await assert.rejects(storage.advanceWorld(now));
-  assert.equal(JSON.parse(await readFile(storage.journalFile, 'utf8')).players[0].city.research.levels.forestry, 1);
+  assert.equal(JSON.parse(await readFile(storage.journalFile, 'utf8')).players[0].research.levels.forestry, 1);
   await rm(file, { recursive: true }); await writeFile(file, original); storage.loadPlayer = load;
   await storage.advanceWorld(now); const done = await load(player.playerId);
   assert.equal(done.city.research.levels.forestry, 1); assert.equal(commanderScore(done.city).research, 10); assert.equal(done.city.research.active, null);

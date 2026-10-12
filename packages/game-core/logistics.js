@@ -80,7 +80,7 @@ export function missionQuote(player, command, origin, target, rules = LOGISTICS_
   for (const [resource, amount] of Object.entries(ownCargo)) if ((player.city.resources[resource] ?? 0) < amount + (resource === 'oil' ? fuel.totalOil : 0)) throw new Error(resource === 'oil' ? 'Nicht genügend Öl in der Stadt für freiwillige Ölladung und Betriebsöl für Hin- und Rückweg.' : `Nicht genügend ${resource} für eigene Ladung.`);
   const upkeepPerHour = Object.entries(units).reduce((sum, [unit, amount]) => sum + amount * (player.supply?.rules.upkeepPerSecond[unit] ?? 0) * 3600, 0);
   const upkeepBeforePerHour = Object.entries(military.units).reduce((sum, [unit, amount]) => sum + amount * (player.supply?.rules.upkeepPerSecond[unit] ?? 0) * 3600, 0);
-  return { type, targetId: target.id, generalId: general.id, generalVersion: general.version, units: { ...units },
+  return { ...(player.cityId ? { cityId: player.cityId } : {}), ...(origin.id ? { originCityId: origin.id } : {}), type, targetId: target.id, generalId: general.id, generalVersion: general.version, units: { ...units },
     available: Object.fromEntries(Object.keys(units).map(unit => [unit, military.units[unit] ?? 0])),
     distanceFields, travelMs, delayMinutes, delayMs: delayMinutes * 60_000,
     previewAt: now, ...times, outboundTravelMs: travelMs + delayMs,
@@ -106,7 +106,7 @@ export function startLogisticsMission(previous, command, now, origin, target, ru
   general.status = quote.type === 'raid' ? 'raiding' : 'scouting'; general.version++;
   player.military.missions.push({ ...quote, id: command.id, ruleset: quote.type === 'raid' ? CARGO_RAID_RULESET : CARGO_SCOUT_RULESET,
     cargo: { version: CARGO_RULES.version, initial: { ...quote.ownCargo }, retained: { ...quote.ownCargo }, lost: { wood: 0, stone: 0, food: 0, oil: 0 }, returnFuelMilli: quote.fuelCalculation.oneWayMilli, lostFuelMilli: '0' },
-    initialUnits: { ...quote.units }, paidOil: quote.totalOil, targetName: target.name, coordinates: { x: target.x, y: target.y }, generalName: general.name,
+    initialUnits: { ...quote.units }, paidOil: quote.totalOil, targetName: target.name, coordinates: { x: target.x, y: target.y }, generalName: general.name, ...(origin.id ? { originCityId: origin.id } : {}),
     hungerLossesByUnit: {}, status: 'outbound', startedAt: now, ...missionTimes(now, quote.travelMs, quote.delayMinutes) });
   return player;
 }

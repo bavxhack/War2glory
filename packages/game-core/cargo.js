@@ -97,7 +97,7 @@ export function unloadCargo(mission, resources, capacities) {
 }
 
 export function validateMissionCargo(mission) {
-  const newVersion = [CARGO_RAID_RULESET, CARGO_SCOUT_RULESET].includes(mission.ruleset);
+  const newVersion = [CARGO_RAID_RULESET, CARGO_SCOUT_RULESET, 'field-conquest-1-provisional', 'field-scout-1-provisional'].includes(mission.ruleset);
   if (!mission.cargo && !newVersion) return;
   if (!newVersion || mission.cargo?.version !== CARGO_RULES.version) throw new Error('Unbekannte oder fehlende Missionsfrachtversion.');
   const { initial, retained, lost } = mission.cargo;

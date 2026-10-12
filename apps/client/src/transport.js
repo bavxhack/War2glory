@@ -7,7 +7,8 @@ export class GameTransport {
   #requests = new Map();
   state = initialState;
 
-  constructor({ WebSocketImpl = globalThis.WebSocket, storage = globalThis.localStorage, location = globalThis.location, timers = globalThis } = {}) {
+  constructor({ WebSocketImpl = globalThis.WebSocket, storage = globalThis.localStorage, tabStorage = globalThis.sessionStorage, location = globalThis.location, timers = globalThis } = {}) {
+    this.tabStorage = tabStorage; this.selectedCityId = tabStorage?.getItem("strategy.city") ?? null;
     this.WebSocketImpl = WebSocketImpl; this.storage = storage; this.location = location; this.timers = timers;
   }
   subscribe = listener => { this.#listeners.add(listener); return () => this.#listeners.delete(listener); };
@@ -43,9 +44,10 @@ export class GameTransport {
       return;
     }
     const request = this.#requests.get(event.requestId);
-    if (request && ['raid.preview', 'scouting.preview', 'general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
+    if (request && ['field.scout.preview', 'field.conquest.preview', 'city.found.preview', 'raid.preview', 'scouting.preview', 'general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
       this.#requests.delete(event.requestId);
       if (event.type === 'command.error') request.reject(new Error(event.payload.message));
+      else if (request.cityId && request.cityId !== this.selectedCityId) request.reject(new Error('Stadt wurde gewechselt. Bitte erneut prüfen.'));
       else request.resolve(event.payload);
     }
     if (event.type === 'auth.success') {
@@ -55,33 +57,51 @@ export class GameTransport {
       this.#rejectRequests('Sitzung beendet.');
       this.storage?.removeItem('strategy.session'); this.#pending.clear();
       this.#set({ authenticated: false, game: null, map: null, mapDetails: null, demolition: null, error: event.payload.message ?? '' });
-    } else if (['city.snapshot', 'city.updated'].includes(event.type)) this.#set({ game: event.payload });
-    else if (event.type === 'map.snapshot') this.#set({ map: event.payload });
+    } else if (['city.snapshot', 'city.updated'].includes(event.type)) {
+      const cities = event.payload.cities;
+      if (cities) {
+        if (!cities.some(c => c.id === this.selectedCityId)) this.selectedCityId = cities[0].id;
+        if (event.payload.cityId !== this.selectedCityId) { this.sync(); this.requestMap({}); return; }
+      }
+      if (this.state.game?.cityId === event.payload.cityId && this.state.game?.serverTime > event.payload.serverTime) return;
+      this.#set({ game: event.payload, switching: false });
+    }
+    else if (event.type === 'map.snapshot' && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) {
+      const selection = this.state.mapDetails, tile = selection?.terrain;
+      const entity = tile ? event.payload.entities?.find(e => e.x === tile.x && e.y === tile.y) : null;
+      this.#set({ map: event.payload, ...(tile ? { mapDetails: { ...selection, entity } } : {}) });
+    }
     else if (event.type === 'map.changed' && this.state.map && event.payload.revision > this.state.map.revision) this.requestMap(this.state.map.viewport);
-    else if (event.type === 'map.details') this.#set({ mapDetails: event.payload });
-    else if (event.type === 'building.preview') this.#set({ demolition: event.payload });
+    else if (event.type === 'map.details' && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ mapDetails: event.payload });
+    else if (event.type === 'building.preview' && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ demolition: event.payload });
     else if (event.type === 'command.error') { this.#pending.delete(event.requestId); this.#set({ error: event.payload.message }); }
     else if (event.type === 'command.ok') {
       this.#pending.delete(event.requestId);
       if (event.payload.loggedOut) { this.#rejectRequests('Sitzung beendet.'); this.#pending.clear(); this.storage?.removeItem('strategy.session'); this.#set({ authenticated: false, game: null, map: null, mapDetails: null, demolition: null }); }
       else this.#set({ message: event.payload.duplicate ? 'Auftrag war bereits bestätigt.' : 'Auftrag wurde gespeichert.', error: '' });
-    } else if (event.type === 'construction.completed') this.#set({ message: 'Ein Bauauftrag wurde abgeschlossen.' });
+    } else if (event.type === 'construction.completed' && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ message: 'Ein Bauauftrag wurde abgeschlossen.' });
   }
   send(type, payload = {}, requestId = createRequestId()) {
     if (this.#socket?.readyState !== this.WebSocketImpl.OPEN) throw new Error('Keine Verbindung zum Spielserver.');
+    if (this.selectedCityId && !['auth.register', 'auth.login', 'auth.resume', 'auth.logout', 'mail.send', 'mail.read'].includes(type)) payload = { cityId: this.selectedCityId, ...payload };
     this.#socket.send(JSON.stringify({ version: 1, type, requestId, payload })); return requestId;
   }
   mutate(type, payload) { const id = createRequestId(); this.#pending.set(id, { type, payload }); this.send(type, payload, id); return id; }
   request(type, payload) {
     const id = createRequestId();
     return new Promise((resolve, reject) => {
-      this.#requests.set(id, { resolve, reject });
+      this.#requests.set(id, { resolve, reject, cityId: this.selectedCityId });
       try { this.send(type, payload, id); }
       catch (error) { this.#requests.delete(id); reject(error); }
     });
   }
   login(payload, register = false) { return this.send(register ? 'auth.register' : 'auth.login', payload); }
   logout() { return this.send('auth.logout'); }
+  selectCity(id) {
+    this.selectedCityId = id; this.tabStorage?.setItem('strategy.city', id);
+    this.#rejectRequests('Stadt wurde gewechselt.');
+    this.#set({ switching: true, demolition: null, mapDetails: null, map: null }); this.sync(); this.requestMap({});
+  }
   sync() { return this.send('city.sync'); }
   requestMap(viewport) { return this.send('map.viewport', viewport); }
   details(id) { return this.send('map.details', { id }); }

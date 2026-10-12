@@ -1,3 +1,4 @@
+import { legacyPlayer } from './support/player.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile, readFile, mkdir } from 'node:fs/promises';
@@ -182,14 +183,14 @@ test('hunger eliminates infantry before arrival: attack cancelled, trucks return
 
 test('migration 12 retains portraits, read status, resources, investments, queue and old mission versions', async t => {
   const f = await storageFixture(t); let p = await f.storage.loadPlayer(f.player.playerId);
-  p.schemaVersion = 12; delete p.city.resources.oil; delete p.military.units.truck; delete p.city.research.levels.oilProcessing; delete p.city.research.levels.motorization;
+  legacyPlayer(p); p.schemaVersion = 12; delete p.city.resources.oil; delete p.military.units.truck; delete p.city.research.levels.oilProcessing; delete p.city.research.levels.motorization;
   p.mailbox.messages = [{ id: 'message-preserved', readAt: 12 }]; p.mailbox.readReportIds = ['old-read'];
   p.city.research.active = { technology: 'forestry', targetLevel: 1, ruleset: 'research-2-leadership-provisional', durationMs: 60000, finishesAt: 60000, paidCost: { wood: 100, stone: 100 } };
   p.military.trainingQueue = [{ id: 'old-queue', barracksSlotId: 'military-plot-1', unit: 'scout', amount: 1, finishesAt: 60000 }];
   Object.assign(p.city.militarySlots[0], { building: 'barracks', level: 1 });
   p.military.missions = [1, 2, 3].map((v, i) => ({ id: `old-${v}`, type: 'raid', ruleset: ['npc-pve-1-provisional', 'npc-pve-2-skills-provisional', 'npc-pve-3-general-bases-provisional'][i], infantry: 1, status: 'outbound', arrivesAt: 60000, returnsAt: 120000 }));
   const portrait = p.military.generals[0].portraitId, messages = structuredClone(p.mailbox); await f.storage.savePlayer(p);
-  p = await f.storage.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 15); assert.equal(p.city.resources.oil, 0); assert.equal(p.military.units.truck, 0);
+  p = await f.storage.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 16); assert.equal(p.city.resources.oil, 0); assert.equal(p.military.units.truck, 0);
   assert.equal(p.city.research.levels.motorization, 0); assert.deepEqual(p.mailbox, messages); assert.equal(p.military.generals[0].portraitId, portrait);
   assert.equal(p.military.trainingQueue[0].trainingSlotId, 'military-plot-1'); assert.equal(p.city.research.active.finishesAt, 60000);
   assert.ok(p.military.missions.every(m => !m.units && !m.paidOil)); assert.deepEqual(await f.storage.loadPlayer(p.playerId), p);
@@ -288,7 +289,7 @@ test('legacy mission versions 1–3 finish both phases unchanged through schema 
     p.military = startRaidMission(p.military, { id: 'legacy-raid', generalId: p.military.generals[0].id, infantry: 20 }, 0, f.home, f.npc, 1);
     const m = p.military.missions[0]; m.ruleset = ruleset;
     if (phase === 'returning') { m.status = 'returning'; m.result = { victory: true, attackerLosses: 5, defenderLosses: 10, survivors: 15, loadedFood: 300, capacity: 300, generalExperience: 20, combatScore: 5 }; }
-    p.schemaVersion = 12; delete p.city.resources.oil; delete p.military.units.truck; await f.storage.savePlayer(p);
+    legacyPlayer(p); p.schemaVersion = 12; delete p.city.resources.oil; delete p.military.units.truck; await f.storage.savePlayer(p);
     await f.storage.advanceWorld(50000); p = await f.storage.loadPlayer(p.playerId);
     const r = p.military.reports[0]; assert.equal(r.ruleset, ruleset); assert.equal(r.originalLoadedFood, 300); assert.equal(r.combatScore, 5); assert.equal(r.paidOil, undefined);
     assert.equal(p.military.units.infantry, 15); assert.equal(p.military.units.truck, 0); assert.equal(p.city.resources.oil, 0);

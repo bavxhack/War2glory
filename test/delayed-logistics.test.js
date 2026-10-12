@@ -1,3 +1,4 @@
+import { legacyPlayer } from './support/player.js';
 import { resolveCargoArrival } from '../packages/game-core/cargo.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -27,7 +28,7 @@ async function stored(t, config = parseConfiguration()) {
   const dir = await mkdtemp(join(tmpdir(), 'delayed-')); t.after(() => rm(dir, { recursive: true, force: true }));
   const storage = await new WorldStorage(dir, 'test', () => 0, config, quiet).initialize();
   const { player } = await storage.register('DelayedPlayer', 'long-test-password');
-  const p = fixture(); p.playerId = player.playerId; p.mailbox = player.mailbox; p.schemaVersion = 14;
+  const p = fixture(); p.playerId = player.playerId; p.mailbox = player.mailbox; legacyPlayer(p); p.schemaVersion = 14;
   p.military.generals[0] = { ...p.military.generals[0], id: player.military.generals[0].id, ownerId: player.playerId, portraitId: player.military.generals[0].portraitId, attributes: { leadership: 20, attack: 0, defense: 0 } };
   const home = storage.world.map.entities.find(e => e.playerId === player.playerId), npc = storage.world.map.entities.find(e => e.kind === 'npc');
   Object.assign(home, origin); Object.assign(npc, target, { id: npc.id });
@@ -150,11 +151,11 @@ test('scope switches loss groups immediately but active cycle keeps old grace/pe
 
 test('worldwide activation and restart migrate schema 13 without altering paid snapshots or reactivating', async t => {
   const f = await stored(t); let p = send(f.p); const m = p.military.missions[0]; m.targetId = f.npc.id; m.arrivesAt = 60000; m.returnsAt = 65000;
-  p.schemaVersion = 13; delete m.cargo; m.ruleset = 'npc-pve-4-logistics-provisional'; delete m.delayMinutes; m.paidOil = 0; m.logistics.oilMilliPerField = { infantry: 0, truck: 0 }; m.hungerLosses = 2;
+  legacyPlayer(p); p.schemaVersion = 13; delete m.cargo; m.ruleset = 'npc-pve-4-logistics-provisional'; delete m.delayMinutes; m.paidOil = 0; m.logistics.oilMilliPerField = { infantry: 0, truck: 0 }; m.hungerLosses = 2;
   const old = { ...SUPPLY_RULES, version: 'old', graceMs: 10000 }; delete old.upkeepScope;
   f.storage.world.supplyRuleHistory = [{ effectiveAt: 0, rules: old }]; await f.storage.saveWorld(); await f.storage.savePlayer(p);
   const restarted = await new WorldStorage(f.dir, 'test', () => 5000, parseConfiguration(), quiet).initialize();
-  p = await restarted.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 15); assert.equal(p.city.resources.food, 0); assert.equal(p.military.missions[0].delayMinutes, 0);
+  p = await restarted.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 16); assert.equal(p.city.resources.food, 0); assert.equal(p.military.missions[0].delayMinutes, 0);
   assert.equal(p.military.missions[0].paidOil, 0); assert.equal(p.military.missions[0].arrivesAt, 60000); assert.equal(p.supply.shortageMs, 5000);
   assert.equal(restarted.world.supplyRuleHistory.at(-1).effectiveAt, 5000); assert.equal(restarted.world.supplyRuleHistory.at(-1).rules.upkeepScope, 'stationed');
   const history = structuredClone(restarted.world.supplyRuleHistory);
@@ -241,12 +242,12 @@ test('different actual arrival times share scarce NPC loot; delayed offline step
 });
 
 test('schema 13 migration write failure leaves original intact and retries once without changing dates', async t => {
-  const f = await stored(t), p = send(f.p); p.schemaVersion = 13; delete p.military.missions[0].delayMinutes;
+  const f = await stored(t), p = send(f.p); legacyPlayer(p); p.schemaVersion = 13; delete p.military.missions[0].delayMinutes;
   await f.storage.savePlayer(p);
   const save = f.storage.savePlayer.bind(f.storage); f.storage.savePlayer = () => { throw new Error('migration-save-failure'); };
   await assert.rejects(f.storage.loadPlayer(p.playerId), /migration-save-failure/);
   const { readFile } = await import('node:fs/promises'); assert.deepEqual(JSON.parse(await readFile(f.storage.playerFile(p.playerId), 'utf8')), p);
-  f.storage.savePlayer = save; const migrated = await f.storage.loadPlayer(p.playerId); assert.equal(migrated.schemaVersion, 15); assert.equal(migrated.military.missions[0].delayMinutes, 0);
+  f.storage.savePlayer = save; const migrated = await f.storage.loadPlayer(p.playerId); assert.equal(migrated.schemaVersion, 16); assert.equal(migrated.military.missions[0].delayMinutes, 0);
   assert.equal(migrated.military.missions[0].arrivesAt, p.military.missions[0].arrivesAt); assert.deepEqual(await f.storage.loadPlayer(p.playerId), migrated);
 });
 

@@ -26,10 +26,13 @@ export function validateRoles(player) {
     if (!g || roles.has(id) || g.status !== status) throw new Error('Inkonsistente General-Rollenreferenz.');
     roles.set(id, status);
   };
-  bind(m.mayorGeneralId, 'mayor'); bind(m.researcherGeneralId, 'researcher');
-  for (const mission of m.missions.filter(x => x.status !== 'completed')) bind(mission.generalId, mission.type === 'raid' ? 'raiding' : 'scouting');
+  if (player.cities) {
+    for (const city of player.cities) bind(city.id === player.cityId ? m.mayorGeneralId : city.military.mayorGeneralId, 'mayor');
+  } else bind(m.mayorGeneralId, 'mayor');
+  bind(m.researcherGeneralId, 'researcher');
+  for (const mission of m.missions.filter(x => x.status !== 'completed')) bind(mission.generalId, ['raid', 'conquest'].includes(mission.type) ? 'raiding' : 'scouting');
   for (const g of m.generals) if (g.status !== 'idle' && !roles.has(g.id)) throw new Error('Generalstatus ohne Rollenreferenz.');
-  const bound = player.city.research?.active?.researcher?.generalId;
+  const bound = (player.research ?? player.city.research)?.active?.researcher?.generalId;
   if (bound && bound !== m.researcherGeneralId) throw new Error('Forschungsauftrag ohne zugehörige Generalbindung.');
 }
 export function recruitmentCost(k, rules = OFFICER_RULES) {
@@ -45,10 +48,11 @@ export function hasBarracks(player) { return player.city.militarySlots.some(s =>
 export function syncCandidates(player, now, rules = OFFICER_RULES, randomIndex, idFactory, intervalHistory = []) {
   normalizeOfficers(player);
   const m = player.military, old = m.candidatePool;
-  if (!old && !hasBarracks(player)) return false;
+  const eligibleCities = player.cities?.filter(c => c.militarySlots.some(s => s.building === 'barracks' && s.level > 0)) ?? [];
+  if (!old && !hasBarracks(player) && !eligibleCities.length) return false;
   if (old && now < old.expiresAt) return false;
   // The old expiry is the first boundary of the new interval rules. Skip missed windows in O(1).
-  let anchor = old?.expiresAt ?? player.city.officerEligibleAt ?? now;
+  let anchor = old?.expiresAt ?? Math.min(...eligibleCities.map(c => c.officerEligibleAt ?? now), player.city.officerEligibleAt ?? now);
   let intervalMs = old?.intervalMs ?? rules.refreshMs;
   let intervalRuleset = old?.intervalRuleset ?? old?.ruleset ?? rules.version;
   for (const entry of intervalHistory) {
@@ -99,7 +103,7 @@ export function researcherSnapshot(military, rules = OFFICER_RULES) {
 export function assignResearcher(previous, command) {
   const player = structuredClone(previous), m = player.military;
   validateRoles(player);
-  if (player.city.research.active) throw new Error('Forschungsleitung während laufender Forschung gesperrt.');
+  if ((player.research ?? player.city.research).active) throw new Error('Forschungsleitung während laufender Forschung gesperrt.');
   if (command.expectedRoleVersion !== m.roleVersion) throw new Error('Rollenstand veraltet.');
   if (command.generalId === m.researcherGeneralId) return player;
   const next = command.generalId == null ? null : m.generals.find(g => g.id === command.generalId && g.ownerId === player.playerId);

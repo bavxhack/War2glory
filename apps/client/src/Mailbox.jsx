@@ -4,7 +4,7 @@ const folders = [['inbox', 'Nachrichten'], ['scout', 'Aufklärung'], ['raid', 'A
 const date = value => Number.isFinite(value) ? new Date(value).toLocaleString('de-DE') : 'Zeitpunkt unbekannt';
 
 function Report({ report }) {
-  return <><h2>{report.targetName}</h2><p>{report.generalName ?? 'General'} · {report.coordinates && `(${report.coordinates.x}, ${report.coordinates.y})`} · Rückkehr: {date(report.returnedAt)}</p>{report.type === 'raid' ? <>
+  return <><h2>{report.targetName}</h2><p>Ausgangsstadt: {report.originCityId ?? 'Historische Ausgangsstadt'}</p>{report.reason && <p>{report.reason}</p>}<p>{report.generalName ?? 'General'} · {report.coordinates && `(${report.coordinates.x}, ${report.coordinates.y})`} · Rückkehr: {date(report.returnedAt)}</p>{['raid', 'conquest'].includes(report.type) ? <>
     {report.cargo && <CargoReport report={report}/>}<h3>{report.cancelled ? 'Angriff ausgefallen' : report.victory ? 'Sieg' : 'Niederlage'}</h3>{report.initialUnits && <LogisticsReport report={report}/>}<dl className="mail-facts">
       <dt>Angreifer</dt><dd>{report.initialUnits?.infantry ?? report.infantry} Infanteristen</dd>
       <dt>Eigene Verluste</dt><dd>{report.attackerLosses}</dd><dt>NPC-Verluste</dt><dd>{report.defenderLosses}</dd>
@@ -12,8 +12,7 @@ function Report({ report }) {
       <dt>General-Erfahrung</dt><dd>{report.generalExperience} EP</dd><dt>Kampfpunkte</dt><dd>{report.combatScore}</dd>
     </dl>{!report.initialUnits && <p>Historische Mission: Ölbuchung nicht erhoben.</p>}{report.combatBonuses && <p>Angewandte Boni: Angriff +{report.combatBonuses.attackPercent}% · Verteidigung −{report.combatBonuses.defensePercent}%</p>}</> : <>
     {report.cargo && <CargoReport report={report}/>} {report.initialUnits && <LogisticsReport report={report}/>}<h3>Aufklärung vom {date(report.capturedAt)}</h3><dl className="mail-facts">
-      <dt>Nahrung</dt><dd>{Math.floor(report.intelligence?.food?.amount ?? 0)} / {report.intelligence?.food?.capacity ?? '?'}</dd>
-      <dt>Garnison</dt><dd>{report.intelligence?.garrison?.amount ?? 'Damals nicht modelliert'}{report.intelligence?.garrison?.capacity != null && ` / ${report.intelligence.garrison.capacity}`}</dd>
+      {report.type === 'field-scout' && <><dt>Feldverteidiger</dt><dd>{report.intelligence?.defenders ?? 'Aufklärung nicht möglich'}</dd><dt>Revision</dt><dd>{report.intelligence?.fieldRevision ?? '–'}</dd></>}{report.type !== 'field-scout' && <><dt>Nahrung</dt><dd>{Math.floor(report.intelligence?.food?.amount ?? 0)} / {report.intelligence?.food?.capacity ?? '?'}</dd><dt>Garnison</dt><dd>{report.intelligence?.garrison?.amount ?? 'Damals nicht modelliert'}{report.intelligence?.garrison?.capacity != null && ` / ${report.intelligence.garrison.capacity}`}</dd></>}
     </dl><p>Die Angaben zeigen den Zustand zum Zeitpunkt der Aufklärung.</p></>}</>;
 }
 
@@ -23,7 +22,7 @@ function LogisticsReport({ report }) {
 function CargoReport({ report }) {
   const cargo = report.cargo, fuel = report.operatingFuel;
   return <><h3>Ladung und Betriebsöl</h3><p>Betriebsöl geladen {fuel.loaded} · verbrannt {fuel.burned} · im Kampf verloren {fuel.lost} · verbleibend {fuel.remaining}. Freiwillige Ölladung ist separat.</p>
-    {report.type === 'raid' && <><p>Beute: {report.loadedFood} Nahrung · Güterplätze nach Kampf: {report.goodsCapacity}</p><div className="logistics-table" tabIndex="0" role="region" aria-label="Ressourcenbilanz, horizontal scrollbar"><table><thead><tr><th>Ressource</th><th>Eigene Startladung</th><th>Ladungsverlust</th><th>Eigene Rückfracht</th><th>Eingelagert</th><th>Eigener Überlauf</th><th>Beute eingelagert</th><th>Beuteüberlauf</th></tr></thead><tbody>{Object.entries({ wood: 'Holz', stone: 'Stein', food: 'Nahrung', oil: 'Öl' }).map(([key, label]) => <tr key={key}><th>{label}</th><td>{cargo.initial[key]}</td><td>{cargo.lost[key]}</td><td>{cargo.retained[key]}</td><td>{cargo.delivery.storedOwn[key]}</td><td>{cargo.delivery.overflowOwn[key]}</td><td>{cargo.delivery.storedLoot[key]}</td><td>{cargo.delivery.overflowLoot[key]}</td></tr>)}</tbody></table></div></>}
+    {['raid', 'conquest'].includes(report.type) && <><p>Beute: {report.loadedFood} Nahrung · Güterplätze nach Kampf: {report.goodsCapacity}</p><div className="logistics-table" tabIndex="0" role="region" aria-label="Ressourcenbilanz, horizontal scrollbar"><table><thead><tr><th>Ressource</th><th>Eigene Startladung</th><th>Ladungsverlust</th><th>Eigene Rückfracht</th><th>Eingelagert</th><th>Eigener Überlauf</th><th>Beute eingelagert</th><th>Beuteüberlauf</th></tr></thead><tbody>{Object.entries({ wood: 'Holz', stone: 'Stein', food: 'Nahrung', oil: 'Öl' }).map(([key, label]) => <tr key={key}><th>{label}</th><td>{cargo.initial[key]}</td><td>{cargo.lost[key]}</td><td>{cargo.retained[key]}</td><td>{cargo.delivery.storedOwn[key]}</td><td>{cargo.delivery.overflowOwn[key]}</td><td>{cargo.delivery.storedLoot[key]}</td><td>{cargo.delivery.overflowLoot[key]}</td></tr>)}</tbody></table></div></>}
   </>;
 }
 export function Mailbox({ state, transport }) {
@@ -39,7 +38,7 @@ export function Mailbox({ state, transport }) {
   const readReports = new Set(state.mailbox.readReportIds);
   const entries = state.mailbox.messages.map(message => ({ id: message.id, kind: 'message', folder: message.senderId === state.player.id ? 'sent' : 'inbox', title: message.subject,
     who: message.senderId === state.player.id ? message.recipientName : message.senderName, time: message.sentAt, unread: message.recipientId === state.player.id && message.readAt == null, data: message }))
-    .concat(state.military.reports.map(report => ({ id: report.id, kind: 'report', folder: report.type === 'raid' ? 'raid' : 'scout', title: `${report.targetName}${report.type === 'raid' ? report.victory ? ' · Sieg' : ' · Niederlage' : ''}`,
+    .concat(state.military.reports.map(report => ({ id: report.id, kind: 'report', folder: ['raid', 'conquest'].includes(report.type) ? 'raid' : 'scout', title: `${report.targetName}${['raid', 'conquest'].includes(report.type) ? report.victory ? ' · Sieg' : ' · Niederlage' : ''}`,
       who: report.generalName ?? 'General', time: report.returnedAt, unread: !readReports.has(report.id), data: report })));
   const filtered = entries.filter(entry => entry.folder === folder && (!unreadOnly || entry.unread) && `${entry.title} ${entry.who}`.toLocaleLowerCase('de-DE').includes(query.toLocaleLowerCase('de-DE')))
     .sort((a, b) => (b.time ?? 0) - (a.time ?? 0) || a.id.localeCompare(b.id));

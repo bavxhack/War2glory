@@ -1,3 +1,4 @@
+import { SETTLEMENT_RULES } from '../../packages/game-core/settlement.js';
 import { LOGISTICS_RULES } from '../../packages/game-core/logistics.js';
 import { readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
@@ -6,6 +7,8 @@ import { SUPPLY_RULES } from '../../packages/game-core/supply.js';
 import { OFFICER_RULES } from '../../packages/game-core/officers.js';
 
 const definitions = {
+  FIELD_DEFENDER_MIN: [5, 1, 100000, true], FIELD_DEFENDER_MAX: [30, 1, 100000, true], CITY_CLAIM_TTL_HOURS: [24, 1 / 60, 8760],
+  CITY_FOUND_WOOD: [500, 1, 1000000, true], CITY_FOUND_STONE: [500, 1, 1000000, true], CITY_FOUND_FOOD: [500, 1, 1000000, true],
   GENERAL_MAX_COUNT: [3, 1, 100, true], GENERAL_RECRUIT_WOOD: [500, 1, 1000000, true], GENERAL_RECRUIT_STONE: [500, 1, 1000000, true],
   GENERAL_RECRUIT_COST_EXPONENT: [2, 1, 3, true], GENERAL_CANDIDATE_REFRESH_HOURS: [24, 1 / 60, 8760],
   RESEARCH_LEADERSHIP_PERCENT: [1, 0, 10], RESEARCH_BONUS_CAP_PERCENT: [50, 0, 100],
@@ -43,7 +46,10 @@ export function parseConfiguration(env = {}) {
   officers.version = `officers-1-${createHash('sha256').update(JSON.stringify(officers)).digest('hex').slice(0, 16)}`;
   const logistics = { ...LOGISTICS_RULES, scoutFuelCapacity: numbers.SCOUT_FUEL_CAPACITY, maxAttackDelayMinutes: numbers.MAX_ATTACK_DELAY_MINUTES, oilMilliPerField: Object.fromEntries(['infantry', 'scout', 'truck'].map(unit => [unit, Math.round(numbers[`OIL_${unit.toUpperCase()}_PER_FIELD`] * 1000)])), cargoPerUnit: { ...LOGISTICS_RULES.cargoPerUnit, truck: numbers.TRUCK_CARGO_CAPACITY } };
   logistics.version = `fuel-3-cargo-${createHash('sha256').update(JSON.stringify(logistics)).digest('hex').slice(0, 16)}`;
-  return { logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
+  if (numbers.FIELD_DEFENDER_MIN > numbers.FIELD_DEFENDER_MAX) throw new Error('FIELD_DEFENDER_MIN darf FIELD_DEFENDER_MAX nicht überschreiten.');
+  const settlement = { ...SETTLEMENT_RULES, defenderMin: numbers.FIELD_DEFENDER_MIN, defenderMax: numbers.FIELD_DEFENDER_MAX, claimTtlMs: Math.round(numbers.CITY_CLAIM_TTL_HOURS * 3600000), cost: { wood: numbers.CITY_FOUND_WOOD, stone: numbers.CITY_FOUND_STONE, food: numbers.CITY_FOUND_FOOD } };
+  settlement.version = `settlement-1-${createHash('sha256').update(JSON.stringify(settlement)).digest('hex').slice(0, 16)}`;
+  return { settlement, logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
 }
 
 export async function loadConfiguration({ env = {}, file = '.env', cli = {} } = {}) {

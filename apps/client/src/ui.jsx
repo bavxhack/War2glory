@@ -33,9 +33,10 @@ export function BuildingArt({ type, level = 1 }) {
     style={{ backgroundImage: `url(${buildingAtlases[type]})`, backgroundSize: frame.backgroundSize, backgroundPosition: frame.backgroundPosition }}/>;
 }
 
-export function Dialog({ open, title, kicker, danger = false, onClose, children, actions }) {
+export function Dialog({ open, title, kicker, danger = false, className = '', onClose, children, actions }) {
   const ref = useRef(null); const returnFocus = useRef(null);
   useEffect(() => { const dialog = ref.current; if (open && !dialog.open) { returnFocus.current = document.activeElement; dialog.showModal(); dialog.querySelector('input,select,button')?.focus(); } else if (!open && dialog.open) dialog.close(); }, [open]);
   useEffect(() => { const dialog = ref.current; const close = () => { onClose(); returnFocus.current?.focus?.(); }; const cancel = event => { event.preventDefault(); dialog.close(); close(); }; dialog.addEventListener('cancel', cancel); dialog.addEventListener('close', close); return () => { dialog.removeEventListener('cancel', cancel); dialog.removeEventListener('close', close); }; }, [onClose]);
-  return <dialog ref={ref} className={`mission-dialog${danger ? ' danger-dialog' : ''}`} aria-labelledby={`${kicker}-title`}><div className="dialog-content"><div className="dialog-heading"><div><span className="kicker">{kicker}</span><h2 id={`${kicker}-title`}>{title}</h2></div><button type="button" className="dialog-close" aria-label="Dialog schließen" onClick={onClose}>×</button></div>{children}<div className="dialog-actions"><button type="button" className="secondary" onClick={onClose}>Abbrechen</button>{actions}</div></div></dialog>;
+  useEffect(() => () => { returnFocus.current?.focus?.(); }, []);
+  return <dialog ref={ref} className={`mission-dialog${danger ? ' danger-dialog' : ''}${className ? ` ${className}` : ''}`} aria-labelledby={`${kicker}-title`}><div className="dialog-content"><div className="dialog-heading"><div><span className="kicker">{kicker}</span><h2 id={`${kicker}-title`}>{title}</h2></div><button type="button" className="dialog-close" aria-label="Dialog schließen" onClick={onClose}>×</button></div>{children}<div className="dialog-actions"><button type="button" className="secondary" onClick={onClose}>Abbrechen</button>{actions}</div></div></dialog>;
 }

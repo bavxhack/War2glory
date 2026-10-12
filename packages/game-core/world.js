@@ -1,4 +1,4 @@
-export const WORLD_SCHEMA_VERSION = 3;
+export const WORLD_SCHEMA_VERSION = 4;
 export const WORLD_CONFIG = Object.freeze({ width: 24, height: 24, npcCount: 18, maxViewport: 15 });
 export const NPC_RULES = Object.freeze({ version: 'npc-pve-1-provisional', infantryPerDifficulty: 5, rebuildMs: 300_000 });
 
@@ -53,7 +53,7 @@ export function randomFreeLocation(map, randomIndex) {
   return available[index];
 }
 
-export function publicMap(world, ownPlayerId, viewport) {
+export function publicMap(world, ownPlayerId, viewport, cityId) {
   const { config } = world.map;
   const width = viewport?.width ?? Math.min(config.maxViewport, config.width);
   const height = viewport?.height ?? Math.min(config.maxViewport, config.height);
@@ -62,10 +62,10 @@ export function publicMap(world, ownPlayerId, viewport) {
   if (![x, y, width, height].every(Number.isInteger) || width < 1 || height < 1 ||
       width > config.maxViewport || height > config.maxViewport || !isCoordinate(config, x, y) ||
       !isCoordinate(config, x + width - 1, y + height - 1)) throw new Error('Ungültiger oder zu großer Kartenausschnitt.');
-  const own = world.map.entities.find(entity => entity.kind === 'player' && entity.playerId === ownPlayerId);
+  const own = world.map.entities.find(entity => entity.kind === 'player' && entity.playerId === ownPlayerId && (!cityId || entity.id === cityId));
   const entities = world.map.entities.filter(entity => entity.x >= x && entity.x < x + width && entity.y >= y && entity.y < y + height)
-    .map(entity => ({ id: entity.id, type: entity.kind === 'npc' ? 'npc' : entity.playerId === ownPlayerId ? 'own-city' : 'player-city', name: entity.name,
-      ...(entity.kind === 'player' ? { commanderName: entity.commanderName } : { difficulty: entity.difficulty }), x: entity.x, y: entity.y,
+    .map(entity => ({ id: entity.id, type: entity.kind === 'claim' ? 'claim' : entity.kind === 'npc' ? 'npc' : entity.playerId === ownPlayerId ? 'own-city' : 'player-city', name: entity.name,
+      ...(entity.kind === 'player' ? { commanderName: entity.commanderName } : entity.kind === 'npc' ? { difficulty: entity.difficulty } : { reserved: true }), x: entity.x, y: entity.y,
       distance: own ? mapDistance(own, entity) : null }));
   const terrain = [];
   for (let row = y; row < y + height; row += 1) for (let column = x; column < x + width; column += 1) terrain.push({ x: column, y: row, type: terrainAt(column, row, world.map.seed) });
