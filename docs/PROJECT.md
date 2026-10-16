@@ -27,6 +27,8 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 5a | Generalfreie Ressourcenlieferungen und dauerhafte Truppen-/Generalverlegung zwischen eigenen Städten | Auftrag 16 spezifiziert; Umsetzung ausstehend |
 | UI 16 | Erkennbare Hauptnavigation, kompakter Stadtkopf, Aktionen vor Statuslisten, mobile Drawer | Auftrag 16, Konzept in UI_CONCEPT_16.md |
 | 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
+| Forschung+ | Historische Themenliste, eigener versionierter Forschungsbaum und Bau-/Ausbildungs-/Traglastforschung | Recherche dokumentiert; eigene Werte/Abhängigkeiten noch festzulegen |
+| Ausbau+ | Aufgaben, Stadtwirtschaft, Radar/Verteidigung, taktischer Kampf und weitere Einheiten | Recherchierte Kandidaten, kein unmittelbarer Implementierungsauftrag |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
 | 8 | Betrieb, Backups, Missbrauchsschutz, Community und Veröffentlichung | Geplant |
@@ -604,6 +606,44 @@ Atomare Sender-/Empfänger-/Missionsbuchungen über Weltqueue/Recovery-Journal; 
 Tests für generalfreie Lieferung, Teilannahme, Einwegtransfer, Generalstandorte, Spähertanks, Offlineversorgung, Crash-Recovery, parallele Tabs/Städte und tatsächliche UI-Bedienung. Nachweise in docs/LOGISTICS_UI_VALIDATION.md durch implementierenden Codex. Planung hat keine Anwendungstests ausgeführt.
 
 Danach Bündnisse/Unterstützung, geregelter Tauschhandel und weitere Militärtechnik; Matrix-Föderation bleibt eigenes Kernziel.
+
+## Historische Recherche vom 16.10.2026: Forschung und weitere Ausbauschritte
+
+Recherche und Abgleich dokumentiert in [RESEARCH_REFERENCE.md](RESEARCH_REFERENCE.md), mit Quellen, Zugriffsbeschränkungen und offenen Fragen. Dies erweitert die Planung, ersetzt nicht Auftrag16 und bestätigt dessen Abschluss nicht.
+
+### Ergebnis zur Forschung
+
+Die historische [Community-Wiki-Liste](https://war2glory.fandom.com/wiki/Technology) benennt19 Forschungsrichtungen. Eine [Spielbeschreibung von MMOGames](https://www.mmogames.com/game/war2-glory/) nennt21 Technologien. Ein vollständiger Originalbaum einschließlich Abhängigkeiten, Stufen, Preisen und Wirkungszahlen ist damit nicht gesichert. Fehlende Namen/Kanten nicht erfinden.
+
+Sinngemäße eigene Übersetzungen der19 gefundenen Themen:
+- Wirtschaft: Anbautechniken, Prospektion, Metallurgie, Stahlerzeugung.
+- Bau/Ausbildung: Bautechnik, Ausbildungstechniken.
+- Logistik: Ladetechnik, Lagertechnik, Plündertechnik, Verbrennungsmotoren.
+- Aufklärung/Kampf: Aufklärungstechniken, Feuerkraft, Panzerung, Ballistik, Schwerindustrie, Stadtverteidigung, Reparaturtechnik, Führungstechnik.
+- Spätere Luftfahrt: Düsentriebwerke.
+
+Diese Gruppierung ist eigener Entwurf, keine Original-Abhängigkeitsstruktur. Der aktuelle gelesene Forschungskatalog enthält Forstwirtschaft, Steinverarbeitung, Landwirtschaft, Lagerlogistik, Ölverarbeitung und Motorisierung. Bestehende IDs/Level/Queue/Punkte bewahren; Lagertechnik/Ladetechnik nicht als denselben Bonus behandeln.
+
+Nächster sinnvoller Forschungsauftrag nach Auftrag16: versionierter Katalog mit expliziten Voraussetzungen/Wirkungen und kleine Erweiterung für Bautechnik, Ausbildung und Traglast. Neue Kosten, Stufen, Bonusgrenzen und Abhängigkeiten vor Umsetzung festlegen. Forschung spielerweit und zeitpunktgenau, laufende Missionen/Queues nach gespeicherten Regeln.
+
+### Fehlende bzw. noch nicht konkret spezifizierte Kandidaten
+
+Historische Textquellen nennen zusätzliche Systeme. Als geplante Kandidaten aufnehmen, nicht als ungeprüft beauftragte Vollkopie:
+- Tutorial, Aufbau-/Tages-/Eliteaufgaben und einmalige Belohnungen.
+- Bevölkerung, Wohnraum, Moral, Steuern/Gold sowie Rathausverwaltung.
+- Stahl und seltene Metalle als mögliche spätere Ressourcenerweiterung.
+- Radar/Anmarschwarnung, Stadtbefestigungen und eigener Plünderschutz für Bestände.
+- PvP mit Anfängerschutz, Aufklärung und klaren Angriffsarten.
+- Taktische Befehle/Zielwahl und zusätzliche Bodeneinheiten; später Luft/See sowie mögliche Fraktionen.
+- Generalsausrüstung, Rang-/Fundprogression und spätere Stadtverlegung auf der Weltkarte.
+
+Quellen je Kandidat, Abgleich und Unsicherheiten stehen in RESEARCH_REFERENCE.md. Die verbindliche Grenze von fünf Städten bleibt erhalten. Holz/Stein, Universität und bisherige General-/Logistikregeln nicht ungefragt auf historische Varianten umstellen.
+
+### Video und weitere Reihenfolge
+
+Nutzerreferenz [War 2 Glory Full Gameplay and Review](https://www.youtube.com/watch?v=xu_h6W6ERGM): Seite/Titel/Kanal/Dauer erreichbar; Player lieferte hier auch nach Neuladen keine Gameplaybilder und zeigte keine verfügbaren Untertitel. Keine gesehenen Spielszenen oder Zeitmarken behaupten. Kandidaten sind aus separat recherchierten Textquellen abgeleitet.
+
+Vorschlag nach Auftrag16: Forschungsgrundlage/erste Erweiterung → Tutorial/Aufgaben → Bündnisse/Unterstützung und Handel → PvP-Vorbereitung/Verteidigung → Kampfausbau/Bodentechnik → Luft/Raketen. Bevölkerung, neue Ressourcen, Ausrüstung, Marine und Fraktionen gesondert entscheiden. Matrix-Föderation bleibt eigener Strang, nicht an alle optionalen Systeme koppeln.
 
 ## Bestätigte spätere Phase vom 09.10.2026: Luftstreitkräfte, Raketenwerfer und Generalfähigkeiten
 
