@@ -5,7 +5,7 @@ import { Dialog } from './ui.jsx';
 const emptyDraft = () => ({ leadership: 0, attack: 0, defense: 0 });
 const labels = { leadership: 'Führung', attack: 'Angriff', defense: 'Verteidigung' };
 
-export function GeneralDialog({ general, rules, supply, roleVersion, isMayor, transport, onClose }) {
+export function GeneralDialog({ general, rules, supply, roleVersion, isMayor, local = true, cityName, transport, onClose }) {
   const [name, setName] = useState(general.name);
   const [draft, setDraft] = useState(emptyDraft);
   const [points, setPoints] = useState(1);
@@ -50,8 +50,8 @@ export function GeneralDialog({ general, rules, supply, roleVersion, isMayor, tr
   const proposedMayorBonus = Math.min(0.5, Math.max(0, proposedLeadership) * 0.01);
 
   return <Dialog open title={general.name} kicker="GENERAL-EIGENSCHAFTEN" onClose={onClose} actions={<>
-    <button type="button" className="secondary" disabled={busy || !isMayor && general.status !== 'idle'} onClick={() => perform(async () => {
-      await transport.request('general.mayor', { generalId: isMayor ? null : general.id, expectedRoleVersion: roleVersion });
+    <button type="button" className="secondary" disabled={busy || !isMayor && (general.status !== 'idle' || !local)} onClick={() => perform(async () => {
+      await transport.request('general.mayor', { cityId: general.cityId, generalId: isMayor ? null : general.id, expectedRoleVersion: roleVersion });
       setBaseVersion(general.version + 1); setPreview(null);
     })}>{isMayor ? 'Als Bürgermeister abberufen' : 'Zum Bürgermeister ernennen'}</button>
     <button type="button" disabled={busy || !validName || name.trim() === general.name} onClick={() => perform(async () => {
@@ -59,7 +59,7 @@ export function GeneralDialog({ general, rules, supply, roleVersion, isMayor, tr
       setBaseVersion(general.version + 1); setPreview(null);
     })}>Namen speichern</button>
   </>}>
-    <GeneralPortrait portraitId={general.portraitId} name={general.name}/>
+    <p>Standort: {cityName ?? general.cityId} · {{idle:'verfügbar',mayor:'Bürgermeister',researcher:'Forschungsleitung',scouting:'Aufklärung',raiding:'Angriff',transit:'Verlegung',delivering:'Lieferbegleitung'}[general.status]}{general.transitMissionId && " · unterwegs"}</p>{general.status === "researcher" && <button disabled={busy} onClick={() => perform(() => transport.request("general.researcher", {cityId:general.cityId,generalId:null,expectedRoleVersion:roleVersion}))}>Forschungsleitung freigeben</button>}<GeneralPortrait portraitId={general.portraitId} name={general.name}/>
     <label>Name<input maxLength="80" value={name} onChange={event => setName(event.target.value)}/></label>
     <div className="general-facts">
       <span>Level <strong>{general.level}</strong></span><span>Gesamt-XP <strong>{general.experience}</strong></span>

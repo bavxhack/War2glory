@@ -47,7 +47,7 @@ export function commitCity(player, view) {
 }
 export function canonicalJSON(previous) {
   const player = structuredClone(previous);
-  if (player.schemaVersion !== 16) return player;
+  if (![16, 17].includes(player.schemaVersion)) return player;
   for (const mission of player.military.missions) mission.originCityId ??= player.cities[0].id;
   if (player.city) commitCity(player, { ...player, military: { ...player.military, missions: player.military.missions.filter(m => m.originCityId === player.cityId) } });
   delete player.city; delete player.supply; delete player.cityId;

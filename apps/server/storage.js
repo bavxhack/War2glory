@@ -1,3 +1,4 @@
+import { migrateGeneralLocations, validateCityTransport, isCityTransport, finishCityTransport, incomingDeliveries } from '../../packages/game-core/city-logistics.js';
 import { validateCities, migrateCities, canonicalJSON, exposeCity, commitCity, advanceCities, refreshCities, settleCities } from '../../packages/game-core/multicity.js';
 import { expireClaims, FIELD_RAID_RULESET, FIELD_SCOUT_RULESET } from '../../packages/game-core/settlement.js';
 import { CARGO_RAID_RULESET, resolveCargoArrival, unloadCargo, operatingFuel, validateMissionCargo } from '../../packages/game-core/cargo.js';
@@ -17,7 +18,7 @@ import { SUPPLY_RULES } from '../../packages/game-core/supply.js';
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 16;
+export const PLAYER_SCHEMA_VERSION = 17;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -154,6 +155,7 @@ export class WorldStorage {
       const account = { playerId, displayName, normalized, password: credentials, createdAt: now };
       const entity = this.#allocatePlayerCity(player, account);
       migrateCities(player, this.world.map.entities);
+      migrateGeneralLocations(player);
       await atomicWrite(this.worldFile, this.world);
       try { await this.savePlayer(player); }
       catch (error) { this.#removeEntity(entity.id); await atomicWrite(this.worldFile, this.world); throw error; }
@@ -295,10 +297,11 @@ export class WorldStorage {
     }
     if (player.schemaVersion === 14) { migrated = true; player.schemaVersion = 15; }
     if (player.schemaVersion === 15) { migrated = true; migrateCities(player, this.world.map.entities); }
+    if (player.schemaVersion === 16) { migrated = true; migrateGeneralLocations(player); }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
     validateCities(player);
     exposeCity(player);
-    for (const mission of player.military.missions) validateMissionCargo(mission);
+    for (const mission of player.military.missions) { validateMissionCargo(mission); validateCityTransport(player,mission); }
     if (!Number.isFinite(player.city.resources.oil) || player.city.resources.oil < 0 || !Number.isSafeInteger(player.military.units.truck) || player.military.units.truck < 0) throw new Error('Inkonsistente Öl- oder LKW-Bestände in Schema 13.');
     normalizeResearch(player.city);
     normalizeOfficers(player);
@@ -344,17 +347,32 @@ export class WorldStorage {
     const events = [];
     for (const player of players.values()) for (const mission of player.military.missions) {
       if (mission.status === 'outbound' && mission.arrivesAt <= now) events.push({ at: mission.arrivesAt, sequence: mission.eventSequence ?? Number.MAX_SAFE_INTEGER, phase: 'arrival', player, mission });
-      if ((mission.status === 'outbound' || mission.status === 'returning') && mission.returnsAt <= now) events.push({ at: mission.returnsAt, sequence: mission.eventSequence ?? Number.MAX_SAFE_INTEGER, phase: 'return', player, mission });
+      if ((mission.status === 'outbound' || mission.status === 'returning') && mission.returnsAt !== null && mission.returnsAt <= now) events.push({ at: mission.returnsAt, sequence: mission.eventSequence ?? Number.MAX_SAFE_INTEGER, phase: 'return', player, mission });
     }
     events.sort((a, b) => a.at - b.at || eventOrder(a).localeCompare(eventOrder(b)) || a.player.playerId.localeCompare(b.player.playerId) || a.phase.localeCompare(b.phase));
     let worldChanged = false;
     const changed = new Set();
+    const progressedAt = new Set();
     for (const [eventIndex, event] of events.entries()) {
       const { player, mission: scheduledMission, at } = event;
       worldChanged = expireClaims(this.world, at) || worldChanged;
       Object.assign(player, this.advanceSupply(player, at, { deferLossAtEnd: true }));
       exposeCity(player, scheduledMission.originCityId);
       const mission = player.military.missions.find(candidate => candidate.id === scheduledMission.id);
+      if (isCityTransport(mission)) {
+        // Discard aliases before changing two cities; both use the same canonical player.
+        let sender = canonicalJSON(player), recipient = mission.targetPlayerId === player.playerId ? sender : players.get(mission.targetPlayerId);
+        if (recipient && recipient !== sender) recipient = canonicalJSON(this.advanceSupply(recipient, at, { deferLossAtEnd: true }));
+        finishCityTransport(sender, recipient, mission.id, event.phase, this.world, at);
+        Object.assign(player, exposeCity(sender));
+        if (recipient && recipient !== sender) { Object.assign(players.get(recipient.playerId), exposeCity(recipient)); changed.add(recipient.playerId); progressedAt.add(recipient.playerId); }
+        changed.add(player.playerId); progressedAt.add(player.playerId);
+        if (events[eventIndex + 1]?.at !== at) {
+          for (const id of progressedAt) Object.assign(players.get(id), settleCities(players.get(id), at));
+          progressedAt.clear();
+        }
+        continue;
+      }
       if (event.phase === 'arrival' && mission.status === 'outbound') {
         const field = [FIELD_RAID_RULESET, FIELD_SCOUT_RULESET].includes(mission.ruleset) ? this.world.fields[mission.targetId] : null;
         const fieldOccupied = field && this.world.map.entities.some(e => e.x === field.x && e.y === field.y);
@@ -438,8 +456,11 @@ export class WorldStorage {
       commitCity(player, { ...player, military: { ...player.military, missions: player.military.missions.filter(m => m.originCityId === player.cityId) } });
       exposeCity(player);
       changed.add(player.playerId);
-      const hasAnotherPlayerEventAtSameTime = events.slice(eventIndex + 1).some(candidate => candidate.at === at && candidate.player.playerId === player.playerId);
-      if (!hasAnotherPlayerEventAtSameTime) Object.assign(player, settleCities(player, at));
+      progressedAt.add(player.playerId);
+      if (events[eventIndex + 1]?.at !== at) {
+        for (const id of progressedAt) Object.assign(players.get(id), settleCities(players.get(id), at));
+        progressedAt.clear();
+      }
     }
     worldChanged = expireClaims(this.world, now) || worldChanged;
     for (const player of players.values()) {
@@ -448,6 +469,7 @@ export class WorldStorage {
       syncCandidates(player, now, this.config.officers, randomInt, randomUUID, this.world.officerIntervalHistory);
       if (before !== JSON.stringify(canonicalJSON(player))) changed.add(player.playerId);
     }
+    this.incomingTransports = new Map([...players.keys()].map(id => [id, incomingDeliveries(players, id)]));
     if (worldChanged || changed.size) await this.#commitTransaction([...changed].map(id => players.get(id)), worldChanged);
     return players;
   }

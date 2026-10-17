@@ -1,3 +1,4 @@
+import { CITY_LOGISTICS_RULES } from '../../packages/game-core/city-logistics.js';
 import { SETTLEMENT_RULES } from '../../packages/game-core/settlement.js';
 import { LOGISTICS_RULES } from '../../packages/game-core/logistics.js';
 import { readFile } from 'node:fs/promises';
@@ -7,6 +8,7 @@ import { SUPPLY_RULES } from '../../packages/game-core/supply.js';
 import { OFFICER_RULES } from '../../packages/game-core/officers.js';
 
 const definitions = {
+  GENERAL_TRANSFER_OIL_PER_FIELD: [0.1, 0.001, 100000], GENERAL_TRANSFER_FUEL_CAPACITY: [20, 1, 1000000, true],
   FIELD_DEFENDER_MIN: [5, 1, 100000, true], FIELD_DEFENDER_MAX: [30, 1, 100000, true], CITY_CLAIM_TTL_HOURS: [24, 1 / 60, 8760],
   CITY_FOUND_WOOD: [500, 1, 1000000, true], CITY_FOUND_STONE: [500, 1, 1000000, true], CITY_FOUND_FOOD: [500, 1, 1000000, true],
   GENERAL_MAX_COUNT: [3, 1, 100, true], GENERAL_RECRUIT_WOOD: [500, 1, 1000000, true], GENERAL_RECRUIT_STONE: [500, 1, 1000000, true],
@@ -32,7 +34,7 @@ export function parseConfiguration(env = {}) {
     if (!Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
       throw new Error(`${name}: ${name.startsWith('OIL_') ? 'Neue Bewegungen benötigen positive Typ-Raten; bisherige Nullwerte bitte ersetzen. ' : ''}${integer ? 'Ganzzahl' : 'Dezimalzahl mit Punkt'} zwischen ${min} und ${max} erwartet; keine leeren Werte oder Einheiten.`);
     }
-    if (name.startsWith('OIL_') && raw !== undefined && !/^\d+(?:\.\d{1,3})?$/.test(raw)) throw new Error(`${name}: höchstens drei Nachkommastellen.`);
+    if ((name.startsWith('OIL_') || name === 'GENERAL_TRANSFER_OIL_PER_FIELD') && raw !== undefined && !/^\d+(?:\.\d{1,3})?$/.test(raw)) throw new Error(`${name}: höchstens drei Nachkommastellen.`);
     numbers[name] = value;
   }
   const supply = { ...SUPPLY_RULES, upkeepPerSecond: { infantry: numbers.UPKEEP_INFANTRY_PER_HOUR / 3600, scout: numbers.UPKEEP_SCOUT_PER_HOUR / 3600, truck: numbers.UPKEEP_TRUCK_PER_HOUR / 3600 },
@@ -49,7 +51,9 @@ export function parseConfiguration(env = {}) {
   if (numbers.FIELD_DEFENDER_MIN > numbers.FIELD_DEFENDER_MAX) throw new Error('FIELD_DEFENDER_MIN darf FIELD_DEFENDER_MAX nicht überschreiten.');
   const settlement = { ...SETTLEMENT_RULES, defenderMin: numbers.FIELD_DEFENDER_MIN, defenderMax: numbers.FIELD_DEFENDER_MAX, claimTtlMs: Math.round(numbers.CITY_CLAIM_TTL_HOURS * 3600000), cost: { wood: numbers.CITY_FOUND_WOOD, stone: numbers.CITY_FOUND_STONE, food: numbers.CITY_FOUND_FOOD } };
   settlement.version = `settlement-1-${createHash('sha256').update(JSON.stringify(settlement)).digest('hex').slice(0, 16)}`;
-  return { settlement, logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
+  const cityLogistics = { ...CITY_LOGISTICS_RULES, generalOilMilliPerField: Math.round(numbers.GENERAL_TRANSFER_OIL_PER_FIELD * 1000), generalFuelCapacity: numbers.GENERAL_TRANSFER_FUEL_CAPACITY };
+  cityLogistics.version = `city-logistics-1-${createHash('sha256').update(JSON.stringify(cityLogistics)).digest('hex').slice(0, 16)}`;
+  return { cityLogistics, settlement, logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
 }
 
 export async function loadConfiguration({ env = {}, file = '.env', cli = {} } = {}) {

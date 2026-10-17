@@ -24,8 +24,8 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 4d | Freie Ressourcenladung, mitgeführtes Betriebsöl und kapazitätsabhängige Einsatzreichweite | Auftrag 14 als getesteter Prototyp implementiert; neue Balancewerte vorläufig |
 | Luft/Militär | Kampfflugzeuge, Raketenwerfer und Generalfähigkeiten für Luftvorteile | Nutzeranforderung vom 09.10.2026; spätere Phase, nicht Auftrag 13 |
 | 4e | Bis fünf eigene Städte, Stadtwechsel, Aufklärung/Eroberung freier Felder und Gründungsgebühr | Als getesteter Prototyp implementiert; vorläufige Balance |
-| 5a | Generalfreie Ressourcenlieferungen und dauerhafte Truppen-/Generalverlegung zwischen eigenen Städten | Auftrag 16 spezifiziert; Umsetzung ausstehend |
-| UI 16 | Erkennbare Hauptnavigation, kompakter Stadtkopf, Aktionen vor Statuslisten, mobile Drawer | Auftrag 16, Konzept in UI_CONCEPT_16.md |
+| 5a | Generalfreie Ressourcenlieferungen und dauerhafte Truppen-/Generalverlegung zwischen eigenen Städten | Als Prototyp implementiert; Nachweise in LOGISTICS_UI_VALIDATION.md |
+| UI 16 | Erkennbare Hauptnavigation, kompakter Stadtkopf, Aktionen vor Statuslisten, mobile Drawer | Implementiert mit Auftrag 16; Konzept und Browsernachweise |
 | 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
 | Forschung+ | Historische Themenliste, eigener versionierter Forschungsbaum und Bau-/Ausbildungs-/Traglastforschung | Recherche dokumentiert; eigene Werte/Abhängigkeiten noch festzulegen |
 | Ausbau+ | Aufgaben, Stadtwirtschaft, Radar/Verteidigung, taktischer Kampf und weitere Einheiten | Recherchierte Kandidaten, kein unmittelbarer Implementierungsauftrag |
@@ -567,7 +567,7 @@ Reihenfolge: Auftrag 15 Mehrstadt/Eroberung/Gründung → Auftrag 16 Lieferungen
 
 ## Beauftragter Auftrag 16 vom 12.10.2026: Lieferungen, Verlegung und UI-Redesign
 
-Auftrag15 ist laut Nutzer abgeschlossen. Diese Fassung ersetzt die zurückgestellte Lieferplanung, insbesondere deren Generalpflicht. Vollständiger Arbeitsauftrag in CODEX_PROMPT.md; neues UI-Konzept in [UI_CONCEPT_16.md](UI_CONCEPT_16.md). Status: spezifiziert, noch nicht implementiert.
+Auftrag15 ist laut Nutzer abgeschlossen. Diese Fassung ersetzt die zurückgestellte Lieferplanung, insbesondere deren Generalpflicht. Vollständiger Arbeitsauftrag in CODEX_PROMPT.md; neues UI-Konzept in [UI_CONCEPT_16.md](UI_CONCEPT_16.md). Status: als Prototyp implementiert; Prüfbelege in [LOGISTICS_UI_VALIDATION.md](LOGISTICS_UI_VALIDATION.md).
 
 ### Verbindliche Ergänzungen
 
@@ -599,7 +599,7 @@ Auftrag15 ist laut Nutzer abgeschlossen. Diese Fassung ersetzt die zurückgestel
 
 ### Persistenz und Abnahme
 
-Ausgangsschema16/Weltschema4, nächste freie Version prüfen. Alte Generalstandorte aus Rollen/Missionen/erster Stadt einmalig rekonstruieren; alte Missionen ohne rückwirkendes Öl erhalten.
+Ausgangsschema 16 → Spielerschema 17; Weltschema 4 unverändert. Alte Generalstandorte aus Rollen/Missionen/erster Stadt einmalig rekonstruieren; alte Missionen ohne rückwirkendes Öl erhalten.
 
 Atomare Sender-/Empfänger-/Missionsbuchungen über Weltqueue/Recovery-Journal; innerhalb eines Spielers kanonische Städte gemeinsam ändern. Ankünfte/Unterhalt/Versorgung chronologisch unabhängig von Login-Reihenfolge. Idempotente Requests und deduplizierte Postboxberichte, keine privaten Daten an Unbeteiligte.
 
@@ -952,3 +952,9 @@ Ergänzung zu Auftrag 12: 20 individuelle, lokal ausgelieferte Generalporträts 
 ### Postbox und Nachrichten (Ergänzung vom 08.10.2026)
 
 Implementiert: zentrale Postbox mit getrennten Nachrichten-/Aufklärungs-/Angriffs-/Gesendet-Bereichen, zehn Einträgen je Seite, Suche, Ungelesen-Filter und Detailansicht. Privates Messaging an andere registrierte Kommandanten derselben Welt, Antworten, dauerhafter Lesestatus und rotes blinkendes Symbol bei ungelesenen Eingängen. Bewegungsreduktion zeigt statisches Rot. Bestehende Militärberichte werden erhalten und in der Postbox dargestellt. Schema 12 führt alle bisherigen Migrationen weiter; historische Berichte beginnen gelesen. Nachrichtenübertragung verwendet den bestehenden WebSocket und atomare Zustellung über das Weltjournal. Fünf Nachrichten je Minute ist eine eigene Prototypgrenze. Nicht umgesetzt: Anhänge, Löschung, Matrix-/weltübergreifendes Messaging. Prüfbelege: docs/MAILBOX_VALIDATION.md.
+
+## Implementierter Auftrag 16
+
+Generalfreie Ressourcenlieferungen an eigene/fremde Städte derselben Welt mit LKW-Rückfahrt, Teilannahme und Rückfracht. Dauerhafte Einwegverlegung von Infanterie/Spähern/LKWs und optional mehreren Generälen in eigene Städte, einschließlich General-only-Diensttransport. Generäle haben eindeutige Standorte; Rollen und neue Einsätze sind ortsgebunden. Kein Handel, Rückruf, Fremdstationieren oder Föderation.
+
+React-Spielrahmen mit sieben Hauptpunkten, kompaktem Stadtkopf und Kontext-Tabs Aktionen/Aktivitäten/Versorgung. Mobile Navigation und native Dialoge nutzen den vorhandenen Transport und Illustrationen. Spielerweite Seiten benennen alle Städte, lokale Seiten die Ausgangsstadt. Migration 16 → 17 und Nachweise stehen in LOGISTICS_UI_VALIDATION.md; historische Auftragsabschnitte beschreiben ihren damaligen Stand.

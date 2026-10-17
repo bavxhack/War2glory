@@ -1,5 +1,7 @@
 import { CitySwitcher } from './CitySwitcher.jsx';
-import { SidebarStatus } from './SidebarStatus.jsx';
+import { LogisticsView } from './LogisticsView.jsx';
+import { GeneralsView } from './GeneralsView.jsx';
+import { SidebarStatus, SupplyStatus } from './SidebarStatus.jsx';
 import { SidebarTarget } from './SidebarActions.jsx';
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { Mailbox } from './Mailbox.jsx';
@@ -18,73 +20,61 @@ function formatSupplyDuration(seconds) {
 
 const hourly = value => (value * 3600).toLocaleString('de-DE', { maximumFractionDigits: 2 });
 function Resources({ state }) {
-  const icons = { wood: '▰', stone: '◆', food: '●', oil: '◉' };
-  return <><section aria-label="Rohstoffe" className="resources">{Object.entries(state.city.resources).map(([key, amount]) => {
-    const capacity = state.capacities[key];
-    const breakdown = state.capacityBreakdown[key];
-    const rate = key === 'food' ? state.supply.net : state.productionRates[key];
-    const base = state.buildingProductionRates[key];
-    const researched = state.productionRates[key] - base;
-    return <div className={`resource${amount > capacity ? ' overstock' : ''}`} key={key}>
-      <span className="resource-icon">{icons[key]}</span><div><span>{resourceLabels[key]}</span><strong>{Math.floor(amount).toLocaleString('de-DE')}</strong>
-      <small> / {capacity} · {rate >= 0 ? '+' : ''}{hourly(rate)}/h{amount >= capacity && rate > 0 && ' · Produktion pausiert'}</small>
-      <details className="capacity-details"><summary>Ertragsdetails</summary><small>Gebäude +{hourly(base)}/h · Forschung +{hourly(researched)}/h
-        {key === 'food' && ` · Bürgermeister +${hourly(state.supply.mayorProduction)}/h · Ertrag ${hourly(state.supply.production)}/h · Unterhalt −${hourly(state.supply.upkeep)}/h`}</small>
-        {key === 'food' && state.supply.net < 0 && amount > 0 && <small>Vorrat reicht etwa {formatSupplyDuration(amount / -state.supply.net)}.</small>}
-      </details>
-      <details className="capacity-details"><summary>Lagerdetails</summary><small>Grundkapazität {breakdown.base}{breakdown.contributions.map(item => ` · ${state.buildings[item.building].label} Stufe ${item.level}: +${item.amount}`).join('')} · Forschungsfaktor ×{breakdown.researchFactor.toFixed(2)} · Gesamt {capacity}</small></details>
-      </div>
-    </div>;
-  })}</section>{state.supply.inShortage && <section className="score-strip notice">Nahrungsmangel: Ausbildung pausiert. Nächste Hungerwelle in {Math.max(0, Math.ceil((state.supply.nextLossAt - state.serverTime) / 60000))} Minuten.</section>}</>;
+  const [detail,setDetail] = useState(null), close=useCallback(()=>setDetail(null),[]);
+  const icons = {wood:'▰',stone:'◆',food:'●',oil:'◉'};
+  return <><section aria-label="Rohstoffe" className="resources">{Object.entries(state.city.resources).map(([key,amount])=>{
+    const rate=key==='food'?state.supply.net:state.productionRates[key];
+    return <button className="resource" key={key} onClick={()=>setDetail(key)}><span className="resource-icon">{icons[key]}</span><span><span>{resourceLabels[key]}</span><strong>{Math.floor(amount).toLocaleString('de-DE')} / {state.capacities[key]}</strong><small>{rate>=0?'+':''}{hourly(rate)}/h</small></span></button>;
+  })}</section>{detail && <Dialog open title={resourceLabels[detail]} kicker="RESSOURCENDETAILS" onClose={close}><p>Vorrat {Math.floor(state.city.resources[detail])} / {state.capacities[detail]}</p><p>Gebäude +{hourly(state.buildingProductionRates[detail])}/h · Forschung +{hourly(state.productionRates[detail]-state.buildingProductionRates[detail])}/h</p><p>Grundkapazität {state.capacityBreakdown[detail].base}{state.capacityBreakdown[detail].contributions.map(item=>` · ${state.buildings[item.building].label} Stufe ${item.level}: +${item.amount}`).join('')} · Forschungsfaktor ×{state.capacityBreakdown[detail].researchFactor.toFixed(2)}</p>{detail==='food' && <SupplyStatus state={state}/>}</Dialog>}</>;
 }
 function DemolitionDialog({ preview, state, transport }) { const close = useCallback(() => transport.clearDemolition(), [transport]); if (!preview) return null; return <Dialog open danger kicker="ABRISS PRÜFEN" title={`${state.buildings[preview.building].label} · Stufe ${preview.level} abreißen?`} onClose={close} actions={<button className="danger" onClick={() => { transport.mutate('building.demolish', { slotId: preview.slotId, buildingId: preview.buildingId, version: preview.version }); close(); }}>Endgültig abreißen</button>}><div className="demolition-preview"><BuildingArt type={preview.building} level={preview.level}/><p>Das Gebäude wird sofort vollständig entfernt. Der Bauplatz wird frei.</p><strong>Rückerstattung: {preview.refund.wood} Holz · {preview.refund.stone} Stein · {preview.refund.food} Nahrung · {preview.refund.oil ?? 0} Öl</strong><p className={preview.investmentComplete ? '' : 'notice'}>{preview.investmentComplete ? 'Berechnet aus allen nachgewiesenen bezahlten Investitionen (10 %, abgerundet).' : 'Frühere Baukosten sind nicht vollständig dokumentiert; erstattet werden nur nachgewiesene Investitionen.'}</p><p>Lager danach: {capacitySummary(preview.capacityAfter)}. Vorhandene Überbestände bleiben erhalten.</p><p>{preview.productionLoss && `Produktionsverlust: ${resourceLabels[preview.productionLoss.resource]} −${preview.productionLoss.amount}/s. `}Kommandantenpunkte: {preview.scoreBefore} → {preview.scoreAfter}.</p></div></Dialog>; }
+const pages = [['city','Stadt','⌂'],['world','Weltkarte','◎'],['military','Militär','⚑'],['logistics','Logistik','↗'],['generals','Generäle','★'],['research','Forschung','◇'],['mail','Postbox','✉']];
 export function App({ transport }) {
   const snapshot = useSyncExternalStore(transport.subscribe, transport.getSnapshot);
-  const [view, setView] = useState('city');
-  const [actionTarget, setActionTarget] = useState(null);
-  useEffect(() => { transport.start(); return () => transport.stop(); }, [transport]);
+  const [view,setView] = useState('city'), [actionTarget,setActionTarget] = useState(null), [panel,setPanel] = useState('actions');
+  const [menu,setMenu] = useState(false), [actionsOpen,setActionsOpen] = useState(false), [resourcesOpen,setResourcesOpen] = useState(false);
+  const [narrow,setNarrow] = useState(()=>window.innerWidth<1280), [dirty,setDirty] = useState(false), [pendingCity,setPendingCity] = useState(null);
+  const closeMenu=useCallback(()=>setMenu(false),[]), closeActions=useCallback(()=>setActionsOpen(false),[]), closeResources=useCallback(()=>setResourcesOpen(false),[]), closeSwitch=useCallback(()=>setPendingCity(null),[]);
+  useEffect(()=>{transport.start();return()=>transport.stop();},[transport]);
+  useEffect(()=>{const media=window.matchMedia('(max-width:1279px)');const update=()=>setNarrow(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update);},[]);
   if (!snapshot.authenticated || !snapshot.game) return <Login transport={transport} message={snapshot.error}/>;
-  const state = snapshot.game;
-  if (snapshot.switching) return <main><p role="status">Stadt wird geladen …</p></main>;
-  const preview = slot => {
-    try { transport.send('building.preview', { slotId: slot.id }); }
-    catch (error) { transport.setMessage(error.message); }
-  };
-  return <main>
-    <header className="topbar">
-      <div><span className="kicker">SPIELWELT {state.world.name}</span><h1 className="visually-hidden">{state.city.name}</h1>
-        <CitySwitcher state={state} transport={transport}/><p>Kommandant <strong>{state.player.commanderName}</strong></p>
-      </div>
-      <div className="connection"><span className={snapshot.status === 'connected' ? 'online' : ''}/><span>{snapshot.status === 'connected' ? 'Verbunden' : snapshot.status === 'connecting' ? 'Verbinde …' : 'Verbindung unterbrochen'}</span><button className="text-button" onClick={() => transport.logout()}>Abmelden</button></div>
+  const state=snapshot.game, label=pages.find(p=>p[0]===view)[1];
+  const navigate=key=>{setView(key);setPanel('actions');setMenu(false);setActionsOpen(false);setDirty(false);if(key==='world'&&!snapshot.map)transport.requestMap({});};
+  const selectCity=id=>{if(dirty){setPendingCity(id);return;}transport.selectCity(id);setPanel('actions');setActionsOpen(false);};
+  const preview=slot=>{try{transport.send('building.preview',{slotId:slot.id});}catch(e){transport.setMessage(e.message);}};
+  const navigation=<nav aria-label="Hauptnavigation">{pages.map(([key,name,icon])=><button key={key} aria-label={key==='mail'?`Postbox, ${state.mailbox.unreadCount} ungelesene Einträge`:name} aria-current={view===key?'page':undefined} className={view===key?'active':''} onClick={()=>navigate(key)}><span aria-hidden="true">{icon}</span>{name}{key==='mail'&&state.mailbox.unreadCount>0&&<span className="mail-badge">{state.mailbox.unreadCount}</span>}</button>)}</nav>;
+  const panelContent=<><div className="context-tabs" role="tablist" aria-label="Kontextpanel">{[['actions','Aktionen'],['activity','Aktivitäten'],['supply','Versorgung']].map(([key,name])=><button key={key} role="tab" aria-selected={panel===key} onClick={()=>setPanel(key)}>{name}</button>)}</div>
+    <section hidden={panel!=='actions'} className="sidebar-actions" aria-label="Aktionen der Ansicht"><div ref={setActionTarget}/>{view==='mail'&&<p>Wähle einen Bericht oder schreibe eine Nachricht.</p>}</section>
+    <section hidden={panel!=='activity'}><SidebarStatus state={state} onNavigate={navigate}/></section>
+    <section hidden={panel!=='supply'}><SupplyStatus state={state}/></section></>;
+  const warn=state.cities.filter(c=>c.inShortage), global=['generals','research','mail'].includes(view);
+  return <div className="game-shell">
+    {!narrow&&<aside className="main-navigation"><div><span className="kicker">FEDERATED STRATEGY</span><h2>Navigation</h2></div>{navigation}<div className="account-status"><strong>{state.player.commanderName}</strong><span>{state.score.total} Kommandantenpunkte</span><span>{snapshot.status==='connected'?'● Verbunden':'Verbindung unterbrochen'}</span><button onClick={()=>transport.logout()}>Abmelden</button></div></aside>}
+    <main className="game-main"><header className="city-header"><div className="city-header-title">{narrow&&<button className="menu-toggle" onClick={()=>setMenu(true)}>Menü · {label}</button>}<h1 className="visually-hidden">{state.city.name}</h1><CitySwitcher state={state} transport={transport} onSelect={selectCity}/><button className="mobile-resource-button" onClick={()=>setResourcesOpen(true)}>Ressourcen</button></div><div className="header-resources"><Resources state={state}/></div>
+      {snapshot.status!=='connected'&&<p className="notice" role="status">Verbindung unterbrochen · Starts pausieren bis zur Wiederverbindung.</p>}
+      {state.supply.inShortage&&<p className="compact-warning" role="alert">{state.city.name}: Nahrungsmangel · Ausbildung pausiert · Hungerwelle in {Math.max(0,Math.ceil((state.supply.nextLossAt-state.serverTime)/60000))} Minuten.</p>}
+      {warn.some(c=>c.id!==state.cityId)&&<details className="compact-warning"><summary>{warn.filter(c=>c.id!==state.cityId).length} weitere Städte mit Nahrungsmangel</summary>{warn.filter(c=>c.id!==state.cityId).map(c=><button key={c.id} onClick={()=>selectCity(c.id)}>{c.name}</button>)}</details>}
     </header>
-    <nav className="view-tabs" aria-label="Spielansicht">
-      {[['city','Stadt'],['military','Militär'],['world','Weltkarte'],['research','Forschung']].map(([key,label]) => <button key={key} className={view === key ? 'active' : ''} aria-pressed={view === key} onClick={() => { setView(key); if (key === 'world' && !snapshot.map) transport.requestMap({}); }}>{label}</button>)}
-      <button className={`postbox-button${view === 'mail' ? ' active' : ''}${state.mailbox.unreadCount ? ' has-unread' : ''}`} aria-pressed={view === 'mail'} aria-label={`Postbox, ${state.mailbox.unreadCount} ungelesene Einträge`} onClick={() => setView('mail')}>
-        <svg aria-hidden="true" className="postbox-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m3 6 9 7 9-7"/></svg> Postbox{state.mailbox.unreadCount > 0 && <span className="mail-badge">{state.mailbox.unreadCount}</span>}
-      </button>
-    </nav>
-    {view !== 'world' && <><Resources state={state}/><section className="score-strip">Kommandantenpunkte: {state.score.total} · Gebäude {state.score.buildings} · Forschung: {state.score.research} · Kampfbeitrag: {state.score.combat >= 0 ? '+' : ''}{state.score.combat}</section></>}
-    <SidebarTarget.Provider value={actionTarget}>
-      <div className="workspace-layout">
-        <div className="workspace-content">
-          {view === 'mail' && <Mailbox key={state.player.id} state={state} transport={transport}/>}
-          {view === 'city' && <CityView key={state.cityId} state={state} transport={transport} onPreview={preview} onResearch={() => setView('research')}/>}
-          {view === 'research' && <ResearchView key={state.cityId} state={state} transport={transport}/>}
-          {view === 'military' && <MilitaryView key={state.cityId} state={state} transport={transport} onPreview={preview}/>}
-          {view === 'world' && <WorldView key={state.cityId} state={state} map={snapshot.map} details={snapshot.mapDetails} transport={transport}/>}
-        </div>
-        <aside className="persistent-sidebar" aria-label="Stadtübersicht und Aktionen">
-          <SidebarStatus state={state}/>
-          <section className="sidebar-actions" aria-label="Aktionen der Ansicht">
-            <div className="sidebar-actions-heading"><span className="kicker">AKTIONEN</span><h2>{{city:'Stadt',military:'Militär',world:'Weltkarte',research:'Forschung',mail:'Postbox'}[view]}</h2></div>
-            <div ref={setActionTarget}/>
-            {view === 'mail' && <p className="sidebar-empty">Wähle eine Nachricht oder einen Bericht in der Postbox.</p>}
-          </section>
-        </aside>
-      </div>
-    </SidebarTarget.Provider>
-    <p className="message" role="status">{snapshot.error || snapshot.message}</p>
-    <footer>Nahrungsunterhalt, Bürgermeister und vorläufige Hungerverluste sind aktiv. PvP und Matrix-Föderation sind noch nicht implementiert.</footer>
+    <div className="workspace-heading"><span>{label} · {global?'Alle Städte':state.city.name}</span>{narrow&&<button onClick={()=>{setPanel('actions');setActionsOpen(true);}}>{view==='city'?'Gebäude verwalten':view==='world'?'Feldaktionen':'Aktionen'}</button>}</div>
+    {state.migrationNotices.map((text,i)=><p key={i} className="notice">{text}</p>)}
+    <SidebarTarget.Provider value={actionTarget}><div className="workspace-layout"><div className="workspace-content" onInputCapture={()=>setDirty(true)} onClickCapture={()=>setPanel('actions')}>
+      {snapshot.switching?<p role="status">Stadt wird geladen …</p>:<>
+      {view==='city'&&<CityView key={state.cityId} state={state} transport={transport} onPreview={preview} onResearch={()=>navigate('research')}/>}
+      {view==='world'&&<WorldView key={state.cityId} state={state} map={snapshot.map} details={snapshot.mapDetails} transport={transport}/>}
+      {view==='military'&&<MilitaryView key={state.cityId} state={state} transport={transport} onPreview={preview}/>}
+      {view==='logistics'&&<LogisticsView key={state.cityId} state={state} transport={transport} connected={snapshot.status==='connected'} onDraftChange={setDirty}/>}
+      {view==='generals'&&<GeneralsView state={state} transport={transport}/>}
+      {view==='research'&&<ResearchView key={state.cityId} state={state} transport={transport}/>}
+      {view==='mail'&&<Mailbox key={state.player.id} state={state} transport={transport}/>}
+      </>}
+    </div>{!narrow&&<aside className="persistent-sidebar" aria-label="Kontextpanel"><h2>Aktionen · {label}</h2>{panelContent}</aside>}</div></SidebarTarget.Provider>
+    {narrow&&<Dialog open={actionsOpen} title={`Aktionen · ${label}`} kicker="KONTEXTPANEL" onClose={closeActions}>{panelContent}</Dialog>}
+    <p className="message" role="status">{snapshot.error||snapshot.message}</p>
     <DemolitionDialog preview={snapshot.demolition} state={state} transport={transport}/>
-  </main>;
+    {menu&&<Dialog open title="Navigation" kicker="MENÜ" onClose={closeMenu}>{navigation}<p>{state.player.commanderName} · {state.score.total} Punkte · {snapshot.status==='connected'?'Verbunden':'Unterbrochen'}</p><button onClick={()=>transport.logout()}>Abmelden</button></Dialog>}
+    {resourcesOpen&&<Dialog open title={`Ressourcen · ${state.city.name}`} kicker="RESSOURCEN" onClose={closeResources}><Resources state={state}/></Dialog>}
+    {pendingCity&&<Dialog open title="Stadt wechseln?" kicker="ENTWURF" onClose={closeSwitch} actions={<button onClick={()=>{transport.selectCity(pendingCity);setPendingCity(null);setDirty(false);setActionsOpen(false);setPanel('actions');}}>Entwurf verwerfen und Stadt wechseln</button>}><p>Die ungesendete Auswahl gehört zu {state.city.name}. Sie wird beim Wechsel verworfen.</p></Dialog>}
+    <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">{[['city','Stadt'],['world','Welt'],['logistics','Logistik']].map(([key,name])=><button key={key} aria-current={view===key?'page':undefined} onClick={()=>navigate(key)}>{name}</button>)}<button onClick={()=>setMenu(true)}>Mehr</button></nav>
+    </main>
+  </div>;
 }
