@@ -109,7 +109,7 @@ Ein Teil ist bereits grob vorgemerkt (Bündnisse, Handel, Luft/Raketen, Forschun
 7. Bevölkerung/weitere Ressourcen und Generalsausrüstung nach eigener Balanceentscheidung; Marine/Fraktionen optional später.
 8. Matrix-Föderation als eigener Strang weiterverfolgen, nicht von sämtlichen optionalen Originalsystemen abhängig machen.
 
-Dies ist eine vorgeschlagene Reihenfolge, kein neuer nummerierter Codex-Auftrag. Offene Spielentscheidungen mit dem Nutzer abstimmen; Auftrag16 bleibt bestehen.
+Dies war am 16.10.2026 eine vorgeschlagene Reihenfolge, noch kein neuer nummerierter Codex-Auftrag. Ergänzung vom 17.10.2026: Punkt 1 ist inzwischen als Auftrag 17 in [CODEX_PROMPT.md](../CODEX_PROMPT.md) mit eigenen vorläufigen Werten konkretisiert; Auftrag 16 ist laut aktuellem Repository umgesetzt. Die weiteren Punkte bleiben Vorschläge. Historische Belege und offene Originalwerte werden dadurch nicht ergänzt oder bestätigt.
 
 ## Quellen und Zugriff
 
