@@ -27,7 +27,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 5a | Generalfreie Ressourcenlieferungen und dauerhafte Truppen-/Generalverlegung zwischen eigenen Städten | Als Prototyp implementiert; Nachweise in LOGISTICS_UI_VALIDATION.md |
 | UI 16 | Erkennbare Hauptnavigation, kompakter Stadtkopf, Aktionen vor Statuslisten, mobile Drawer | Implementiert mit Auftrag 16; Konzept und Browsernachweise |
 | 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
-| Forschung+ | Historische Themenliste, eigener versionierter Forschungsbaum und Bau-/Ausbildungs-/Traglastforschung | Recherche dokumentiert; eigene Werte/Abhängigkeiten noch festzulegen |
+| Forschung+ / 17 | Versionierter Forschungskatalog, Bau-, Ausbildungs- und Ladetechnik mit verständlicher Forschungsansicht | Auftrag 17 spezifiziert; Umsetzung und Prüfung ausstehend |
 | Ausbau+ | Aufgaben, Stadtwirtschaft, Radar/Verteidigung, taktischer Kampf und weitere Einheiten | Recherchierte Kandidaten, kein unmittelbarer Implementierungsauftrag |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -607,6 +607,44 @@ Tests für generalfreie Lieferung, Teilannahme, Einwegtransfer, Generalstandorte
 
 Danach Bündnisse/Unterstützung, geregelter Tauschhandel und weitere Militärtechnik; Matrix-Föderation bleibt eigenes Kernziel.
 
+## Geplanter Auftrag 17: Forschungsbaum und drei wirksame Erweiterungen
+
+Am 17.10.2026 als nächster Implementierungsauftrag spezifiziert, noch nicht umgesetzt. Der aktuelle Einstieg steht in [CODEX_PROMPT.md](../CODEX_PROMPT.md). Auftrag 16 ist laut aktuellem Repository implementiert; der Planungschat hat dafür keine eigenen Laufzeittests ausgeführt.
+
+Auftrag 17 baut den vorhandenen Forschungskatalog aus und ergänzt:
+- **Bautechnik** (constructionEngineering): kürzere Arbeitsdauer neuer Bau-/Ausbauaufträge, zivil und militärisch.
+- **Ausbildungstechnik** (trainingTechniques): kürzere Arbeitsdauer neuer Ausbildungsgruppen einschließlich LKW-Herstellung.
+- **Ladetechnik** (loadingTechniques): größere normale Frachtkapazität für Einheiten; Güter und Betriebsöl teilen sich diesen Platz weiterhin. Späher- und reine General-Diensttransporttanks bleiben unverändert.
+
+### Eigene vorläufige Standardwerte
+
+| Forschung | Forschungsvoraussetzung | Universität | Stufen | Standardwirkung |
+| --- | --- | --- | --- | --- |
+| Bautechnik | Steinverarbeitung 1 | max(2, Zielstufe) | 1–5 | +5 % Baugeschwindigkeit je Stufe |
+| Ausbildungstechnik | keine zusätzliche Forschung | max(2, Zielstufe) | 1–5 | +5 % Ausbildungs-/Herstellungsgeschwindigkeit je Stufe |
+| Ladetechnik | Lagerlogistik 1 | max(2, Zielstufe) | 1–5 | +5 % Traglast je Stufe |
+
+Je Zielstufe L kosten die drei neuen Forschungen jeweils 150 × L Holz und Stein, Basisdauer 90 × L Sekunden vor vorhandenem Universitäts-/Forschungsleitungsbonus. Weiterhin 10 Forschungspunkte pro abgeschlossener Stufe, einmal spielerweit. Diese Zahlen und Abhängigkeiten sind Projektvorschläge, keine nachgewiesenen Originalwerte.
+
+Neue Bonus-ENV: RESEARCH_CONSTRUCTION_BONUS_BPS, RESEARCH_TRAINING_BONUS_BPS, RESEARCH_LOADING_BONUS_BPS, jeweils Standard 500 Basispunkte pro Stufe, ganzzahlig 0–2000. Kosten, Zeiten, Grenzen und Voraussetzungen zentral versionieren. Änderungen der Bonusregeln wirken für neu angenommene Aufträge ab gespeichertem Aktivierungszeitpunkt.
+
+Geschwindigkeit = 1 + Bonus × Stufe. Effektive Arbeitsdauer = max(1, ceil(bisherige Arbeitsdauer in ms / Geschwindigkeitsfaktor)). Bei Standardbonus und Stufe 5 werden 60 Sekunden zu 48 Sekunden; +25 % Geschwindigkeit bedeutet 20 % kürzere Dauer.
+
+Traglast zuerst je Typ auf floor(Basiskapazität × Faktor) berechnen, danach mit Mengen summieren. Standardmäßig tragen auf Stufe 5 Infanteristen 25 und LKWs 250 statt 20/200. Größere Frachtkapazität kann die Reichweite erhöhen; Ölpreise und Verbrauch bleiben unverändert.
+
+### Bestandsschutz, Darstellung und Abnahme
+
+- Sechs bestehende Technologien mit IDs, Stufen, Kosten und Effekten bewahren. Lagerlogistik und Ladetechnik getrennt anwenden.
+- Ein spielerweiter Wissensstand und ein laufender Forschungsauftrag; Bezahlung/Universität/Forschungsleitung aus der gewählten eigenen Stadt. Alle Städte profitieren zeitpunktgenau.
+- Bau-/Ausbildungseffekte bei Annahme festschreiben, auch für wartende Aufträge. Bestehende Arbeitsdauer und Hunger-Restarbeit erhalten.
+- Reiseeffekte beim Start festschreiben und bei Kampfverlusten mit denselben Typkapazitäten weiterrechnen. Rückwegöl vor eigener Ladung vor Beute; fremde Empfängerforschung ändert keinen Frachtraum.
+- Neue IDs bei Migration auf 0; alte Forschungsregelversionen, Queues, Missionen, Standorte und Punktestände bleiben nutzbar.
+- Vorhandene Forschungsseite um neun aktive Technologien, verständliche Voraussetzungen, konkrete Wirkungen und Stadt-/Universitätswahl erweitern. Keine zusätzliche Hauptnavigation und keine kaufbaren Platzhalter.
+- Alle Aktionen serverautoritativ über WebSocket, Vorschauwerte prüfen, Zahlung/Änderung idempotent und atomar speichern.
+- Gezielte Tests und tatsächliche Browserprüfung für Mehrstadtbetrieb, Zeitfortschritt, Altstände, Öl/Fracht, Hungerpause, Konfigurationswechsel und Mobilansicht. Implementierungsnachweis erst mit ausgeführten Prüfungen in docs/RESEARCH_EXPANSION_VALIDATION.md anlegen.
+
+Nächster Vorschlag nach diesem Auftrag: Einführung/Aufgaben mit einmaligen Belohnungen und stadtübergreifender Versorgungsübersicht. Bündnisse, Handel, PvP-Vorbereitung, Kampfausbau und Luft/Raketen folgen gesondert. Die Matrix-Föderation bleibt ein eigener Strang.
+
 ## Historische Recherche vom 16.10.2026: Forschung und weitere Ausbauschritte
 
 Recherche und Abgleich dokumentiert in [RESEARCH_REFERENCE.md](RESEARCH_REFERENCE.md), mit Quellen, Zugriffsbeschränkungen und offenen Fragen. Dies erweitert die Planung, ersetzt nicht Auftrag16 und bestätigt dessen Abschluss nicht.
@@ -624,7 +662,7 @@ Sinngemäße eigene Übersetzungen der19 gefundenen Themen:
 
 Diese Gruppierung ist eigener Entwurf, keine Original-Abhängigkeitsstruktur. Der aktuelle gelesene Forschungskatalog enthält Forstwirtschaft, Steinverarbeitung, Landwirtschaft, Lagerlogistik, Ölverarbeitung und Motorisierung. Bestehende IDs/Level/Queue/Punkte bewahren; Lagertechnik/Ladetechnik nicht als denselben Bonus behandeln.
 
-Nächster sinnvoller Forschungsauftrag nach Auftrag16: versionierter Katalog mit expliziten Voraussetzungen/Wirkungen und kleine Erweiterung für Bautechnik, Ausbildung und Traglast. Neue Kosten, Stufen, Bonusgrenzen und Abhängigkeiten vor Umsetzung festlegen. Forschung spielerweit und zeitpunktgenau, laufende Missionen/Queues nach gespeicherten Regeln.
+Der damalige Vorschlag für einen Forschungsauftrag nach Auftrag 16 ist am 17.10.2026 als Auftrag 17 oben und in CODEX_PROMPT.md konkretisiert: versionierter Katalog, explizite Voraussetzungen/Wirkungen und Erweiterung für Bau, Ausbildung und Traglast. Neue Kosten, Stufen und Bonusgrenzen sind vorläufig festgelegt. Forschung bleibt spielerweit und zeitpunktgenau; laufende Missionen/Queues behalten gespeicherte Regeln.
 
 ### Fehlende bzw. noch nicht konkret spezifizierte Kandidaten
 
