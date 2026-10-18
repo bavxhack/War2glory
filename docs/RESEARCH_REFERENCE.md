@@ -1,6 +1,8 @@
 # Historische Recherche: Forschungsrichtungen und fehlende Ausbauschritte
 
-Recherchestand: 16.10.2026. Ergänzung zum Projektplan, kein Implementierungsauftrag und kein Nachweis fertig entwickelter Funktionen. Der Planungschat ändert ausschließlich Dokumentation. CODEX_PROMPT.md bleibt Auftrag16; dessen Abschluss ist in diesem Rechercheauftrag nicht bestätigt.
+Basisrecherche vom 16.10.2026, ergänzt am 17. und 18.10.2026. Ergänzung zum Projektplan, kein Nachweis fertig entwickelter Funktionen. Der Planungschat ändert ausschließlich Dokumentation. Der aktuelle Codex-Auftrag steht in CODEX_PROMPT.md; die ursprüngliche Recherche ersetzte Auftrag 16 nicht.
+
+Die [vertiefte Recherche vom 18.10.2026](HISTORICAL_RESEARCH_2026-10-18.md) ergänzt Quellen zu Kampfsteuerung, Angriffsarten, Außenfeldern, verschiedenen Offizierssystemen, Bündnissen und Versionen. Der vollständige Original-Forschungsbaum bleibt unbestätigt. Auftrag 17 enthält weiterhin eigene vorläufige Forschungsregeln.
 
 ## Ergebnis und Grenzen der Recherche
 
