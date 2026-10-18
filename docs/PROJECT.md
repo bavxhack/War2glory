@@ -607,6 +607,24 @@ Tests für generalfreie Lieferung, Teilannahme, Einwegtransfer, Generalstandorte
 
 Danach Bündnisse/Unterstützung, geregelter Tauschhandel und weitere Militärtechnik; Matrix-Föderation bleibt eigenes Kernziel.
 
+## Vertiefte historische Recherche vom 18.10.2026
+
+Ergebnisse, Quellenqualität und Zugriffslücken stehen in [HISTORICAL_RESEARCH_2026-10-18.md](HISTORICAL_RESEARCH_2026-10-18.md). Zusätzliche damalige Verantwortlichen-Interviews und Community-Leitfäden konkretisieren mögliche spätere Funktionen. Dies ist eine Planungsergänzung, kein neuer Implementierungsauftrag; CODEX_PROMPT.md bleibt unverändert.
+
+Folgende Arbeitspakete als Kandidaten genauer spezifizieren:
+- Taktische Kampfgrundlage mit Positionen, Zielwahl, Bewegungsbefehlen und reproduzierbarer Auflösung, bevor weitere schwere Einheiten oder Luftfähigkeiten hinzukommen.
+- Angriffsarten mit ausdrücklich unterschiedlicher Behandlung von Verteidigung, Beute, Schutz und Besitz.
+- Eroberbare Außenfelder und Suchaufträge, getrennt von NPC-Farmen und Stadtgründung.
+- Stationierte Bündnisunterstützung mit unverändertem Eigentümer und Rückruf, anschließend koordinierte Angriffe und geregelter Handel.
+- Ausbildungsverantwortung und weitere Generalrollen; besondere Generäle, historische Helden, Umschulung und Ausrüstung nur nach eigenem Konzept.
+- Bevölkerung/Arbeitskräfte/Gold, Ränge und mögliche getrennte PvP-Wertung als optionale spätere Systeme.
+
+Die Quellen unterscheiden gewöhnliche Offiziere, besondere Generäle und WW2 Heroes. Browser-, regionale und mobile Fassungen nicht zu einem vermeintlich einheitlichen Originalregelsatz vermischen. Original-Schadensformeln, vollständige Einheitenwerte und Forschungsabhängigkeiten sind weiterhin nicht sicher belegt.
+
+Verbindliche Projektentscheidungen bleiben: maximal fünf Städte, kein Stadtunterhalt reisender Truppen, vollständig verbrauchtes bezahltes Betriebsöl, freie Fracht innerhalb der Kapazität und Forschung nach den eigenen versionierten Regeln. Historische Hinweise auf höhere Außenversorgung, andere Stadtgrenzen, Zufallsverluste oder Premiummechaniken ändern diese Entscheidungen nicht.
+
+Vorgeschlagene Reihenfolge: Auftrag 17 → Einführung/Aufgaben und Versorgungsübersicht → Außenfelder als gesondertes Konzept prüfen → Bündnisse/Unterstützung und Handel → PvP-Vorbereitung → taktischer Kampfausbau → Luft/Raketen. Optionale Wirtschaft-/Ausrüstungssysteme separat entscheiden; Matrix-Föderation als eigenen Strang weiterführen.
+
 ## Geplanter Auftrag 17: Forschungsbaum und drei wirksame Erweiterungen
 
 Am 17.10.2026 als nächster Implementierungsauftrag spezifiziert, noch nicht umgesetzt. Der aktuelle Einstieg steht in [CODEX_PROMPT.md](../CODEX_PROMPT.md). Auftrag 16 ist laut aktuellem Repository implementiert; der Planungschat hat dafür keine eigenen Laufzeittests ausgeführt.
