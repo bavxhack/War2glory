@@ -474,3 +474,5 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
  .city-header .city-switcher strong { max-width:none; }
  .city-header .city-switcher small { white-space:nowrap; font-size:11px; }
 }
+
+.research-group { grid-column: 1 / -1; margin: 1rem 0 0; }

@@ -113,6 +113,11 @@ export class WorldStorage {
       await this.#commitTransaction([], true);
     }
     const players = await this.advanceWorld(transitionAt);
+    this.world.researchRuleHistory ??= [];
+    if (JSON.stringify(this.world.researchRuleHistory.at(-1)?.rules) !== JSON.stringify(this.config.research)) {
+      this.world.researchRuleHistory.push({ effectiveAt: transitionAt, rules: structuredClone(this.config.research) });
+      await this.#commitTransaction([], true);
+    }
     if (JSON.stringify(this.supplyRules) !== JSON.stringify(this.config.supply)) {
       this.world.supplyRuleHistory.push({ effectiveAt: transitionAt, rules: structuredClone(this.config.supply) });
       for (const player of players.values()) {

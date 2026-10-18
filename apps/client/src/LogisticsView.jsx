@@ -1,3 +1,4 @@
+import { LoadingResearch } from './LoadingResearch.jsx';
 import { useState, useEffect } from 'react';
 import { SidebarActions } from './SidebarActions.jsx';
 import { resourceLabels, formatDuration } from './ui.jsx';
@@ -34,7 +35,7 @@ export function LogisticsView({state,transport,onDraftChange,connected}) {
       </> : <fieldset><legend>Generäle verlegen (optional, Mehrfachwahl)</legend>{generals.map(g => <label className="check-label" key={g.id}><input type="checkbox" disabled={busy} checked={generalIds.includes(g.id)} onChange={e => edit(setGenerals)(e.target.checked?[...generalIds,g.id]:generalIds.filter(id=>id!==g.id))}/>{g.name}</label>)}{!generals.length && <p>Keine freien Generäle in dieser Stadt. Eine Truppenverlegung bleibt möglich.</p>}</fieldset>}
       <h3>3. Prüfung</h3><p>Mit „Transport prüfen“ im Aktionenpanel Angebot abrufen und bestätigen.</p>
       {preview && <div className="notice" aria-live="polite"><p>{preview.originName} → {preview.targetName} · Hinreise {formatDuration(preview.travelMs)}{mode==='delivery' && ` · Rückreise ${formatDuration(preview.travelMs)}`}</p>
-        <p>Betriebsöl: {preview.totalOil} · {preview.distanceFields} Felder · Traglast {preview.capacity} · Unterhalt in Quelle −{preview.upkeepPerHour.toFixed(2)} Nahrung/h</p>
+        <LoadingResearch preview={preview}/><p>Eigene Ladung {Object.values(preview.cargo).reduce((a,b) => a+b,0)} · normaler Frachtraum {preview.capacity} · Betriebsöl im Frachtraum {preview.fuelBudgets.normal} · freie Plätze {preview.capacity - Object.values(preview.cargo).reduce((a,b) => a+b,0) - preview.fuelBudgets.normal}. Spähertanköl {preview.fuelBudgets.scouts}, Diensttransportöl {preview.fuelBudgets.generals}.</p><p>Betriebsöl: {preview.totalOil} · {preview.distanceFields} Felder · Traglast {preview.capacity} · Unterhalt in Quelle −{preview.upkeepPerHour.toFixed(2)} Nahrung/h</p>
         {preview.targetSupply && <p>Eigene Zielstadt: {Math.floor(preview.targetSupply.food)} Nahrung · Nettobilanz jetzt {preview.targetSupply.netPerHour.toFixed(2)}/h, nach Ankunft {preview.targetSupply.netAfterPerHour.toFixed(2)}/h{preview.targetSupply.netAfterPerHour<0 && ' · Achtung: negative Versorgung'}</p>}
         {mode==='transfer' && <p>Zielunterhalt steigt ab Ankunft. Prüfe die Zielversorgung; eine schlechte Bilanz verhindert die Stationierung nicht.</p>}
         {mode==='delivery' && <p>Freie Zielkapazität wird bei Ankunft geprüft. Nicht passende Güter fahren zurück.</p>}

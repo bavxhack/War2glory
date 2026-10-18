@@ -1,3 +1,4 @@
+import { loadingRules } from './research.js';
 import { canonicalJSON, cityView, ownedCity, exposeCity } from './multicity.js';
 import { validateCargo, cargoAmount, oneWayFuelMilli, RESOURCE_ORDER } from './cargo.js';
 import { cargoCapacity, fuelPlan, missionTimes, LOGISTICS_RULES } from './logistics.js';
@@ -56,6 +57,7 @@ export function migrateGeneralLocations(player) {
 export function cityTransportQuote(previous, command, world, logistics = LOGISTICS_RULES, rules = CITY_LOGISTICS_RULES, now = previous.city.updatedAt) {
   const player = canonicalJSON(previous), origin = ownedCity(player, command.originCityId);
   const view = cityView(player, origin.id), type = command.type;
+  logistics = loadingRules(logistics, view.city);
   if (!['delivery', 'transfer'].includes(type)) throw new Error('Unbekannte Reiseart.');
   if (command.delayMinutes !== undefined && command.delayMinutes !== 0) throw new Error('Lieferung und Verlegung unterstützen keine Zusatzverzögerung.');
   if (command.instanceId !== undefined && command.instanceId !== world.instanceId) throw new Error('Ziel gehört zu einer anderen Welt.');

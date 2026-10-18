@@ -13,7 +13,7 @@ import logisticsArtwork from '../assets/logistics-art.png';
 
 export const resourceLabels = { wood: 'Holz', stone: 'Stein', food: 'Nahrung', oil: 'Öl' };
 export const formatDuration = milliseconds => `${Math.max(0, Math.ceil(milliseconds / 1000))} s`;
-export const quoteText = quote => `${quote.cost.wood} Holz · ${quote.cost.stone} Stein · ${formatDuration(quote.durationMs)}`;
+export const quoteText = quote => `${quote.cost.wood} Holz · ${quote.cost.stone} Stein · ${formatDuration(quote.durationMs)}${quote.researchEffect ? ` · Forschung Stufe ${quote.researchEffect.level}: +${quote.researchEffect.level * quote.researchEffect.bonusBps / 100} % Geschwindigkeit · ${Math.round((1 - quote.durationMs / quote.researchEffect.durationWithoutResearchMs) * 1000) / 10} % Zeitersparnis` : ''}`;
 export const canAfford = (state, quote) => Object.entries(quote.cost).every(([resource, amount]) => state.city.resources[resource] >= amount);
 export const capacitySummary = capacities => Object.entries(capacities).map(([resource, value]) => `${resourceLabels[resource]} ${value}`).join(' · ');
 

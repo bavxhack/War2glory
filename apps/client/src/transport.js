@@ -44,7 +44,7 @@ export class GameTransport {
       return;
     }
     const request = this.#requests.get(event.requestId);
-    if (request && ['delivery.preview', 'transfer.preview', 'field.scout.preview', 'field.conquest.preview', 'city.found.preview', 'raid.preview', 'scouting.preview', 'general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
+    if (request && ['training.preview', 'delivery.preview', 'transfer.preview', 'field.scout.preview', 'field.conquest.preview', 'city.found.preview', 'raid.preview', 'scouting.preview', 'general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
       this.#requests.delete(event.requestId);
       if (event.type === 'command.error') request.reject(new Error(event.payload.message));
       else if (request.cityId && request.cityId !== this.selectedCityId) request.reject(new Error('Stadt wurde gewechselt. Bitte erneut prüfen.'));

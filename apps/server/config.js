@@ -1,3 +1,4 @@
+import { RESEARCH_EFFECT_RULES } from '../../packages/game-core/research.js';
 import { CITY_LOGISTICS_RULES } from '../../packages/game-core/city-logistics.js';
 import { SETTLEMENT_RULES } from '../../packages/game-core/settlement.js';
 import { LOGISTICS_RULES } from '../../packages/game-core/logistics.js';
@@ -8,6 +9,7 @@ import { SUPPLY_RULES } from '../../packages/game-core/supply.js';
 import { OFFICER_RULES } from '../../packages/game-core/officers.js';
 
 const definitions = {
+  RESEARCH_CONSTRUCTION_BONUS_BPS: [500, 0, 2000, true], RESEARCH_TRAINING_BONUS_BPS: [500, 0, 2000, true], RESEARCH_LOADING_BONUS_BPS: [500, 0, 2000, true],
   GENERAL_TRANSFER_OIL_PER_FIELD: [0.1, 0.001, 100000], GENERAL_TRANSFER_FUEL_CAPACITY: [20, 1, 1000000, true],
   FIELD_DEFENDER_MIN: [5, 1, 100000, true], FIELD_DEFENDER_MAX: [30, 1, 100000, true], CITY_CLAIM_TTL_HOURS: [24, 1 / 60, 8760],
   CITY_FOUND_WOOD: [500, 1, 1000000, true], CITY_FOUND_STONE: [500, 1, 1000000, true], CITY_FOUND_FOOD: [500, 1, 1000000, true],
@@ -46,6 +48,8 @@ export function parseConfiguration(env = {}) {
     exponent: numbers.GENERAL_RECRUIT_COST_EXPONENT, refreshMs: Math.round(numbers.GENERAL_CANDIDATE_REFRESH_HOURS * 3600000),
     leadershipPercent: numbers.RESEARCH_LEADERSHIP_PERCENT, bonusCapPercent: numbers.RESEARCH_BONUS_CAP_PERCENT };
   officers.version = `officers-1-${createHash('sha256').update(JSON.stringify(officers)).digest('hex').slice(0, 16)}`;
+  const research = { ...RESEARCH_EFFECT_RULES, constructionBonusBps: numbers.RESEARCH_CONSTRUCTION_BONUS_BPS, trainingBonusBps: numbers.RESEARCH_TRAINING_BONUS_BPS, loadingBonusBps: numbers.RESEARCH_LOADING_BONUS_BPS };
+  research.version = `research-effects-1-${research.constructionBonusBps}-${research.trainingBonusBps}-${research.loadingBonusBps}`;
   const logistics = { ...LOGISTICS_RULES, scoutFuelCapacity: numbers.SCOUT_FUEL_CAPACITY, maxAttackDelayMinutes: numbers.MAX_ATTACK_DELAY_MINUTES, oilMilliPerField: Object.fromEntries(['infantry', 'scout', 'truck'].map(unit => [unit, Math.round(numbers[`OIL_${unit.toUpperCase()}_PER_FIELD`] * 1000)])), cargoPerUnit: { ...LOGISTICS_RULES.cargoPerUnit, truck: numbers.TRUCK_CARGO_CAPACITY } };
   logistics.version = `fuel-3-cargo-${createHash('sha256').update(JSON.stringify(logistics)).digest('hex').slice(0, 16)}`;
   if (numbers.FIELD_DEFENDER_MIN > numbers.FIELD_DEFENDER_MAX) throw new Error('FIELD_DEFENDER_MIN darf FIELD_DEFENDER_MAX nicht überschreiten.');
@@ -53,7 +57,8 @@ export function parseConfiguration(env = {}) {
   settlement.version = `settlement-1-${createHash('sha256').update(JSON.stringify(settlement)).digest('hex').slice(0, 16)}`;
   const cityLogistics = { ...CITY_LOGISTICS_RULES, generalOilMilliPerField: Math.round(numbers.GENERAL_TRANSFER_OIL_PER_FIELD * 1000), generalFuelCapacity: numbers.GENERAL_TRANSFER_FUEL_CAPACITY };
   cityLogistics.version = `city-logistics-1-${createHash('sha256').update(JSON.stringify(cityLogistics)).digest('hex').slice(0, 16)}`;
-  return { cityLogistics, settlement, logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
+  logistics.researchEffects = research;
+  return { research, cityLogistics, settlement, logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
 }
 
 export async function loadConfiguration({ env = {}, file = '.env', cli = {} } = {}) {

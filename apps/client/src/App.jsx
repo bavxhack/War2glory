@@ -57,7 +57,7 @@ export function App({ transport }) {
     </header>
     <div className="workspace-heading"><span>{label} · {global?'Alle Städte':state.city.name}</span>{narrow&&<button onClick={()=>{setPanel('actions');setActionsOpen(true);}}>{view==='city'?'Gebäude verwalten':view==='world'?'Feldaktionen':'Aktionen'}</button>}</div>
     {state.migrationNotices.map((text,i)=><p key={i} className="notice">{text}</p>)}
-    <SidebarTarget.Provider value={actionTarget}><div className="workspace-layout"><div className="workspace-content" onInputCapture={()=>setDirty(true)} onClickCapture={()=>setPanel('actions')}>
+    <SidebarTarget.Provider value={actionTarget}><div className="workspace-layout"><div className="workspace-content" onInput={()=>setDirty(true)} onClickCapture={()=>setPanel('actions')}>
       {snapshot.switching?<p role="status">Stadt wird geladen …</p>:<>
       {view==='city'&&<CityView key={state.cityId} state={state} transport={transport} onPreview={preview} onResearch={()=>navigate('research')}/>}
       {view==='world'&&<WorldView key={state.cityId} state={state} map={snapshot.map} details={snapshot.mapDetails} transport={transport}/>}

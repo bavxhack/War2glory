@@ -1,3 +1,4 @@
+import { workQuote } from './research.js';
 import { CARGO_RAID_RULESET } from './cargo.js';
 import { LOGISTICS_RAID_RULESET } from './logistics.js';
 export const MILITARY_RULES = Object.freeze({
@@ -200,7 +201,7 @@ export function advanceMilitary(previous, now, npcById = new Map()) {
   return military;
 }
 
-export function enqueueTraining(previous, city, command, now) {
+export function enqueueTraining(previous, city, command, now, rules) {
   const military = structuredClone(previous); const definition = UNITS[command.unit];
   if (!definition) throw new Error('Unbekannter Einheitentyp.');
   if (!Number.isInteger(command.amount) || command.amount < 1 || command.amount > MILITARY_RULES.maxTrainingAmount) throw new Error('Ungültige Ausbildungsmenge.');
@@ -216,8 +217,9 @@ export function enqueueTraining(previous, city, command, now) {
   const nextCity = structuredClone(city);
   for (const [resource, unitCost] of Object.entries(definition.cost)) nextCity.resources[resource] -= unitCost * command.amount;
   const startsAt = barracksQueue.at(-1)?.finishesAt ?? now;
-  const durationMs = Math.ceil(definition.baseDurationMs * command.amount / barracks.level);
-  military.trainingQueue.push({ id: command.id, trainingSlotId: barracks.id, barracksSlotId: barracks.id, paidCost: Object.fromEntries(Object.entries(definition.cost).map(([key, cost]) => [key, cost * command.amount])), unit: command.unit, amount: command.amount, barracksLevel: barracks.level, startsAt, finishesAt: startsAt + durationMs });
+  const { durationMs, researchEffect } = workQuote(Math.ceil(definition.baseDurationMs * command.amount / barracks.level), city, 'trainingTechniques', rules);
+  if (command.researchEffect && JSON.stringify(command.researchEffect) !== JSON.stringify(researchEffect)) throw new Error('Ausbildungsvorschau geändert. Bitte erneut prüfen.');
+  military.trainingQueue.push({ id: command.id, trainingSlotId: barracks.id, barracksSlotId: barracks.id, paidCost: Object.fromEntries(Object.entries(definition.cost).map(([key, cost]) => [key, cost * command.amount])), unit: command.unit, amount: command.amount, barracksLevel: barracks.level, durationMs, researchEffect, startsAt, finishesAt: startsAt + durationMs });
   return { city: nextCity, military };
 }
 

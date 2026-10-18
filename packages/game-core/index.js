@@ -1,4 +1,4 @@
-import { newResearch, researchFactor, finishResearch, RESEARCH_RULES } from './research.js';
+import { newResearch, researchFactor, finishResearch, RESEARCH_RULES, workQuote } from './research.js';
 export const RULESET = 'prototype-0.5';
 export const RESOURCE_KEYS = Object.freeze(['wood', 'stone', 'food', 'oil']);
 export const BUILDINGS = Object.freeze({
@@ -35,9 +35,9 @@ export function newCity(now) {
   };
 }
 
-export function constructionQuote(level) {
+export function constructionQuote(level, city = {}, rules) {
   if (!Number.isInteger(level) || level < 1 || level > MAX_LEVEL) throw new Error('Ungültige Gebäudestufe.');
-  return { level, cost: { wood: 40 * level, stone: 30 * level }, durationMs: 5000 * level };
+  return { level, cost: { wood: 40 * level, stone: 30 * level }, ...workQuote(5000 * level, city, 'constructionEngineering', rules) };
 }
 
 export function resourceCapacities(city) {
@@ -66,9 +66,9 @@ export function capacityBreakdown(city) {
   }]));
 }
 
-export function cityOffers(city) {
-  const build = Object.fromEntries(Object.keys(BUILDINGS).map(building => [building, { ...constructionQuote(1), reason: BUILDINGS[building].technology && !city.research?.levels[BUILDINGS[building].technology] ? 'Erforderliche Forschung noch nicht abgeschlossen.' : null, capacityAfter: quoteCapacity(city, null, building, 1) }]));
-  const upgrade = Object.fromEntries(allSlots(city).filter(slot => slot.building && slot.level < MAX_LEVEL && !city.constructionQueue.some(job => job.slotId === slot.id)).map(slot => [slot.id, { ...constructionQuote(slot.level + 1), capacityAfter: quoteCapacity(city, slot, slot.building, slot.level + 1) }]));
+export function cityOffers(city, rules) {
+  const build = Object.fromEntries(Object.keys(BUILDINGS).map(building => [building, { ...constructionQuote(1, city, rules), reason: BUILDINGS[building].technology && !city.research?.levels[BUILDINGS[building].technology] ? 'Erforderliche Forschung noch nicht abgeschlossen.' : null, capacityAfter: quoteCapacity(city, null, building, 1) }]));
+  const upgrade = Object.fromEntries(allSlots(city).filter(slot => slot.building && slot.level < MAX_LEVEL && !city.constructionQueue.some(job => job.slotId === slot.id)).map(slot => [slot.id, { ...constructionQuote(slot.level + 1, city, rules), capacityAfter: quoteCapacity(city, slot, slot.building, slot.level + 1) }]));
   return { build, upgrade };
 }
 
@@ -116,7 +116,7 @@ export function advanceCity(previous, now, rateAdjustments = {}) {
   produce(city, until, rateAdjustments); return city;
 }
 
-export function enqueueConstruction(previous, command, now) {
+export function enqueueConstruction(previous, command, now, rules) {
   const city = advanceCity(previous, now);
   if (city.constructionQueue.length >= MAX_QUEUE_LENGTH) throw new Error('Die Bauwarteschlange ist voll.');
   if (!command || typeof command.slotId !== 'string' || typeof command.building !== 'string') throw new Error('Bauplatz und Gebäudetyp werden benötigt.');
@@ -129,12 +129,13 @@ export function enqueueConstruction(previous, command, now) {
   const technology = BUILDINGS[command.building].technology;
   if (isBuild && technology && !city.research?.levels[technology]) throw new Error('Erforderliche Forschung noch nicht abgeschlossen.');
   if (!isBuild && slot.building !== command.building) throw new Error('Der Bauplatz ist bereits belegt.');
-  const quote = constructionQuote(isBuild ? 1 : slot.level + 1);
+  const quote = constructionQuote(isBuild ? 1 : slot.level + 1, city, rules);
+  if (command.researchEffect && JSON.stringify(command.researchEffect) !== JSON.stringify(quote.researchEffect)) throw new Error('Bauvorschau geändert. Bitte erneut prüfen.');
   for (const [resource, amount] of Object.entries(quote.cost)) if (city.resources[resource] < amount) throw new Error('Nicht genügend Rohstoffe.');
   for (const [resource, amount] of Object.entries(quote.cost)) city.resources[resource] -= amount;
   const startsAt = city.constructionQueue.at(-1)?.finishesAt ?? city.updatedAt;
   city.constructionQueue.push({ id: command.id, type: isBuild ? 'build' : 'upgrade', slotId: slot.id, building: command.building,
-    buildingId: isBuild ? buildingId(command.id) : slot.buildingId, level: quote.level, paidCost: structuredClone(quote.cost), startsAt, finishesAt: startsAt + quote.durationMs });
+    buildingId: isBuild ? buildingId(command.id) : slot.buildingId, level: quote.level, durationMs: quote.durationMs, researchEffect: quote.researchEffect, paidCost: structuredClone(quote.cost), startsAt, finishesAt: startsAt + quote.durationMs });
   return city;
 }
 
