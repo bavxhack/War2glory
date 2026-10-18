@@ -1,3 +1,4 @@
+import { ResearchArt } from './ResearchArt.jsx';
 import { SidebarActions } from './SidebarActions.jsx';
 import { Fragment, useCallback, useState } from 'react';
 import { ActionButton, BuildingArt, Dialog, formatDuration, quoteText } from './ui.jsx';
@@ -54,14 +55,16 @@ export function ResearchView({ state, transport }) {
     </SidebarActions><div className="research-grid">{state.researchOffers.toSorted((a,b) => a.category.localeCompare(b.category)).map((offer, index, offers) => {
       const university = offer.universities.find(item => item.universityId === selected?.buildingId);
       const reason = offer.nextLevel == null ? 'Maximale Stufe erreicht.' : university?.reason ?? offer.reason;
-      return <Fragment key={offer.technology}>{offers[index - 1]?.category !== offer.category && <h3 className="research-group">{offer.category}</h3>}<section className={`card${technology === offer.technology ? ' selected-technology' : ''}`} key={offer.technology}><span className="kicker">{offer.kind === 'unlock' ? 'FREISCHALTUNG' : offer.kind === 'capacity' ? 'LAGERKAPAZITÄT' : offer.kind === 'production' ? 'PRODUKTION' : offer.kind === 'cargo' ? 'TRAGLAST' : 'GESCHWINDIGKEIT'}</span><h3>{offer.label}</h3><strong>Stufe {offer.level} / {offer.maxLevel}{offer.kind !== 'unlock' && ` · +${Math.round(offer.level * offer.bonusPerLevel * 100)} %`}</strong>
+      return <Fragment key={offer.technology}>{offers[index - 1]?.category !== offer.category && <h3 className="research-group">{offer.category}</h3>}<section className={`card research-card${technology === offer.technology ? ' selected-technology' : ''}`} key={offer.technology}><div className="research-card-heading"><ResearchArt technology={offer.technology} label={offer.label}/><div><span className="kicker">{offer.kind === 'unlock' ? 'FREISCHALTUNG' : offer.kind === 'capacity' ? 'LAGERKAPAZITÄT' : offer.kind === 'production' ? 'PRODUKTION' : offer.kind === 'cargo' ? 'TRAGLAST' : 'GESCHWINDIGKEIT'}</span><h3>{offer.label}</h3><strong>Stufe {offer.level} / {offer.maxLevel}{offer.kind !== 'unlock' && ` · +${Math.round(offer.level * offer.bonusPerLevel * 100)} %`}</strong>
+        <p>{active?.technology === offer.technology ? 'Läuft' : offer.nextLevel == null ? 'Maximal' : reason ? 'Gesperrt' : 'Verfügbar'}</p></div></div><div className="research-card-content">
+        <details className="research-details"><summary><span>Beschreibung &amp; Voraussetzungen</span><svg className="research-caret" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></summary><div className="research-details-content">
         {offer.nextLevel != null && <><p>{offer.kind === 'unlock' ? `Schaltet ${offer.unlocks.map(key => state.buildings[key]?.label ?? state.units[key]?.label).join(', ')} frei. Universität ${offer.universityLevel}; ${Object.entries(offer.prerequisites).map(([key, value]) => `${state.technologies[key].label} ${value}`).join(', ')}` : `Nächste Stufe ${offer.nextLevel}: +${Math.round(offer.nextLevel * offer.bonusPerLevel * 100)} % insgesamt · Universität mindestens Stufe ${offer.requiredUniversity}.`}</p><p>{offer.nextCost.wood} Holz · {offer.nextCost.stone} Stein{university?.quote && ` · ${formatDuration(university.quote.durationMs)}`}</p></>}
-        <p>{active?.technology === offer.technology ? 'Läuft' : offer.nextLevel == null ? 'Maximal' : reason ? 'Gesperrt' : 'Verfügbar'}</p>
         {Object.keys(offer.prerequisites).length > 0 && <p>Voraussetzungen: {Object.entries(offer.prerequisites).map(([id, l]) => `${state.technologies[id].label} ${l}`).join(', ')}</p>}
         {offer.reasons.map((r, i) => <p key={i}>{r.message}</p>)}
         {['constructionSpeed', 'trainingSpeed'].includes(offer.kind) && <p>Geschwindigkeit jetzt +{Math.round((offer.factor - 1) * 100)} %; Zeitersparnis {Math.round((1 - 1 / offer.factor) * 1000) / 10} %.</p>}
-        <ActionButton label="Technologie auswählen" detail={reason ?? 'Forschungsaktion in der Seitenleiste öffnen'} disabled={loading} onClick={() => { setTechnology(offer.technology); setPreview(null); }}/>
-      </section></Fragment>;
+        </div></details>
+        <ActionButton label="Technologie auswählen" detail={technology === offer.technology ? 'Ausgewählt · Aktion im Kontextpanel' : 'Forschungsaktion öffnen'} disabled={loading} onClick={() => { setTechnology(offer.technology); setPreview(null); }}/>
+      </div></section></Fragment>;
     })}</div>
     {error && <p className="notice" role="alert">{error}</p>}
     {preview && <Dialog open kicker="FORSCHUNG BESTÄTIGEN" title={`${state.technologies[preview.technology].label} · Stufe ${preview.targetLevel}`} onClose={close} actions={<button disabled={loading} onClick={confirm}>{loading ? 'Wird gespeichert …' : 'Kosten bezahlen und starten'}</button>}>

@@ -42,3 +42,21 @@ Die vorhandene eigene Bildtafel `game-art.png` diente als Stilreferenz: fiktive 
 `apps/client/building-art.js` beschreibt Beschriftung und Rasterposition. `BuildingArt` bindet die typabhängige Datei und tatsächliche Stufe ein. Hintergrundgröße 500%×200%, Positionen horizontal 0/25/50/75/100% und vertikal 0/100%. Quadratische Bildflächen verhindern Verzerrung oder den Anschnitt benachbarter Stufen. Vite versieht jede Bildreihe mit einem Inhalts-Hash; der Browser lädt sie von derselben lokalen Spielinstanz.
 
 Neubauangebote zeigen Stufe 1. Bei einem laufenden Ausbau bleibt das aktuelle Motiv erhalten, bis der Server den Abschluss meldet. Die Universität in der Forschung zeigt die ausgewählte Universität, auch wenn mehrere unterschiedlich ausgebaute Gebäude vorhanden sind. Spielstände benötigen keine Migration, da bestehende Gebäudestufen die Auswahl bestimmen. Die älteren Bildtafeln und SVGs bleiben für Truppen, Stadtmotive und bestehende URLs erhalten.
+
+## Forschungsbilder (18.10.2026)
+
+`research-technologies.webp` enthält neun eigens mit OpenAI Image Generation erstellte Motive in einem gleichmäßigen 3×3-Raster (1254×1254 Pixel). Die PNG-Quelle wurde ohne Motivänderung oder Skalierung als WebP mit Qualität 88 codiert. Keine übernommenen War2Glory-Grafiken, echten Marken oder externen Bildanfragen. Stil: warmes Licht, gedeckte Olivfarben und realistisch gemalte frühindustrielle Werkzeuge und Anlagen, passend zu den bestehenden eigenen Spielbildern.
+
+| Rasterposition | Stabile Forschungs-ID | Motiv |
+| --- | --- | --- |
+| Oben links | forestry | Sägewerk, Säge und Baumstämme |
+| Oben Mitte | masonry | Steinbruch, Hammer und Meißel |
+| Oben rechts | agriculture | Getreide, Felder und Erntegerät |
+| Mitte links | oilProcessing | Destillationsapparatur und Raffinerie |
+| Mitte | motorization | Offener Motor und LKW-Werkstatt |
+| Mitte rechts | logistics | Geordnete Lagerregale und Bestandsbuch |
+| Unten links | constructionEngineering | Baupläne, Vermessung und Baustelle |
+| Unten Mitte | trainingTechniques | Ausbilder und Hindernisparcours |
+| Unten rechts | loadingTechniques | Verladekran und Fracht-LKW |
+
+`ResearchArt` ordnet stabile IDs den neun unterschiedlichen Ausschnitten zu. Quadratische Bildflächen und `background-size: 300% 300%` zeigen jedes Motiv vollständig. Vite versioniert die lokal ausgelieferte Bilddatei. Die Bilder beeinflussen weder Forschungswerte noch Spielstände; die Technologie bleibt zusätzlich als Text beschriftet.
