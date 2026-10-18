@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "Desktop: alle acht Windrosentasten bewegen exakt ein Feld; Stadtzentrierung stellt den Ausgangsausschnitt wieder her.",
+    "Mausziehen, Mausrad und lose Pfeiltasten lösen keine Kartenbewegung/Viewport-Anfrage aus; Windrose liegt über der Karte.",
+    "Tastatur: fokussierte Richtungstaste bewegt per Enter; kein globaler Pfeiltasten-Pan.",
+    "Weltgrenzen: Koordinatensuche geklemmt; unzulässige Richtungen inklusive Diagonalen gesperrt.",
+    "NPC- und freie Feldwahl öffnen weiterhin ihre vorhandenen Aufklärungsdialoge; verbindliche Servervorschauen ohne Zahlung geprüft.",
+    "Lesbarkeit: volle Kartenbreite, 5×5 Standard, 13px Stadtnamen und 12px Koordinaten; räumliche SVG-Städte für eigene/NPC/fremde Städte; Auswahl und Zoom funktionieren.",
+    "390×844: 3×3 Standard, keine horizontale Überbreite, Richtungstasten funktionieren und Touch-Zeigerbewegung verschiebt den Ausschnitt nicht.",
+    "320×844: 3×3 Standard, keine horizontale Überbreite, Richtungstasten funktionieren und Touch-Zeigerbewegung verschiebt den Ausschnitt nicht.",
+    "Reload: Sitzung wiederaufgenommen und mobile Karte erneut zentriert; keine JavaScript-Seitenfehler."
+  ],
+  "errors": []
+}

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequestId } from '../apps/client/request-id.js';
-import { dragToPan, finishMapPointer, mapSelectionCoordinate } from '../apps/client/map-navigation.js';
+import { MAP_DIRECTIONS, mapViewport, canPan } from '../apps/client/map-navigation.js';
 import { forceSummary } from '../apps/client/force-summary.js';
 
 test('Truppenbestand trennt Stationierung, lebende Einsatztruppen und Ausbildung', () => {
@@ -53,25 +53,23 @@ test('Anfrage-IDs besitzen einen kompatiblen Fallback ohne Web Crypto', () => {
   assert.notEqual(first, second);
 });
 
-test('Zeigerbewegungen werden in Kartenfelder zum Verschieben umgerechnet', () => {
-  assert.deepEqual(dragToPan({ x: 200, y: 150 }, { x: 100, y: 200 }, 50), { x: 2, y: -1 });
-  assert.deepEqual(dragToPan({ x: 100, y: 100 }, { x: 90, y: 91 }, 50), { x: 0, y: 0 });
-  assert.throws(() => dragToPan({ x: 0, y: 0 }, { x: 1, y: 1 }, 0), /positive Feldgröße/);
+test('Kartenausschnitte bleiben bei Zentrierung und Zoom innerhalb der Welt', () => {
+  assert.deepEqual(mapViewport({x:12,y:12},5,{width:24,height:24}),{x:10,y:10,width:5,height:5});
+  assert.deepEqual(mapViewport({x:-20,y:40},5,{width:24,height:24}),{x:0,y:19,width:5,height:5});
+  assert.deepEqual(mapViewport({x:0,y:0},5,{width:2,height:3}),{x:0,y:0,width:2,height:2});
+  assert.throws(()=>mapViewport({x:0,y:0},0,{width:24,height:24}),/Weltgrenzen/);
 });
 
-test('ein Klick auf ein Kartenfeld wird nicht als Ziehen unterdrückt', () => {
-  assert.deepEqual(finishMapPointer({ x: 100, y: 100 }, { x: 100, y: 100 }, 50), {
-    offset: { x: 0, y: 0 },
-    suppressClick: false,
-  });
-  assert.deepEqual(finishMapPointer({ x: 100, y: 100 }, { x: 25, y: 100 }, 50), {
-    offset: { x: 2, y: 0 },
-    suppressClick: true,
-  });
+test('Die Windrose enthält acht eindeutige Richtungen einschließlich Diagonalen', () => {
+  assert.equal(MAP_DIRECTIONS.length,8);
+  assert.equal(new Set(MAP_DIRECTIONS.map(d=>`${d.x}:${d.y}`)).size,8);
+  const bounds={width:24,height:24},view={x:10,y:10,width:5,height:5};
+  for(const d of MAP_DIRECTIONS){assert.equal(canPan(view,bounds,d),true);const next=mapViewport({x:view.x+2.5+d.x,y:view.y+2.5+d.y},5,bounds);assert.equal(next.x,view.x+d.x);assert.equal(next.y,view.y+d.y);}
 });
 
-test('Pointer-Capture behält das ursprünglich angeklickte Kartenfeld', () => {
-  assert.equal(mapSelectionCoordinate({ clickedCoordinate: null, pressedCoordinate: '4:7', suppressClick: false }), '4:7');
-  assert.equal(mapSelectionCoordinate({ clickedCoordinate: '4:7', pressedCoordinate: '4:7', suppressClick: false }), '4:7');
-  assert.equal(mapSelectionCoordinate({ clickedCoordinate: null, pressedCoordinate: '4:7', suppressClick: true }), null);
+test('Richtungstasten werden am Kartenrand auch diagonal begrenzt', () => {
+ const view={x:0,y:19,width:5,height:5},bounds={width:24,height:24};
+ const available=MAP_DIRECTIONS.filter(d=>canPan(view,bounds,d)).map(d=>d.short);
+ assert.deepEqual(available,['N','NO','O']);
+ for(const d of MAP_DIRECTIONS)assert.equal(canPan({x:0,y:0,width:2,height:2},{width:2,height:2},d),false);
 });

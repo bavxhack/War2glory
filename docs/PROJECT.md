@@ -1024,3 +1024,8 @@ Ein Wissensstand und ein Forschungsauftrag je Kommandant; Zahlung und Forschungs
 Die Forschungsseite gruppiert neun Karten mit Abhängigkeiten, Status, Wirkung, Kosten und Forschungsort. Bauangebote und verbindliche Ausbildungsprüfung erklären den Bonus; Reisevorschauen zeigen Ladetechnik und getrennte Tanks. Schema 17/4 genügt: additive Normalisierung neuer IDs auf 0, bestehende Migrationsketten und Forschungsversionen 1–3 bleiben erhalten. Unbekannte Forschungs-IDs führen zu einem sichtbaren Fehler, ohne die Spielerdatei zurückzusetzen. Ausgeführte Prüfungen: RESEARCH_EXPANSION_VALIDATION.md.
 
 Als nächsten eigenständigen Auftrag vorschlagen: Einführung/Aufgaben mit einmaligen Belohnungen und stadtübergreifender Versorgungsübersicht. Danach Bündnisse/Unterstützung, geregelten Handel und PvP-Vorbereitung konkretisieren. Matrix bleibt ein eigener Entwicklungsstrang.
+
+
+## Weltkartenansicht: Windrose und Relief
+
+Implementiert: Navigation ausschließlich durch ausdrückliche Bedienelemente (acht Windrosentasten, Zentrierung, Suche und Zoom); kein Verschieben durch Ziehen/Wischen oder globale Pfeiltasten. Die Windrose liegt über der Karte. Größere Felder in kleineren Standardausschnitten (Desktop 5×5, schmal 3×3), volle Kartenbreite, lesbare Koordinaten/Namen und lokale SVG-Grafiken für Gelände und räumlich gezeichnete Stadtminiaturen verbessern die Übersicht. Eigene, fremde und NPC-Städte bleiben zusätzlich durch Text unterscheidbar. Kleine Welten werden innerhalb ihrer gespeicherten Grenzen angezeigt. Die Darstellung ist 2,5D; Serverregeln, Welt-/Spielerschemata, Entfernungsmodell, Erkundung und Spielstände bleiben unverändert. Tatsächlich ausgeführte Prüfungen und Grenzen: WORLD_MAP_VALIDATION.md.

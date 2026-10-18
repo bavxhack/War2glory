@@ -60,3 +60,8 @@ Neubauangebote zeigen Stufe 1. Bei einem laufenden Ausbau bleibt das aktuelle Mo
 | Unten rechts | loadingTechniques | Verladekran und Fracht-LKW |
 
 `ResearchArt` ordnet stabile IDs den neun unterschiedlichen Ausschnitten zu. Quadratische Bildflächen und `background-size: 300% 300%` zeigen jedes Motiv vollständig. Vite versioniert die lokal ausgelieferte Bilddatei. Die Bilder beeinflussen weder Forschungswerte noch Spielstände; die Technologie bleibt zusätzlich als Text beschriftet.
+
+
+## Weltkarten-Relief (18.10.2026)
+
+`src/WorldTileArt.jsx` enthält eigens im Projekt gezeichnete SVG-Motive für Ebene, Wald, Hügel, Wasser und Stadtminiaturen. Sichtbare Dach-/Wandflächen, Lichtseiten und Schatten erzeugen einen 2,5D-Eindruck. Eigene, fremde und NPC-Städte unterscheiden sich in Dach-/Flaggenfarben und zusätzlich in Textbeschriftung; reservierte Felder zeigen eine Fahne statt einer Stadt. Die Vektorgrafiken werden lokal mit dem Client ausgeliefert, ohne Bilddienste, fremde Spielgrafiken oder neue Abhängigkeiten. Es werden weder tatsächliche Höhenwerte noch zusätzliche Erkenntnisse über fremde Städte vorgetäuscht. Serverdaten und Spielstände werden nicht durch die Grafik verändert.

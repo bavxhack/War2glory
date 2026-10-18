@@ -123,7 +123,7 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Atomare JSON-Spielstände pro Spieler, stabile Instanz-ID, ausdrückliche Übernahme der alten Demo-Stadt und Produktion während Abwesenheit.
 - Maschinenlesbare Serverbeschreibung als Vorbereitung auf Föderation.
 - Dauerhafte gemeinsame 24×24-Weltkarte mit Gelände, zufällig vergebenen eindeutigen Spielerpositionen und 18 gemeinsam sichtbaren NPC-Städten.
-- Kartenwechsel, Verschieben per Maus, Touch, Richtungstasten oder Pfeiltasten, Koordinatensuche, Zoom und öffentliche Stadtinformationen über WebSocket.
+- Kartenwechsel, Bewegung über die Windrose mit acht Richtungstasten, Koordinatensuche, Zoom und öffentliche Stadtinformationen über WebSocket.
 - Abgeleitete Kommandantenpunkte, ein getrennter Militärbereich mit vier Bauplätzen sowie persistente Gruppenausbildung von Spähern/Infanterie mit drei eigenen Warteschlangenslots je Kaserne. Einheitenkarten visualisieren Späher als Aufklärungsflugzeuge.
 - Ein idempotent vergebener kostenloser Startgeneral, eine auf mehrere Generäle ausgelegte Verwaltung mit sicherer Namensänderung und verlustfreie NPC-Aufklärung mit gezielter Generalwahl, Hin-/Rückmarsch, privaten historischen Berichten und einmaliger Erstziel-Erfahrung.
 - Führung, Angriff, Verteidigung sowie getrennte Erfahrungs-/Skillzähler sind als persistente und getestete Grundlage vorhanden. Manuelle XP-Umrechnung und Skillverteilung sind mit dem vorläufigen Regelsatz aus Auftrag 10 aktiv; Führung verbessert Bürgermeister, verteilte Angriff-/Verteidigungspunkte wirken auf neue Farmzüge.
@@ -241,3 +241,9 @@ Je neuer Zielstufe L: 150×L Holz und Stein, 90×L Sekunden vor bestehendem Univ
 Die drei `RESEARCH_*_BONUS_BPS` in `.env.example` erlauben ganze 0–2000 Basispunkte je Stufe (Standard 500). Ein Neustart speichert den Regelwechsel mit Aktivierungszeit. Spielerschema 17 und Weltschema 4 bleiben bestehen; fehlende neue Wissensstände werden mit 0 ergänzt. Forschungsaufträge der Versionen 1–3 bleiben abschließbar. Tests, Browserprüfungen und Grenzen: [RESEARCH_EXPANSION_VALIDATION.md](docs/RESEARCH_EXPANSION_VALIDATION.md).
 
 Die neun Forschungsarten besitzen jeweils ein eigenes Bildmotiv. Die Karten zeigen Bild, Namen, Stufe und Status; genaue Wirkung, Preise und Voraussetzungen werden erst über das Caret „Beschreibung & Voraussetzungen“ aufgeklappt. Die Aufklappfunktion ist auch mit Tastatur bedienbar.
+
+## Lesbare Weltkarte mit Reliefdarstellung
+
+Die Weltkarte nutzt die volle verfügbare Breite. Standardmäßig werden auf Desktop 5×5 und auf schmalen Geräten 3×3 größere Felder gezeigt. Gelände und Städte erscheinen als lokale SVG-Reliefgrafiken mit Schatten, Seitenflächen und Dächern; Namen, Koordinaten und Stadttypen bleiben als gut lesbarer Text sichtbar.
+
+Die Windrose oberhalb der Karte bewegt den Ausschnitt in acht Richtungen, ihre Mitte zentriert die eigene Stadt. Ziehen, Wischen, Mausrad und globale Pfeiltasten verschieben die Welt nicht mehr. Richtungstasten sind per Tab und Enter/Leertaste bedienbar und an Weltgrenzen gesperrt. Koordinatensuche und Zoom bleiben verfügbar und sind auf Mobilgeräten platzsparend aufklappbar. Es handelt sich um eine räumlich illustrierte 2,5D-Karte ohne neue Spielengine oder Änderungen an gespeicherten Weltkoordinaten. Prüfbelege: [WORLD_MAP_VALIDATION.md](docs/WORLD_MAP_VALIDATION.md).
