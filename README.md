@@ -242,8 +242,10 @@ Die drei `RESEARCH_*_BONUS_BPS` in `.env.example` erlauben ganze 0–2000 Basisp
 
 Die neun Forschungsarten besitzen jeweils ein eigenes Bildmotiv. Die Karten zeigen Bild, Namen, Stufe und Status; genaue Wirkung, Preise und Voraussetzungen werden erst über das Caret „Beschreibung & Voraussetzungen“ aufgeklappt. Die Aufklappfunktion ist auch mit Tastatur bedienbar.
 
-## Lesbare Weltkarte mit Reliefdarstellung
+## Isometrische Weltkarte mit fester Windrose
 
-Die Weltkarte nutzt die volle verfügbare Breite. Standardmäßig werden auf Desktop 5×5 und auf schmalen Geräten 3×3 größere Felder gezeigt. Gelände und Städte erscheinen als lokale SVG-Reliefgrafiken mit Schatten, Seitenflächen und Dächern; Namen, Koordinaten und Stadttypen bleiben als gut lesbarer Text sichtbar.
+Die Weltkarte liegt in einem an den verfügbaren Platz angepassten Kartenfenster. Quadratische Weltfelder erscheinen als Rauten; befestigte Städte, Baumgruppen, Felsen und Hügel erhalten Höhenstaffelung, Überdeckung und gemeinsame Schatten. Namen, Koordinaten und Stadttypen bleiben aufrecht lesbar. Die lokale Grafik ist eine eigene Interpretation klassischer Strategiespiele, keine behauptete Originalkopie.
 
-Die Windrose oberhalb der Karte bewegt den Ausschnitt in acht Richtungen, ihre Mitte zentriert die eigene Stadt. Ziehen, Wischen, Mausrad und globale Pfeiltasten verschieben die Welt nicht mehr. Richtungstasten sind per Tab und Enter/Leertaste bedienbar und an Weltgrenzen gesperrt. Koordinatensuche und Zoom bleiben verfügbar und sind auf Mobilgeräten platzsparend aufklappbar. Es handelt sich um eine räumlich illustrierte 2,5D-Karte ohne neue Spielengine oder Änderungen an gespeicherten Weltkoordinaten. Prüfbelege: [WORLD_MAP_VALIDATION.md](docs/WORLD_MAP_VALIDATION.md).
+Die Windrose bleibt unten rechts **im Kartenfenster** stehen: kurzer Klick bewegt die Kamera um einen festen Schritt, Gedrückthalten fährt kontinuierlich weiter. Loslassen, Zeigerabbruch und Fokusverlust stoppen sofort. Alle acht Richtungen beziehen sich auf den Bildschirm. Die Mitte zentriert die ausgewählte eigene Stadt bei unverändertem Maßstab. Die Bedienung funktioniert auch mit Tab und Enter/Leertaste; Zoomen und Seitenscrollen sind zum Erkunden nicht nötig. Zusätzliche Suche und Maßstabwahl bleiben aufklappbar.
+
+Die Kamera bewegt sich unmittelbar im Client. Benötigte öffentliche Kartenausschnitte werden gebündelt über den vorhandenen WebSocket nachgeladen und zwischengespeichert; verspätete Antworten verschieben weder Kamera noch Auswahl zurück. Spielstände, Weltkoordinaten, Entfernungen und Reisezeiten bleiben unverändert. Screenshots, ausgeführte Prüfungen und Grenzen: [WORLD_MAP_VALIDATION.md](docs/WORLD_MAP_VALIDATION.md).

@@ -1,14 +1,15 @@
 {
   "checks": [
-    "Desktop: alle acht Windrosentasten bewegen exakt ein Feld; Stadtzentrierung stellt den Ausgangsausschnitt wieder her.",
-    "Mausziehen, Mausrad und lose Pfeiltasten lösen keine Kartenbewegung/Viewport-Anfrage aus; Windrose liegt über der Karte.",
-    "Tastatur: fokussierte Richtungstaste bewegt per Enter; kein globaler Pfeiltasten-Pan.",
-    "Weltgrenzen: Koordinatensuche geklemmt; unzulässige Richtungen inklusive Diagonalen gesperrt.",
-    "NPC- und freie Feldwahl öffnen weiterhin ihre vorhandenen Aufklärungsdialoge; verbindliche Servervorschauen ohne Zahlung geprüft.",
-    "Lesbarkeit: volle Kartenbreite, 5×5 Standard, 13px Stadtnamen und 12px Koordinaten; räumliche SVG-Städte für eigene/NPC/fremde Städte; Auswahl und Zoom funktionieren.",
-    "390×844: 3×3 Standard, keine horizontale Überbreite, Richtungstasten funktionieren und Touch-Zeigerbewegung verschiebt den Ausschnitt nicht.",
-    "320×844: 3×3 Standard, keine horizontale Überbreite, Richtungstasten funktionieren und Touch-Zeigerbewegung verschiebt den Ausschnitt nicht.",
-    "Reload: Sitzung wiederaufgenommen und mobile Karte erneut zentriert; keine JavaScript-Seitenfehler."
+    "Alle acht kurzen Windrosenklicks verschieben die Kamera sofort in Bildschirmrichtung; Maßstab, Blickwinkel und Seitenscroll bleiben unverändert.",
+    "Längeres Halten bewegt kontinuierlich; Loslassen außerhalb der Schaltfläche beendet die Bewegung ohne Feldwahl oder Seitenscroll.",
+    "Enter/Leertaste-Halten, Pointer-Abbruch, Fenster- und Tastaturfokusverlust stoppen zuverlässig; keine Bewegung bleibt aktiv.",
+    "Kamera bewegt sich auch vor verspäteten WebSocket-Antworten; alte Antworten setzen sie nicht zurück, die bisherige Stadtauswahl bleibt erhalten.",
+    "Alle vier Weltecken sind ohne Seitenbewegung erreichbar und auswählbar; Weltgrenzen begrenzen die Kamera und bleiben als Kartenkante sichtbar.",
+    "Projizierter Feldklick und Stadtwahl nach Kamerafahrten stimmen mit den Koordinaten überein; Objekte werden nach Tiefe gezeichnet, Beschriftungen bleiben aufrecht.",
+    "390×844: vollständiges Kartenfenster und Windrose sichtbar; echte Touch-Klicks und Touch-Halten funktionieren ohne Zoom-/Seitenscrolländerung, auch bei reduzierter Bewegung.",
+    "320×844: vollständiges Kartenfenster und Windrose sichtbar; echte Touch-Klicks und Touch-Halten funktionieren ohne Zoom-/Seitenscrolländerung, auch bei reduzierter Bewegung.",
+    "Mobile Sitzung nach Reload wiederaufgenommen; eigener Standort, kleiner initialer Maßstab und Kartenfenster bleiben funktionsfähig."
   ],
-  "errors": []
+  "errors": [],
+  "mapRequests": 20
 }

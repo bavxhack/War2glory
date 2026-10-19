@@ -546,3 +546,51 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
  .world-tools[open] { width:100%; }
  .world-tool-options { padding-top:.5rem; }
 }
+
+/* Isometric camera window: scene translates, labels and compass stay upright. */
+.game-shell .workspace-content.map-workspace { overflow:hidden; padding:0; }
+.iso-world-view,.iso-map-window { display:flex; flex-direction:column; height:100%; min-height:0; }
+.iso-toolbar { position:relative; z-index:40; flex:0 0 auto; display:flex; justify-content:space-between; align-items:center; gap:.75rem; padding:0 2px .5rem; }
+.iso-toolbar h2 { font-size:1.25rem; margin:.1rem 0; }
+.iso-tools > summary { padding:.55rem .7rem; border:1px solid #879477; border-radius:8px; cursor:pointer; color:#ecedd3; font-size:.85rem; }
+.iso-tool-content { position:absolute; right:0; top:100%; display:flex; flex-wrap:wrap; align-items:end; gap:.6rem; width:min(360px,100%); padding:.8rem; background:#20362d; border:1px solid #879477; border-radius:10px; box-shadow:0 8px 24px #08160f88; }
+.iso-tool-content form { display:flex; align-items:end; gap:.5rem; width:100%; }
+.iso-tool-content label { display:grid; gap:.25rem; font-size:.8rem; min-width:0; flex:1; }
+.iso-tool-content input { width:100%; min-width:0; padding:.6rem; background:#12291f; color:#fff5dc; border:1px solid #839176; border-radius:5px; }
+.iso-tool-content button { padding:.55rem .75rem; }
+.iso-map-frame { position:relative; flex:1; min-height:0; overflow:hidden; isolation:isolate; border:1px solid #9fa382; border-radius:14px; background:radial-gradient(ellipse at 45% 25%,#6c9690,#365d63 70%); box-shadow:inset 0 0 60px #122e3c55; touch-action:none; }
+.iso-map-frame::before { content:""; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.16; background:repeating-linear-gradient(164deg,transparent 0 22px,#d6e3ca 23px 24px,transparent 25px 48px); }
+.isometric-map { position:absolute; inset:0; display:block; z-index:1; overflow:hidden; }
+.iso-ground { cursor:pointer; outline:none; }
+.iso-ground:focus-visible,.iso-ground.is-selected { stroke:#fff2a1; stroke-width:4; stroke-opacity:1; filter:drop-shadow(0 0 5px #ffdc6d); }
+.iso-ground.is-loading { opacity:.55; cursor:wait; }
+.iso-object { cursor:pointer; outline:none; }
+.iso-object:focus-visible .iso-sprite { filter:drop-shadow(0 0 5px #fff6aa); }
+.iso-sprite { pointer-events:none; }
+.iso-label { cursor:pointer; outline:none; }
+.iso-label:focus-visible .iso-city-label { border-color:#fff2a1; outline:2px solid #fff2a1; }
+.iso-coordinate { font:600 11px ui-monospace,monospace; fill:#fff4d8; paint-order:stroke; stroke:#304b36c9; stroke-width:3; stroke-linejoin:round; }
+.iso-city-label { text-align:center; padding:3px 5px; border:1px solid #c8b98688; border-radius:5px; background:#243a32eb; color:#fff9e5; font-size:12px; box-shadow:0 3px 6px #10251a55; }
+.iso-city-label strong { display:block; font-size:12px; line-height:1.15; overflow-wrap:anywhere; }
+.iso-city-label small { display:block; font-size:10px; line-height:1.2; color:#e0e7c9; }
+.iso-city-label.own-city { border-color:#f3dc85; }
+.iso-city-label.npc { border-color:#cf9676; }
+.iso-map-hud { position:absolute; z-index:3; top:8px; left:8px; display:flex; flex-wrap:wrap; gap:4px; max-width:calc(100% - 16px); pointer-events:none; }
+.iso-map-hud > * { padding:4px 6px; border-radius:5px; background:#193329df; color:#f7f1d7; font-size:11px; }
+.iso-map-error { position:absolute; z-index:35; top:45px; left:8px; right:8px; padding:.6rem; background:#672f21e8; border-radius:5px; }
+.iso-compass { position:absolute; z-index:30; bottom:8px; right:8px; padding:7px; border:1px solid #a5ac83; border-radius:14px; background:linear-gradient(135deg,#4d604ce8,#1c342de8); box-shadow:0 6px 20px #0c231b77; touch-action:none; user-select:none; }
+.compass-heading,.compass-footnote { display:block; text-align:center; font-size:10px; color:#e3e8cc; line-height:1.3; }
+.compass-heading { margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
+.compass-footnote { margin-top:4px; }
+.iso-compass-grid { display:grid; grid-template:repeat(3,44px)/repeat(3,44px); gap:3px; }
+.iso-compass button { min-width:0; padding:1px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:0; border:1px solid #a6af8b; border-radius:8px; color:#f9f1d6; background:linear-gradient(#667c55,#324d37); box-shadow:0 2px 0 #172f24; touch-action:none; }
+.iso-compass button small { font-size:9px; line-height:1; }
+.iso-compass .iso-compass-home { color:#25402b; background:#e0ddb4; }
+.iso-compass button:not(:disabled):hover { background:#8e9e6e; color:#172d20; }
+.iso-compass button:focus-visible { outline:3px solid #ffe59c; outline-offset:1px; }
+.iso-compass button[aria-pressed="true"] { background:#dfc984; color:#172c22; box-shadow:inset 0 2px 4px #263b2566; }
+.iso-compass button:disabled { opacity:.4; cursor:default; }
+@media(max-width:560px) { .iso-toolbar h2 { font-size:1.1rem; } .iso-toolbar .kicker { font-size:.6rem; } .iso-compass { bottom:5px; right:5px; padding:5px; } }
+@media(prefers-reduced-motion:reduce) { .iso-map-window * { scroll-behavior:auto; transition:none!important; animation:none!important; } }
+
+.iso-selection-outline { filter:drop-shadow(0 0 4px #ffcf5480); }

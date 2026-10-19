@@ -85,3 +85,22 @@ test('tab city selection persists, all commands include cityId, late city/map/di
   transport.mutate('construction.enqueue', { slotId: 'plot-4', building: 'farm' }); assert.equal(socket.sent.at(-1).payload.cityId, 'city-b');
   const reconnected = new GameTransport({ tabStorage: tab }); assert.equal(reconnected.selectedCityId, 'city-b'); transport.stop();
 });
+
+test('map loading preserves offscreen selection and rejects late older revisions',()=>{
+ FakeSocket.instances=[];const transport=new GameTransport({WebSocketImpl:FakeSocket,storage:storage(),location:{protocol:'http:',host:'localhost'}});
+ transport.start();const socket=FakeSocket.instances[0];socket.readyState=FakeSocket.OPEN;socket.emit('open');
+ const emit=payload=>socket.emit('message',{data:JSON.stringify({type:'map.snapshot',payload})});
+ const selection={terrain:{x:20,y:20,type:'plains'},entity:{id:'selected',name:'Stadt',privateDetail:'known'}};
+ transport.setMapDetails(selection);
+ emit({world:{instanceId:'w'},revision:5,viewport:{x:0,y:0,width:12,height:12},entities:[]});assert.deepEqual(transport.state.mapDetails,selection);
+ emit({world:{instanceId:'w'},revision:4,viewport:{x:12,y:12,width:12,height:12},entities:[]});assert.equal(transport.state.map.revision,5);assert.deepEqual(transport.state.mapDetails,selection);
+ emit({world:{instanceId:'w'},revision:5,viewport:{x:12,y:12,width:12,height:12},entities:[{id:'selected',x:20,y:20,name:'Stadt'}]});assert.equal(transport.state.mapDetails.entity.privateDetail,'known');transport.stop();
+});
+
+test('an empty field stays empty when its public map chunk refreshes',()=>{
+ FakeSocket.instances=[];const transport=new GameTransport({WebSocketImpl:FakeSocket,storage:storage(),location:{protocol:'http:',host:'localhost'}});
+ transport.start();const socket=FakeSocket.instances[0];socket.readyState=FakeSocket.OPEN;socket.emit('open');
+ transport.setMapDetails({terrain:{x:2,y:2,type:'plains'},entity:undefined});
+ socket.emit('message',{data:JSON.stringify({type:'map.snapshot',payload:{revision:1,viewport:{x:0,y:0,width:12,height:12},entities:[]}})});
+ assert.equal(transport.state.mapDetails.entity,undefined);assert.equal(transport.state.mapDetails.terrain.x,2);transport.stop();
+});

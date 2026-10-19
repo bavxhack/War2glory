@@ -1,50 +1,46 @@
-# Weltkarte – Windrose, Lesbarkeit und räumliche Darstellung
+# Isometrische Weltkarte – Umsetzung und Prüfung
 
-Implementiert am 18.10.2026, Abschlussprüfung am 19.10.2026 auf dem bestehenden Forschungs-PR-Stand. Node.js 24.19.0, gebauter React-/Vite-Client und System-Chromium. Keine produktiven Spielstände verwendet oder zurückgesetzt.
+Abschlussprüfung am 19.10.2026 mit Node.js 24 und gebautem React-/Vite-Client. Ausschließlich isolierte Testwelten; keine produktiven Spielstände verändert. CODEX_PROMPT.md und der übergeordnete Projektplan bleiben unverändert.
 
-## Implementiertes Verhalten
+## Darstellung und Bedienung
 
-- Die Weltkarte nutzt die volle verfügbare Inhaltsbreite. Desktop startet mit 5×5, schmale Geräte bis einschließlich 560 px mit 3×3 Feldern. Kleine gespeicherte Welten werden entsprechend ihrer tatsächlichen Grenzen angezeigt. Zoom zwischen 3×3 und 11×11 bleibt innerhalb der Servergrenzen; alle Zeilen bleiben im scrollbaren Karteninhalt sichtbar.
-- Windrose **oberhalb** der Karte mit acht Richtungen und Zentrierung auf die eigene Stadt. Pro Richtungstaste ein Feld je beteiligter Achse. Nicht mögliche Richtungen werden am Rand gesperrt. Die Buttons haben deutsche zugängliche Namen und funktionieren per Tab/Enter/Leertaste.
-- Kein Verschieben durch Mausziehen, Touch-Wischen, Mausrad oder lose Pfeiltasten. Touch darf den Seiteninhalt weiterhin vertikal scrollen. Klick beziehungsweise Enter auf einem fokussierten Feld wählt weiterhin dieses Feld aus.
-- Koordinatensuche, Zoom und eigener Stadtmittelpunkt bleiben verfügbar. „Suche & Zoom“ ist auf schmalen Geräten zunächst zugeklappt, damit die Karte mehr Platz erhält; die Werkzeuge sind per Tastatur aufklappbar.
-- 13-px-Stadtnamen und 12-px-Koordinaten, kontrastreiche Beschriftungen und zusätzliche Stadttypen als Text. Namen werden umbrochen statt auf winzige Schrift reduziert. Die Felder bleiben innerhalb ihrer Spalten und überdecken keine Nachbarfelder.
-- Lokale SVG-Reliefgrafiken: geschattetes Land, Wald, Hügel und Wasser; Stadtminiaturen mit Dächern, Seitenflächen, Schatten und Fahnen. Eigene, fremde und NPC-Städte sind grafisch und textlich unterscheidbar. Reservierte Felder zeigen eine Fahne statt einer bereits gebauten Stadt. Herkunft: eigene Vektorzeichnungen in `WorldTileArt.jsx`.
+Die Karte ist eine isometrische 2,5D-Szene mit rautenförmigem Boden, Schatten und nach Tiefe geordneten Objekten. Eigene, fremde und NPC-Städte besitzen unterschiedliche Gebäudeensembles. Wald, Hügel und Wasser entsprechen den vorhandenen Geländetypen; die Grafik fügt keine Spielinformationen hinzu. Stadttexte stehen aufrecht, tragen Koordinaten und Typ und werden bei überlappenden Beschriftungen versetzt. Die Bildherkunft ist in `apps/client/assets/README.md` dokumentiert. Mangels verifizierter Originalvorlagen wird keine originalgetreue War2Glory-Grafik behauptet.
 
-Dies ist eine 2,5D-Reliefdarstellung innerhalb der bestehenden Oberfläche. Keine neue Spielengine, keine frei drehbare WebGL-Kamera und keine tatsächliche Höhenkarte. Die Bilder verraten keine zusätzlichen Bestände oder Verteidiger. Welt-/Spielerschema, gespeicherte Koordinaten, Gelände, Entfernungsmodell, Bewegungskosten, Reisezeiten und Spielregeln bleiben unverändert.
+Die Windrose bleibt innerhalb des Kartenrahmens unten rechts. Acht Richtungen entsprechen der Bildschirmrichtung der Kamera; die Landschaft läuft entgegengesetzt. Ein kurzer Druck bewegt 64 Bildpixel. Nach 220 ms Haltezeit folgt Bewegung mit 170 Bildpixeln pro Sekunde, unabhängig von Bildrate und Tastaturwiederholung. Loslassen außerhalb, Pointer-Cancel, Fokusverlust und versteckte Dokumente stoppen die Bewegung. Enter/Leertaste und Touch werden unterstützt. Navigation verändert weder Auswahl noch Zoom und löst keine Spielaktion aus. Ziehen, Wischen, Mausrad und lose Pfeiltasten bewegen die Kamera nicht.
 
-## Navigation und Speicherung
+Suche, eigener Stadtmittelpunkt und expliziter Zoom verwenden dieselbe Projektion. Der anfängliche Maßstab beträgt 144 px pro Raute, auf schmalen Geräten 128 px; Navigation hält den Maßstab konstant. Die responsive Kartenfläche benötigt kein Scrollen der Seite. Jenseits der ausdrücklich gezeichneten Weltgrenze liegt eine dekorative Wasserfläche ohne auswählbare Felder.
 
-Alle Kartendaten und Details laufen weiterhin über `map.viewport`, `map.snapshot` und `map.details` auf dem bestehenden WebSocket. Der Client klemmt Ausschnitte an Weltgrenzen. Schnelle Bedienungen werden mit 100 ms zusammengefasst, bevor der neu gewünschte Ausschnitt angefragt wird; die bestehende serverseitige Mindestfrist von 75 ms wurde nicht verändert. Ausstehende Timer werden bei Ansichts-/Stadtwechsel verworfen. Verbindungsfehler werden sichtbar gemeldet. Ein neu übernommener Standardausschnitt wird wieder auf die gewählte lesbare Größe gebracht. Die Initialisierung berücksichtigt auch den doppelten Effect-Aufruf im React-Entwicklungsmodus.
+## Projektion, Daten und Spielstände
 
-Die alte Pointer-Capture-/Drag-Navigation wurde entfernt. Die zugehörigen drei alten Navigationstests wurden durch Prüfungen für Ausschnittgrenzen, alle acht Windrosenrichtungen und deaktivierte Rand-/Diagonalbewegungen ersetzt. Spielstände benötigen keine Migration.
+`apps/client/isometric-map.js` enthält Projektion und inverse Feldwahl: `screenX=(x-y)*w/2`, `screenY=(x+y)*w/4`. Kamera und Trefferprüfung verwenden dieselben Formeln. Bewegungen stoppen an der ersten Weltgrenze, statt seitlich weiterzugleiten. Gebäude werden nach `x+y` gezeichnet; explizite Trefferflächen berücksichtigen die sichtbare Architektur. Bodenkoordinaten liegen hinter Gebäuden, Auswahlkontur und aufrechte Beschriftungen darüber.
 
-## Tatsächlich ausgeführte Befehle
+Die Kamera reagiert lokal, ohne eine WebSocket-Antwort abzuwarten. Der Cache lädt fehlende 12×12-Blöcke, am Weltende kleiner, über das bestehende `map.viewport`: eine Anfrage gleichzeitig, mindestens 110 ms Abstand, Retry nach 1800 ms. Vorhandene Blöcke werden nicht erneut angefragt. Verspätete Antworten setzen die Kamera nicht zurück. Niedrigere Revisionen werden verworfen; höhere Revisionen erneuern den Cache. Auswahl außerhalb einer Antwort und bereits geladene Details derselben Stadt bleiben erhalten. Timer werden beim Verlassen beendet.
+
+Es gibt keine neuen Serverbefehle, Geländearten oder Spielregeln. Auswahl, Aufklärung und Feldaktionen verwenden die bisherigen Detail-/Aktionspfade. Spielerschema 17, Weltschema 4 und gespeicherte Koordinaten bleiben bestehen; keine Migration oder Rücksetzung ist erforderlich.
+
+## Tatsächlich ausgeführte Prüfungen
 
 | Befehl | Ergebnis |
 | --- | --- |
-| `npm test` | 230 Tests bestanden, 0 fehlgeschlagen/übersprungen |
-| `npm run build` | Vite-Produktionsbuild erfolgreich |
-| `PLAYWRIGHT_MODULE=/opt/codex/runtimes/cua/lib/node_modules/playwright/index.mjs node scripts/validate-world-map-ui.mjs` | Neun protokollierte Browserprüfschritte erfolgreich; keine JavaScript-Seitenfehler |
+| `npm test` | 238 Tests bestanden, 0 fehlgeschlagen |
+| `npm run build` | Produktionsbuild erfolgreich |
+| `PLAYWRIGHT_MODULE=/opt/codex/runtimes/cua/lib/node_modules/playwright/index.mjs node scripts/validate-world-map-ui.mjs` | Neun Browserprüfgruppen erfolgreich, keine JavaScript-Seitenfehler |
 | `git diff --check` | Keine Whitespacefehler |
 
-Die Tests wurden in der Umgebung mit Freigabe für lokale Test-Ports ausgeführt. Protokolle: `work/world-map-test.log`, `work/world-map-build.log`, `work/world-map-browser.log`. Die Browserwelt und Sitzungen bleiben unter ignoriertem `work/world-map-ui/`; mitgeliefert werden ausschließlich Screenshots und bereinigte Prüfresultate.
+Sechs neue automatisierte Kameratests prüfen Projektion und inverse Auswahl bei mehreren Maßstäben und Weltenden, alle acht Bildschirmrichtungen, Stopp an Grenzen, zeitbasierte Bewegung, Abbruch/Richtungswechsel, Cache-Revisionen und begrenzte Nachladeblöcke einschließlich kleiner Welten. Zwei Transporttests prüfen erhaltene Auswahl/Details, veraltete Antworten und weiterhin leere Felder. Bestehende Spiellogik- und Persistenztests bleiben Bestandteil des vollständigen Testsatzes.
 
-## Browserprüfungen
+Das Browserskript startet einen echten lokalen Server mit einer 48×48-Testwelt, zwei Konten und benachbarten eigenen, fremden und NPC-Städten. Es protokolliert öffentliche Kartenanfragen und verzögert gezielt eine Antwort. Geprüft wurden:
 
-Das reproduzierbare Skript `scripts/validate-world-map-ui.mjs` startet einen echten lokalen Server mit einer vorbereiteten 24×24-Welt und zwei Testkonten. Eigene, fremde und NPC-Stadt liegen sichtbar nebeneinander. Es verwendet den gebauten Client und erfasst echte ausgehende `map.viewport`-Nachrichten.
+- Alle acht kurzen Richtungsbewegungen, sofortige Kamerareaktion und unveränderter Maßstab/Scrollzustand.
+- Kontinuierliches Halten und Loslassen außerhalb ohne Auswahländerung.
+- Enter-/Leertasten-Halten sowie Pointer-Cancel, Fenster-Blur und tatsächlicher DOM-Fokusverlust.
+- Verzögerte Antwort ohne Kamerarücksprung oder Verlust der Auswahl.
+- Suche zu allen vier Weltecken, dortige Feldwahl und deaktivierte Grenzrichtungen.
+- Tatsächlicher Pixelklick auf ein projiziertes Feld, Stadtwahl, Tiefensortierung und aufrechte Beschriftungen.
+- 390×844 und 320×844: Windrose im Rahmen, kein Dokumentüberlauf, emulierte native Touch-Taps und Touch-Halten, unveränderter Zoom/Scrollzustand.
+- Sitzungswiederaufnahme durch mobilen Reload mit passender Anfangskamera und Maßstab.
+- Begrenzte Kartenanfragen und keine weiteren Anfragen bei ruhender, bereits geladener Kamera.
 
-- Alle acht Richtungen, eigene Zentrierung und mehrere schnelle aufeinanderfolgende Tastenbedienungen mit korrektem Zielausschnitt.
-- Windrose liegt geometrisch über der Karte. Ziehen mit der Maus, Rad und lose Pfeiltasten verändern den Ausschnitt nicht und erzeugen keine Navigationsanfrage.
-- Fokussierte Richtungstaste plus Enter bewegt die Karte. Suche an beiden Weltenden klemmt den Ausschnitt und sperrt unzulässige Richtungen.
-- Zoom 3×3 bis 11×11 und zurück; die letzte Zeile/Spalte bleibt innerhalb der Karte und wird nicht abgeschnitten.
-- Eigene Stadt per Tastatur auswählbar. NPC- und freie Feldwahl öffnen ihre vorhandenen Aufklärungsdialoge; verbindliche Servervorschauen werden ohne Zahlung geprüft.
-- Schriftgrößen der Stadt-/Koordinatenbeschriftung, vorhandene räumliche Stadtgrafiken, volle Kartenbreite und kein horizontaler Dokumentüberlauf.
-- Mobil 390×844 und 320×844: automatische 3×3-Ansicht, kein Überdecken benachbarter Felder, Richtungstasten weiterhin funktionsfähig. Aufklappbare Such-/Zoomwerkzeuge per Tastatur geprüft. Synthetische Touch-Zeigerbewegung löst keine Kartenverschiebung aus.
-- Reload mit wiederaufgenommener Sitzung und erneuter mobiler Karteninitialisierung.
+Desktop und beide Mobilgrößen wurden mit aktivierter Einstellung für reduzierte Bewegung geprüft. Die Screenshots wurden zusätzlich visuell angesehen: [Desktop](screenshots/world-map/desktop.png), [390 px](screenshots/world-map/mobile-390.png), [320 px](screenshots/world-map/mobile-320.png), [Weltgrenze](screenshots/world-map/world-edge.png). [Bereinigte Prüfergebnisse](screenshots/world-map/checks.json). Lokale Laufprotokolle und Testwelten liegen ausschließlich unter ignoriertem `work/`.
 
-Screenshots wurden zusätzlich visuell angesehen: [Desktop](screenshots/world-map/desktop.png), [390 px](screenshots/world-map/mobile-390.png), [320 px](screenshots/world-map/mobile-320.png). [Bereinigte Prüfschritte](screenshots/world-map/checks.json).
-
-Entwicklungszwischenläufe wurden korrigiert und erneut ausgeführt: Ein anfangs feststehender Testserver-Zeitgeber ließ erwartungsgemäß weitere Kartenanfragen an der bestehenden 75-ms-Sperre scheitern; das Browser-Skript nutzt nun reale Zeit. Ein nicht eindeutiger Heading-Selektor wurde präzisiert. Die visuelle Mobilprüfung fand außerdem eine durch Mindesthöhe/Seitenverhältnis verursachte Überbreite einzelner Felder; feste Spaltenbreiten und eine zusätzliche Geometrieprüfung verhindern das Überdecken benachbarter Felder. Diese Zwischenläufe werden nicht als bestandene Prüfungen gewertet.
-
-Grenzen: Headless-Chromium, kein physisches Touchgerät, kein Safari/Firefox und kein Screenreader-Audit. Das Skript prüft synthetische Touch-Zeigerereignisse; kein echter Mehrfinger-/Pinch-Gestentest. Reacts Entwicklungsmodus wurde berücksichtigt, aber kein eigener interaktiver Vite-Entwicklungsserver-Browserlauf ausgeführt. Der neue Browserpfad prüft Einsatzvorschauen ohne kostenpflichtigen Missionsstart; Kampf-/Fracht-/Mehrstadt-/Persistenzregressionen sind Bestandteil des vollständigen automatisierten Testsatzes. Kein Deployment oder Dockerbuild ausgeführt.
+Grenzen: Headless-Chromium, kein physisches Touchgerät, Safari/Firefox oder Screenreader-Audit. Touch wurde über Chromium-Eingabeemulation geprüft; Cancel und Fenster-Blur synthetisch ausgelöst. Alle vier Ecken wurden per Suche erreicht, kein durchgehender Halteweg über die gesamte Welt protokolliert. Kein neuer kostenpflichtiger Missionsstart, Serverneustart, Deployment oder Dockerbuild in diesem Kartenprüflauf. Es handelt sich um eine feste isometrische Darstellung, keine frei drehbare 3D-Engine.

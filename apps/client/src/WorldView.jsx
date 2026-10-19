@@ -1,122 +1,21 @@
 import { LoadingResearch } from './LoadingResearch.jsx';
 import { SidebarActions } from './SidebarActions.jsx';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { MAP_DIRECTIONS, mapViewport, canPan } from '../map-navigation.js';
-import { WorldTileArt, mapEntityLabel } from './WorldTileArt.jsx';
+import { useCallback, useState } from 'react';
 import { ActionButton, GameArt, Dialog } from './ui.jsx';
+import { IsometricMap } from './IsometricMap.jsx';
 
 const terrainLabels = { plains: 'Ebene', forest: 'Wald', hills: 'Hügel', water: 'Wasser' };
 export function WorldView({ state, map, details, transport }) {
-  const [size, setSize] = useState(() => window.innerWidth <= 560 ? 3 : 5);
-  const [center, setCenter] = useState(map?.ownCity ?? { x: 7, y: 7 });
-  const [coordinate, setCoordinate] = useState('');
-  const [toolsOpen, setToolsOpen] = useState(() => window.innerWidth > 560);
-  const [scouting, setScouting] = useState(null);
-  const [raiding, setRaiding] = useState(null);
-  const initialized = useRef(false);
-  const navigationTimer = useRef(null);
-  useEffect(() => () => { clearTimeout(navigationTimer.current); initialized.current = false; }, []);
-  const bounds = map?.bounds ?? { width: 24, height: 24 };
-  const viewport = mapViewport(center, size, bounds);
-  const request = (nextCenter = center, nextSize = size) => {
-    const next = mapViewport(nextCenter, nextSize, bounds);
-    setCenter({ x: next.x + next.width / 2, y: next.y + next.height / 2 });
-    clearTimeout(navigationTimer.current);
-    navigationTimer.current = setTimeout(() => {
-      navigationTimer.current = null;
-      try { transport.requestMap(next); } catch (error) { transport.setMessage(error.message); }
-    }, 100);
-  };
-  useEffect(() => {
-    if (map && !initialized.current) { initialized.current = true; const initialSize = Math.min(size, map.bounds.width, map.bounds.height); setSize(initialSize); request(map.ownCity ?? center, initialSize); }
-    else if (map && map.viewport.width !== Math.min(size, map.bounds.width, map.bounds.height)) request(center, size);
-  }, [map]);
-  useEffect(() => {
-    const media = window.matchMedia('(max-width: 560px)');
-    const resize = () => { const next = Math.min(media.matches ? 3 : 5, bounds.width, bounds.height); setToolsOpen(!media.matches); setSize(next); request(center, next); };
-    media.addEventListener('change', resize);
-    return () => media.removeEventListener('change', resize);
-  }, [center.x, center.y, bounds.width, bounds.height]);
-  const pan = (x, y) => request({ x: center.x + x, y: center.y + y });
-  const zoom = delta => {
-    const next = Math.max(Math.min(3, bounds.width, bounds.height), Math.min(11, bounds.width, bounds.height, size + delta));
-    setSize(next); request(center, next);
-  };
-  const entityByPosition = new Map((map?.entities ?? []).map(entity => [`${entity.x}:${entity.y}`, entity]));
-  const terrainByPosition = new Map((map?.terrain ?? []).map(terrain => [`${terrain.x}:${terrain.y}`, terrain]));
-  const select = (entity, terrain) => {
-    transport.setMapDetails({ entity, terrain });
-    if (entity) transport.details(entity.id);
-  };
-  const selectTileFromEvent = event => {
-    const tile = event.target.closest('[data-map-coordinate]');
-    const key = tile && event.currentTarget.contains(tile) ? tile.dataset.mapCoordinate : null;
-    if (!key) return;
-    select(entityByPosition.get(key), terrainByPosition.get(key));
-  };
-
-  return <section className="world-view" aria-labelledby="world-heading">
-    <div className="world-toolbar">
-      <div><span className="kicker">GEMEINSAME WELT</span><h2 id="world-heading">Weltkarte</h2></div>
-      <details className="world-tools" open={toolsOpen} onToggle={event => setToolsOpen(event.currentTarget.open)}><summary>Suche &amp; Zoom</summary><div className="world-tool-options"><form onSubmit={event => {
-        event.preventDefault();
-        const match = coordinate.match(/^\s*(\d+)\s*[,; ]\s*(\d+)\s*$/);
-        if (!match) return transport.setMessage('Koordinate als x, y eingeben.');
-        request({ x: Number(match[1]), y: Number(match[2]) });
-      }}>
-        <label>Koordinate <input value={coordinate} onChange={event => setCoordinate(event.target.value)} placeholder="z. B. 12, 8" inputMode="numeric"/></label>
-        <button>Suchen</button>
-      </form>
-      <div className="zoom">
-        <button disabled={size >= Math.min(11, bounds.width, bounds.height)} onClick={() => zoom(2)} aria-label="Verkleinern">−</button>
-        <output aria-live="polite">{map?.viewport.width ?? size} × {map?.viewport.height ?? size} Felder</output>
-        <button disabled={size <= Math.min(3, bounds.width, bounds.height)} onClick={() => zoom(-2)} aria-label="Vergrößern">+</button>
-        <button onClick={() => map?.ownCity && request(map.ownCity)}>Zur eigenen Stadt</button>
-      </div></div></details>
-    </div>
-    <div className="world-layout">
-      <div className="map-stage">
-        <div className="map-navigation">
-          <div><span className="kicker">WINDROSE</span><h3>Karte bewegen</h3><p>1 Feld je Tastendruck.</p><output aria-live="polite">Ausschnitt {map?.viewport.x ?? viewport.x}, {map?.viewport.y ?? viewport.y} · Welt {bounds.width} × {bounds.height}</output></div>
-          <nav className="map-compass" aria-label="Windrose zur Kartenbewegung">
-            {MAP_DIRECTIONS.map(direction => <button key={direction.short} style={{ gridColumn: direction.x + 2, gridRow: direction.y + 2 }} aria-label={`Karte nach ${direction.label}`} disabled={!map || !canPan(viewport, bounds, direction)} onClick={() => pan(direction.x, direction.y)}><svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true" style={{transform:`rotate(${Math.atan2(direction.x, -direction.y) * 180 / Math.PI}deg)`}}><path d="M12 20V4m-6 6 6-6 6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg><small>{direction.short}</small></button>)}
-            <button className="compass-home" style={{gridColumn:2,gridRow:2}} aria-label="Zur eigenen Stadt zentrieren" disabled={!map?.ownCity} onClick={() => request(map.ownCity)}><svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><path d="m3 11 9-8 9 8M6 9v12h12V9M10 21v-7h4v7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg><small>Stadt</small></button>
-          </nav>
-        </div>
-        <div
-          className="world-map relief-map"
-          style={{ '--map-columns': map?.viewport.width ?? size }}
-          role="group"
-          aria-label="Weltkarte mit räumlichem Gelände. Felder auswählen; die Windrose bewegt die Karte."
-          onClick={selectTileFromEvent}
-        >
-          {map?.terrain.map(terrain => {
-            const key = `${terrain.x}:${terrain.y}`;
-            const entity = entityByPosition.get(key);
-            return <button
-              type="button"
-              key={key}
-              data-map-coordinate={key}
-              className={`world-tile ${terrain.type}${entity ? ` has-city ${entity.type}` : ''}${details?.terrain?.x === terrain.x && details?.terrain?.y === terrain.y ? ' selected' : ''}`}
-              aria-pressed={details?.terrain?.x === terrain.x && details?.terrain?.y === terrain.y}
-              aria-label={entity ? `${entity.name}, ${mapEntityLabel(entity.type)}, ${terrain.x}, ${terrain.y}` : `${terrainLabels[terrain.type]}, ${terrain.x}, ${terrain.y}`}
-              title={entity ? `${entity.name} · ${mapEntityLabel(entity.type)} · ${terrain.x}, ${terrain.y}` : `${terrainLabels[terrain.type]} · ${terrain.x}, ${terrain.y}`}
-            >
-              <WorldTileArt terrain={terrain} entity={entity}/>
-              <span className="coordinates">{terrain.x},{terrain.y}</span>
-              <span className="world-tile-caption"><strong>{entity?.name ?? terrainLabels[terrain.type]}</strong>{entity && <small>{mapEntityLabel(entity.type)}</small>}</span>
-            </button>;
-          })}
-        </div>
-        <p className="map-hint">Bewegen über die Windrose · Feld anklicken für Details · Kein Ziehen oder Wischen zum Verschieben</p>
-      </div>
-      <SidebarActions><div className="map-sidebar">
-        <MapDetails selection={details} state={state} onScout={setScouting} onRaid={setRaiding}/><FieldActions key={`${state.cityId}-${details?.terrain?.x}-${details?.terrain?.y}`} selection={details} state={state} transport={transport}/>
-        <section className="card legend"><h3>Legende</h3><span><i className="marker own"/>Eigene Stadt</span><span><i className="marker player"/>Spielerstadt</span><span><i className="marker npc"/>NPC-Stadt</span><small>Entfernung: Luftlinie in Kartenfeldern.</small></section>
-      </div></SidebarActions>
-    </div>
-    <ScoutingDialog key={scouting?.id ?? 'scout-closed'} target={scouting} state={state} transport={transport} onClose={() => setScouting(null)}/>
-    <RaidDialog key={raiding?.id ?? 'raid-closed'} target={raiding} state={state} transport={transport} onClose={() => setRaiding(null)}/>
+  const [scouting,setScouting]=useState(null),[raiding,setRaiding]=useState(null);
+  return <section className="world-view iso-world-view" aria-labelledby="world-heading">
+    <IsometricMap map={map} cityId={state.cityId} transport={transport} selection={details}/>
+    <SidebarActions><div className="map-sidebar">
+      <MapDetails selection={details} state={state} onScout={setScouting} onRaid={setRaiding}/>
+      <FieldActions key={`${state.cityId}-${details?.terrain?.x}-${details?.terrain?.y}`} selection={details} state={state} transport={transport}/>
+      <section className="card legend"><h3>Legende</h3><span>★ Eigene befestigte Stadt</span><span>◆ Spielerstadt / Handelsort</span><span>⬟ NPC-Festung</span><span>⚑ Reserviertes Feld</span><small>Windrose: kurz klicken oder gedrückt halten. Maßstab und Auswahl bleiben erhalten.</small></section>
+    </div></SidebarActions>
+    <ScoutingDialog key={scouting?.id??'scout-closed'} target={scouting} state={state} transport={transport} onClose={()=>setScouting(null)}/>
+    <RaidDialog key={raiding?.id??'raid-closed'} target={raiding} state={state} transport={transport} onClose={()=>setRaiding(null)}/>
   </section>;
 }
 function MapDetails({ selection, state, onScout, onRaid }) { if (!selection) return <section className="card"><p>Wähle ein Feld oder eine Stadt.</p></section>; const { entity, terrain } = selection; const distance = Number.isFinite(entity?.distance) ? entity.distance : 0; const general = state.military.generals.find(item => item.status === 'idle' && item.cityId === state.cityId); const scouts = state.military.units.scout; return <section className="card has-selection" tabIndex="-1" aria-live="polite"><span className="kicker">KOORDINATE {terrain.x}, {terrain.y}</span>{entity && <GameArt type="town" label={entity.name}/>}<h2>{entity?.name ?? 'Unbebautes Feld'}</h2><p>Gelände: {terrainLabels[terrain.type]}</p>{entity && <>{<p>{entity.type === 'claim' ? 'Reserviertes Feld' : entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`}</p>}<p>Entfernung: {distance.toFixed(2)} Felder Luftlinie</p>{entity.type !== 'own-city' && <p className="notice">Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.</p>}{entity.type === 'npc' && <ActionButton label="Stadt ausspähen" detail={!general ? 'Kein freier General' : scouts < 1 ? 'Zuerst Aufklärungsflugzeuge ausbilden' : `Hinweg ca. ${Math.max(5, Math.ceil(distance) * 5)} s`} disabled={!general || scouts < 1} onClick={() => onScout(entity)}/>} {entity.type === 'npc' && <ActionButton label="NPC angreifen" detail={!general ? 'Kein freier General' : state.military.units.infantry < 1 ? 'Zuerst Infanterie ausbilden' : 'Vorläufige PvE-Regeln · Verluste möglich'} disabled={!general || state.military.units.infantry < 1} onClick={() => onRaid(entity)}/>} {entity.type === 'player-city' && <p className="notice">Spielerstädte können noch nicht ausgespäht werden.</p>}</>}</section>; }
