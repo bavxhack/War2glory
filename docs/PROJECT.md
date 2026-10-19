@@ -27,7 +27,8 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | 5a | Generalfreie Ressourcenlieferungen und dauerhafte Truppen-/Generalverlegung zwischen eigenen Städten | Als Prototyp implementiert; Nachweise in LOGISTICS_UI_VALIDATION.md |
 | UI 16 | Erkennbare Hauptnavigation, kompakter Stadtkopf, Aktionen vor Statuslisten, mobile Drawer | Implementiert mit Auftrag 16; Konzept und Browsernachweise |
 | 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
-| Forschung+ / 17 | Versionierter Forschungskatalog, Bau-, Ausbildungs- und Ladetechnik mit verständlicher Forschungsansicht | Auftrag 17 spezifiziert; Umsetzung und Prüfung ausstehend |
+| Forschung+ / 17 | Versionierter Forschungskatalog, Bau-, Ausbildungs- und Ladetechnik mit verständlicher Forschungsansicht | Implementiert; vom Nutzer am 19.10.2026 als abgeschlossen bestätigt, Prüfbelege in RESEARCH_EXPANSION_VALIDATION.md |
+| Einstieg / 18 | Einmalige Aufgabenbelohnungen und stadtübergreifende Versorgungsübersicht | Am 19.10.2026 spezifiziert; Umsetzung und Prüfung ausstehend |
 | Ausbau+ | Aufgaben, Stadtwirtschaft, Radar/Verteidigung, taktischer Kampf und weitere Einheiten | Recherchierte Kandidaten, kein unmittelbarer Implementierungsauftrag |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -625,9 +626,9 @@ Verbindliche Projektentscheidungen bleiben: maximal fünf Städte, kein Stadtunt
 
 Vorgeschlagene Reihenfolge: Auftrag 17 → Einführung/Aufgaben und Versorgungsübersicht → Außenfelder als gesondertes Konzept prüfen → Bündnisse/Unterstützung und Handel → PvP-Vorbereitung → taktischer Kampfausbau → Luft/Raketen. Optionale Wirtschaft-/Ausrüstungssysteme separat entscheiden; Matrix-Föderation als eigenen Strang weiterführen.
 
-## Geplanter Auftrag 17: Forschungsbaum und drei wirksame Erweiterungen
+## Historische Spezifikation Auftrag 17: Forschungsbaum und drei wirksame Erweiterungen
 
-Am 17.10.2026 als nächster Implementierungsauftrag spezifiziert, noch nicht umgesetzt. Der aktuelle Einstieg steht in [CODEX_PROMPT.md](../CODEX_PROMPT.md). Auftrag 16 ist laut aktuellem Repository implementiert; der Planungschat hat dafür keine eigenen Laufzeittests ausgeführt.
+Am 17.10.2026 spezifiziert, inzwischen implementiert und am 19.10.2026 vom Nutzer als abgeschlossen bestätigt. Der nachfolgende Abschnitt bewahrt die Spezifikation; den Implementierungsstand beschreibt „Implementierter Auftrag 17“ weiter unten. [CODEX_PROMPT.md](../CODEX_PROMPT.md) enthält nun Auftrag 18. Der Planungschat hat keine eigenen Laufzeittests ausgeführt.
 
 Auftrag 17 baut den vorhandenen Forschungskatalog aus und ergänzt:
 - **Bautechnik** (constructionEngineering): kürzere Arbeitsdauer neuer Bau-/Ausbauaufträge, zivil und militärisch.
@@ -1023,9 +1024,67 @@ Ein Wissensstand und ein Forschungsauftrag je Kommandant; Zahlung und Forschungs
 
 Die Forschungsseite gruppiert neun Karten mit Abhängigkeiten, Status, Wirkung, Kosten und Forschungsort. Bauangebote und verbindliche Ausbildungsprüfung erklären den Bonus; Reisevorschauen zeigen Ladetechnik und getrennte Tanks. Schema 17/4 genügt: additive Normalisierung neuer IDs auf 0, bestehende Migrationsketten und Forschungsversionen 1–3 bleiben erhalten. Unbekannte Forschungs-IDs führen zu einem sichtbaren Fehler, ohne die Spielerdatei zurückzusetzen. Ausgeführte Prüfungen: RESEARCH_EXPANSION_VALIDATION.md.
 
-Als nächsten eigenständigen Auftrag vorschlagen: Einführung/Aufgaben mit einmaligen Belohnungen und stadtübergreifender Versorgungsübersicht. Danach Bündnisse/Unterstützung, geregelten Handel und PvP-Vorbereitung konkretisieren. Matrix bleibt ein eigener Entwicklungsstrang.
+Am 19.10.2026 wurde der Abschluss von Auftrag 17 vom Nutzer bestätigt. Einführung/Aufgaben mit einmaligen Belohnungen und stadtübergreifender Versorgungsübersicht sind jetzt als Auftrag 18 spezifiziert, noch nicht implementiert. Danach Bündnisse/Unterstützung, geregelten Handel und PvP-Vorbereitung konkretisieren. Matrix bleibt ein eigener Entwicklungsstrang.
 
 
 ## Weltkartenansicht: Windrose und Relief
 
 Implementiert: Navigation ausschließlich durch ausdrückliche Bedienelemente (acht Windrosentasten, Zentrierung, Suche und Zoom); kein Verschieben durch Ziehen/Wischen oder globale Pfeiltasten. Die Windrose liegt über der Karte. Größere Felder in kleineren Standardausschnitten (Desktop 5×5, schmal 3×3), volle Kartenbreite, lesbare Koordinaten/Namen und lokale SVG-Grafiken für Gelände und räumlich gezeichnete Stadtminiaturen verbessern die Übersicht. Eigene, fremde und NPC-Städte bleiben zusätzlich durch Text unterscheidbar. Kleine Welten werden innerhalb ihrer gespeicherten Grenzen angezeigt. Die Darstellung ist 2,5D; Serverregeln, Welt-/Spielerschemata, Entfernungsmodell, Erkundung und Spielstände bleiben unverändert. Tatsächlich ausgeführte Prüfungen und Grenzen: WORLD_MAP_VALIDATION.md.
+
+
+## Geplanter Auftrag 18: Einführung, Aufgaben und Versorgung aller Städte
+
+Am 19.10.2026 als nächster Implementierungsauftrag spezifiziert. **Noch nicht implementiert oder durch den Planungschat getestet.** Die vollständige Arbeitsanweisung steht in [CODEX_PROMPT.md](../CODEX_PROMPT.md). Ausgangspunkt ist der gelesene main-Stand 7cad05dba65a6c52d570331f1b0cddc40f253204 mit abgeschlossener Forschungserweiterung und räumlicher Karte/Windrose.
+
+### Spielbarer Ablauf und Umfang
+
+Ein Kommandant sieht die nächste sinnvolle Aufgabe, führt eine vorhandene Spielaktion aus und holt eine einmalige Belohnung ausdrücklich in einer eigenen Stadt ab. Parallel zeigt eine Übersicht die Versorgung aller bis zu fünf eigenen Städte und öffnet passende vorhandene Bau-, Bürgermeister-, Liefer- oder Verlegungsaktionen.
+
+Unter „Stadt“ werden „Stadtansicht“, „Alle Städte“ und „Aufgaben“ angeboten. Die sieben Hauptnavigationseinträge bleiben erhalten. Desktop erhält eine kompakte Tabelle, mobile Geräte lesbare Karten. Die Einführung bleibt ausblendbar; Bestandsspieler werden nicht in einen Rundgang gezwungen. Die neue Weltkarte einschließlich isometrischer Projektion und Windrose bleibt erhalten.
+
+### Aufgaben und vorläufige Belohnungen
+
+Stabile Aufgaben-IDs und versionierter Katalog; alle Werte sind eigene Projektentscheidungen, keine belegten Originalwerte. H/S/N/Ö bezeichnet Holz, Stein, Nahrung und Öl.
+
+| ID | Ziel | Voraussetzung | H / S / N / Ö |
+| --- | --- | --- | --- |
+| intro.farm | Bauernhof fertig mindestens Stufe 2 | keine | 100 / 100 / 150 / 0 |
+| intro.storage | Lagerhaus fertig mindestens Stufe 1 | intro.farm erfüllt | 100 / 100 / 150 / 0 |
+| intro.mayor | Gültig eingesetzter eigener Bürgermeister | intro.farm erfüllt | 50 / 50 / 200 / 0 |
+| intro.university | Universität fertig mindestens Stufe 1 | intro.storage erfüllt | 150 / 150 / 100 / 0 |
+| intro.research | Eine abgeschlossene Forschungsstufe | intro.university erfüllt | 100 / 100 / 150 / 0 |
+| intro.oil | Ölverarbeitung 1 und fertige Ölraffinerie | intro.research erfüllt | 100 / 100 / 100 / 50 |
+| intro.training | 10 Infanteristen durch abgeschlossene eigene Ausbildung | intro.oil erfüllt | 100 / 100 / 150 / 50 |
+| intro.scout | NPC-Aufklärung zurückgekehrt, Bericht freigegeben | intro.oil erfüllt | 100 / 100 / 150 / 50 |
+| intro.raid | Siegreicher Farmzug zurück; positive geplünderte Nahrung tatsächlich eingelagert | intro.training und intro.scout erfüllt | 150 / 150 / 150 / 50 |
+| expansion.engineering | Bautechnik, Ausbildungstechnik oder Ladetechnik mindestens Stufe 1 | intro.research erfüllt | 200 / 200 / 200 / 0 |
+| expansion.city | Zwei eigene fertig gegründete Städte | intro.raid erfüllt | 200 / 200 / 200 / 0 |
+| expansion.supply | Eigene Lieferung hat positive Nahrung in anderer eigener Stadt eingelagert | expansion.city erfüllt | 100 / 100 / 150 / 0 |
+
+Die neun intro-Aufgaben bilden die Einführung; drei Ausbauaufgaben sind freiwillig. Voraussetzungen verlangen Erfüllung, nicht Belohnungsabholung. Vor Freischaltung belegter Fortschritt bleibt erhalten. Die Anleitung erläutert bestehende Zwischenvoraussetzungen und behauptet nicht, zehn Infanteristen genügten gegen jeden NPC.
+
+### Serverseitige Nachweise und einmalige Auszahlung
+
+- Aufgabenfortschritt ist spielerweit. Zustandsziele können anhand vorhandener fertiger Gebäude, Forschungsstände, Rollen und Städte erfüllt werden. Ereignisziele benötigen echte persistierte Abschlussbelege; keine erfundene Historie aus aktuellen Truppenbeständen.
+- Fortschritt zählt auch ohne geöffnete Aufgabenansicht und bei Offline-Abrechnung. Bestätigte Ziele bleiben bei späterem Abriss oder Rollenwechsel erhalten.
+- Abgeholte Ansprüche bleiben dauerhaft markiert, unabhängig von der begrenzten Request-ID-Historie. Bei Erfüllung werden Katalogversion und Belohnungswerte eingefroren.
+- Abholung verlangt eigene Zielstadt, erneute Zeitabrechnung und Platz für die gesamte Belohnung. Reicht eine Kapazität nicht, erfolgt keine Teilgutschrift; der Anspruch bleibt bestehen. Kein Verfall, kein Abschneiden bestehender Überbestände.
+- Belohnung, Beleg und Befehlsresultat atomar speichern. Zwei Tabs, verschiedene Request-IDs, Bestätigungsverlust und Neustart dürfen niemals eine zweite Auszahlung ermöglichen.
+- Aufgabengutschriften sind keine Farmbeute, Lieferungen keine Ausbildung; Nullannahme zählt nicht als Versorgungserfolg. Keine zusätzlichen Kommandantenpunkte oder General-XP.
+- Neue persistente Daten explizit migrieren: beim gelesenen Stand Spielerschema 17 → 18; zwischenzeitlich verwendete Versionsnummern beim Implementieren berücksichtigen. Bestehende Welt- und Spielerzustände erhalten.
+
+### Versorgungsübersicht
+
+Je eigener Stadt Nahrung/Lagergrenze, Produktion, Unterhalt und Netto pro Stunde, stationierte Einheiten, Versorgungsstatus, gegebenenfalls pausierte Ausbildung und Mangelfristen zeigen. Übrige Ressourcen bleiben kompakt zugänglich. Alle Städte werden zum selben Serverzeitpunkt mit bestehenden Kernfunktionen berechnet; globale Forschung und der jeweils richtige Bürgermeister werden berücksichtigt.
+
+Zeit bis leer bei negativer Nettorate = Nahrungsbestand / Betrag der Nettorate pro Sekunde. Anzeige ausdrücklich bei unveränderten Raten; keine vollständige Zukunftssimulation. Bei positiver oder ausgeglichener Bilanz keinen endlichen Leerstand behaupten. Aktive Schonfrist und Verlustwellen stammen aus dem gespeicherten Versorgungssystem, nicht aus einem neu gestarteten UI-Timer.
+
+Gesamtüberschuss ist kein gemeinsames Nahrungslager. Eine unterversorgte Stadt bleibt gefährdet, auch wenn andere Städte Überschüsse haben. Unterwegs befindliche Einheiten verursachen nach aktuellen Regeln keinen Stadtunterhalt. Bekannte eingehende Lieferungen sind noch keine eingelagerten Vorräte.
+
+„Nahrung liefern“, „Bürgermeister verwalten“, „Bauernhof ausbauen“ und „Truppen verlegen“ bereiten vorhandene Aktionen vor; keine automatische Ausführung. Lieferung bleibt ohne General möglich, mit den bisherigen Regeln für LKWs, Fracht, Öl, Reichweite und Teilannahme.
+
+### Abnahme und spätere Schritte
+
+Kritische Prüfungen: neue/bestehende Spieler, idempotente Migration, Ereignisse vor Freischaltung, sichere Auszahlung bei zwei Tabs und Speicherfehlern, Lagergrenzen, Offline-Fortschritt, korrekte Beute-/Liefernachweise sowie stadtweise Versorgung nach Forschung, Ausbildung, Rückkehr und Verlegung. Desktop, mobile Darstellung, Tastatur, Reconnect und unveränderte Windrose prüfen.
+
+Codex dokumentiert tatsächlich ausgeführte Tests und Browsernachweise in docs/TASKS_SUPPLY_VALIDATION.md und aktualisiert README sowie WEBSOCKET. Bis dahin bleibt Auftrag 18 geplant. Keine täglichen Aufgaben, neue Währung, automatische Transporte, Kampfregeln oder Föderation in diesem Auftrag. Als danach zu konkretisierende Phase folgen Bündnisse und Unterstützung innerhalb derselben Welt; Handel, PvP und Matrix behalten eigene Aufträge.
