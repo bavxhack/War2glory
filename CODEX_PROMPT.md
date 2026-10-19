@@ -1,179 +1,173 @@
-# Codex-Auftrag 17: Forschungsbaum, Bau-, Ausbildungs- und Ladetechnik
+# Codex-Auftrag 18: Einführung, einmalige Aufgaben und Versorgung aller Städte
 
 ## Ziel und Ausgangspunkt
 
-Erweitere den vorhandenen Forschungskatalog um drei spielbare Technologien und eine verständliche Forschungsansicht. Der Ablauf soll sein: Voraussetzungen prüfen → in einer eigenen Universität forschen → Abschluss in allen eigenen Städten wirksam → beim nächsten Bau-, Ausbildungs- oder Transportauftrag den konkreten Vorteil sehen.
+Baue einen spielbaren Einstieg und eine Übersicht, mit der ein Kommandant seine bis zu fünf Städte versorgen kann. Ablauf: nächste sinnvolle Aufgabe sehen → vorhandene Spielaktion ausführen → bestätigten Fortschritt sehen → Belohnung ausdrücklich in einer eigenen Stadt abholen. Parallel zeigt „Alle Städte“, wo Nahrung knapp wird und welche vorhandene Aktion hilft.
 
-Auftrag 16 ist im aktuell gelesenen Repository als implementiert dokumentiert: Lieferungen, dauerhafte Verlegung, Generalstandorte und neuer Spielrahmen. Ausgangspunkt dieser Spezifikation ist main vom 17.10.2026, Commit 4e2f6f50255251d3d1f9ae635a8807416b7c579e. Der Planungschat hat Dokumentation und relevante Kernmodule gelesen, aber keine Laufzeittests ausgeführt. Prüfe beim Arbeitsbeginn den tatsächlichen Stand und erhalte zwischenzeitliche Änderungen.
+Auftrag 17 wurde vom Nutzer am 19.10.2026 als abgeschlossen bestätigt. Im gelesenen main-Stand 7cad05dba65a6c52d570331f1b0cddc40f253204 sind neun Forschungen und die räumliche Weltkarte mit Windrose enthalten. Der Planungschat hat Dateien gelesen, keine Laufzeittests ausgeführt. Prüfe beim Start den tatsächlichen Stand und erhalte zwischenzeitliche Änderungen. Der vorige Auftrag bleibt im [Git-Verlauf](https://github.com/bavxhack/War2glory/blob/7cad05dba65a6c52d570331f1b0cddc40f253204/CODEX_PROMPT.md) erhalten.
 
-Lies AGENTS.md, README.md, docs/PROJECT.md, docs/RESEARCH_REFERENCE.md und docs/WEBSOCKET.md. Beachte die bestehenden Prüfbelege für Mehrstadtbetrieb, Fracht und Auftrag 16. Der frühere Auftrag 16 bleibt im [Git-Verlauf](https://github.com/bavxhack/War2glory/blob/65a8eb546a5e864396755204b8ef382a2ce77c9e/CODEX_PROMPT.md) erhalten.
+Lies AGENTS.md, README.md, docs/PROJECT.md, docs/WEBSOCKET.md und die bestehenden Prüfbelege für Versorgung, Mehrstadtbetrieb, Logistik, Forschung und Weltkarte. Die folgenden Aufgaben und Belohnungen sind eigene vorläufige Projektentscheidungen, keine rekonstruierten War2Glory-Originalwerte.
 
-Historisch belegt sind Forschungsthemen, nicht der vollständige originale Abhängigkeitsbaum oder seine Zahlen. Alle nachfolgenden neuen Voraussetzungen, Kosten und Wirkungszahlen sind eigene vorläufige Projektentscheidungen. Setze sie als prüfbare Standardwerte um; behaupte keine Originaltreue.
+## 1. Bestehendes Spiel erhalten
 
-## 1. Vorhandene Regeln bewahren
+- JavaScript/ES-Module, React, serverautoritative Regeln, ein vorhandener WebSocket pro Client und persistente Spieler-JSON beibehalten. Private Spieldaten und Befehle ausschließlich über WebSocket; statische Dateien bleiben HTTP.
+- Städte behalten getrennte Ressourcen, Lager, Nahrung, Truppen, Warteschlangen und Bürgermeister. Eine positive Gesamtbilanz versorgt keine andere Stadt automatisch.
+- Forschung, Generäle und Kommandantenpunkte bleiben nach bestehenden Regeln spielerweit. Aufgaben vergeben keine zusätzlichen Kommandantenpunkte, General-XP oder Skillpunkte.
+- Unterhalt betrifft ausschließlich die nach dem gespeicherten Regelsatz versorgungspflichtigen Gruppen; für aktuelle Regeln sind dies stationierte Truppen. Unterwegs befindliche Einheiten nicht erneut belasten.
+- Öl, Fracht, Rückwegreserve, Verzögerungen, Teilannahme von Lieferungen, Verlegung, Hungerverluste und zeitliche Ereignisreihenfolge unverändert anwenden.
+- Die zuletzt umgesetzte isometrische Weltkarte einschließlich Windrose, Projektion, Kachelgrößen, Auswahl und Steuerung erhalten. Kein erneuter Kartenumbau.
+- Keine neue Pflichtregistrierung, neue Währung, täglichen Aufgaben, automatische Transporte, PvP, Bündnisse oder Matrix-Anbindung in diesem Auftrag.
 
-- JavaScript/ES-Module, React, bestehender WebSocket und serverseitige JSON-Persistenz bleiben die Grundlage. Keine neue Engine und kein Frontend-Neuaufbau.
-- Forschung bleibt spielerweit: ein gemeinsamer Wissensstand und höchstens ein laufender Forschungsauftrag pro Kommandant, auch bei fünf Städten. Kein Auftrag je Universität und keine zusätzliche Forschungswarteschlange.
-- Forschung wird aus der ausdrücklich gewählten eigenen Stadt bezahlt. Universität und Forschungsleitung müssen nach den bestehenden Standort-/Rollenregeln dort verfügbar sein.
-- Sechs vorhandene IDs und ihre bisherigen Effekte/Voraussetzungen/Kosten erhalten: forestry, masonry, agriculture, logistics, oilProcessing, motorization.
-- Bereits erreichtes Wissen bleibt nach Universitätsabriss bestehen. Punkte, Generalskills, Bürgermeister, Öl, Nahrung, Abrissrückerstattung und zivile/militärische Bauplätze bleiben unverändert, soweit unten kein neuer Forschungseffekt beschrieben ist.
-- Lagerlogistik vergrößert Stadtlager. Ladetechnik vergrößert den gemeinsamen Frachtraum einer Reisegruppe. Diese zwei Effekte nicht vermischen.
-- Generäle werden weiterhin weder kostenlos erzeugt noch durch Forschung umstationiert. Lieferung ohne General und dauerhafte Verlegung aus Auftrag 16 müssen funktionieren.
+## 2. Zentraler Aufgabenkatalog
 
-## 2. Versionierter Forschungskatalog
+Erstelle einen versionierten, von Netzwerk und Speicherung unabhängigen Katalog in game-core, beispielsweise „tasks-1-provisional“. Stabile IDs, Titel, kurze Erklärung, Voraussetzungen, Ziel, Belohnung und Verweis auf eine vorhandene Spielaktion zentral halten.
 
-Erweitere die vorhandene Kernstruktur, statt parallel einen zweiten Katalog anzulegen. Jede aktive Technologie benötigt eine stabile ID, Anzeigenamen, Kategorie, Maximalstufe, Kosten-/Zeitregel, Universitätsanforderung, explizite Forschungsvoraussetzungen, klaren Wirkungstyp und eine Regelversion. Die Informationen müssen sowohl der serverseitigen Prüfung als auch der UI zugrunde liegen.
+Die Einführung besteht aus neun Aufgaben. Drei freiwillige Ausbauaufgaben schließen daran an. Die Tabelle definiert die ersten Werte verbindlich für diesen Prototyp; keine Belohnung wird automatisch ausgezahlt.
 
-- Bestehende Definitionen ohne Bedeutungsänderung übernehmen, einschließlich der unterschiedlichen Stufengrenzen von Freischaltungen und Wirtschaftsforschungen.
-- Voraussetzungen auf bekannte IDs, zulässige Stufen und Zyklen prüfen. Universitätsanforderungen dürfen vom Ziellevel abhängen.
-- Effekte gezielt nach ihrem Typ anwenden: Ressourcenproduktion, Lagerkapazität, Freischaltung, Baugeschwindigkeit, Ausbildungsgeschwindigkeit, Traglast. Kein pauschaler Forschungsfaktor für jede Spielgröße.
-- Forschungsangebote liefern strukturierte Sperrgründe, insbesondere fehlende Universität/Stufe, Vorgängerforschung, Ressourcen, laufender Auftrag und bereits erreichte Maximalstufe. Relevante Gründe gemeinsam anzeigen.
-- Nur tatsächlich wirksame Technologien sind erforschbar. Die übrigen historisch recherchierten Themen bleiben im Projektplan, ohne kaufbare Platzhalter.
-- Katalog-/Regeländerungen müssen veraltete Vorschauen erkennbar machen. Stabile IDs nicht umbenennen, um Beschriftungen anzupassen.
+| ID | Ziel / serverseitiger Nachweis | Voraussetzung | Belohnung Holz / Stein / Nahrung / Öl |
+| --- | --- | --- | --- |
+| intro.farm | Ein fertiggestellter Bauernhof mindestens Stufe 2 in einer eigenen Stadt | keine | 100 / 100 / 150 / 0 |
+| intro.storage | Ein fertiggestelltes Lagerhaus mindestens Stufe 1 | intro.farm erfüllt | 100 / 100 / 150 / 0 |
+| intro.mayor | Ein eigener General ist gültig als Bürgermeister einer eigenen Stadt eingesetzt | intro.farm erfüllt | 50 / 50 / 200 / 0 |
+| intro.university | Eine fertiggestellte Universität mindestens Stufe 1 | intro.storage erfüllt | 150 / 150 / 100 / 0 |
+| intro.research | Mindestens eine abgeschlossene Forschungsstufe | intro.university erfüllt | 100 / 100 / 150 / 0 |
+| intro.oil | Ölverarbeitung mindestens Stufe 1 und eine fertiggestellte Ölraffinerie | intro.research erfüllt | 100 / 100 / 100 / 50 |
+| intro.training | Insgesamt 10 Infanteristen durch abgeschlossene eigene Ausbildung hergestellt | intro.oil erfüllt | 100 / 100 / 150 / 50 |
+| intro.scout | Eine NPC-Aufklärung ist zurückgekehrt und ihr Bericht freigegeben | intro.oil erfüllt | 100 / 100 / 150 / 50 |
+| intro.raid | Ein siegreicher NPC-Farmzug ist zurückgekehrt und mindestens eine Einheit tatsächlich geplünderter Nahrung wurde eingelagert | intro.training und intro.scout erfüllt | 150 / 150 / 150 / 50 |
+| expansion.engineering | Bautechnik, Ausbildungstechnik oder Ladetechnik mindestens Stufe 1 | intro.research erfüllt | 200 / 200 / 200 / 0 |
+| expansion.city | Mindestens zwei eigene fertig gegründete Städte | intro.raid erfüllt | 200 / 200 / 200 / 0 |
+| expansion.supply | Eine eigene Ressourcenlieferung hat mindestens eine Einheit Nahrung in einer anderen eigenen Stadt tatsächlich eingelagert | expansion.city erfüllt | 100 / 100 / 150 / 0 |
 
-## 3. Drei neue Technologien
+„Erfüllt“ bedeutet fachlich abgeschlossen, unabhängig davon, ob die Belohnung abgeholt wurde. So blockiert ein volles Lager nicht den nächsten Schritt. Die Einführung gilt als abgeschlossen, sobald die neun intro-Aufgaben erfüllt sind; die drei Ausbauaufgaben sind dafür nicht nötig.
 
-Folgende eigene Standardwerte verwenden:
+Die Anleitung muss vorhandene Zwischenvoraussetzungen erklären und zu deren UI führen: Militärbauplatz/Kaserne, freie Einheiten und Generäle, Ölproduktion, Ladung und Rückwegreserve. Keine Voraussetzung umgehen und keine neue Kaserne oder Einheit per Tutorial verschenken. Keine Aussage, dass zehn Infanteristen für jeden NPC ausreichen: erst aufklären, dann tatsächliche Garnison und Kampfvorschau beachten.
 
-| Technologie | Stabile ID | Forschungsvoraussetzung | Universität in der zahlenden Stadt | Maximum | Effekt je Stufe |
-| --- | --- | --- | --- | --- | --- |
-| Bautechnik | constructionEngineering | Steinverarbeitung (masonry) Stufe 1 | mindestens max(2, Zielstufe) | 5 | +5 % Baugeschwindigkeit |
-| Ausbildungstechnik | trainingTechniques | keine zusätzliche Forschung | mindestens max(2, Zielstufe) | 5 | +5 % Ausbildungs-/Herstellungsgeschwindigkeit |
-| Ladetechnik | loadingTechniques | Lagerlogistik (logistics) Stufe 1 | mindestens max(2, Zielstufe) | 5 | +5 % Traglast |
+## 3. Nachweise, Fortschritt und Bestandsspieler
 
-Für diese drei neuen Technologien gilt je Zielstufe L:
-- Kosten: 150 × L Holz und 150 × L Stein; keine weiteren Ressourcen.
-- Basisforschungsdauer: 90 × L Sekunden, anschließend vorhandenen Universitäts- und Forschungsleitungsbonus wie bisher anwenden und nach der vorhandenen Forschungszeitregel runden.
-- Vorhandene Forschungswertung: 10 Punkte je abgeschlossener Stufe, einmal je Kommandant. Neue IDs mit Stufe 0 erzeugen keine Punkte.
-- Immer genau die nächste Stufe erforschen. Freigeschaltete Truppen/Gebäude und vorhandene Produktionsforschungen erhalten keine zusätzlichen Voraussetzungen.
-- Ausbildungstechnik gilt für alle aktuell über die Ausbildungsqueue erzeugten Einheiten, einschließlich LKW-Herstellung. Keine neue Kampfkraft und kein niedrigerer Unterhalt.
+Speichere Fortschritt spielerweit, nicht je Stadt. Ein Stadtwechsel, eine neue Stadt, ein neues Browserfenster und ein Serverneustart erzeugen keinen neuen Anspruch.
 
-### Konfiguration
+Trenne zwei Arten von Nachweisen:
+- Zustandsziele: fertige Gebäude, vorhandene Forschung, gültiger Bürgermeister und gegründete Städte. Diese dürfen beim erstmaligen Aktivieren anhand des tatsächlichen Bestands erfüllt werden.
+- Ereignisziele: abgeschlossene Ausbildung, zurückgekehrte Aufklärung, tatsächlich eingelagerte Beute und tatsächlich angenommene Lieferung. Nur serverseitig bestätigte fachliche Übergänge zählen; Enqueue, Reisebeginn, Client-Klicks, Vorschauen oder bloße Truppenbestände sind kein Abschlussbeleg.
 
-Kosten, Grunddauer, Maximalstufen und Voraussetzungen zentral im versionierten Katalog definieren. Die drei neuen Bonusstärken zusätzlich über validierte ENV konfigurierbar machen:
+Bei Ereignissen vorhandene stabile Auftrags-/Missions-/Transaktions-IDs verwenden. Dieselbe abgeschlossene Ausbildung darf nicht beim nächsten Tick erneut zählen. Transferierte Truppen sind keine Ausbildung; mitgeführte Nahrung und Aufgabenbelohnungen sind keine geplünderte Nahrung. Eine abgewiesene oder vollständig wegen Lagerfüllung zurückgeschickte Lieferung erfüllt keine Versorgungsaufgabe. Eine Lieferung an denselben Ort oder eine fremde Stadt zählt nicht für expansion.supply.
 
-| ENV | Standard | Bedeutung |
-| --- | --- | --- |
-| RESEARCH_CONSTRUCTION_BONUS_BPS | 500 | Basis­punkte Baugeschwindigkeit je Stufe |
-| RESEARCH_TRAINING_BONUS_BPS | 500 | Basispunkte Ausbildungsgeschwindigkeit je Stufe |
-| RESEARCH_LOADING_BONUS_BPS | 500 | Basispunkte Traglast je Stufe |
+Fortschritt darf schon vor Freischaltung eines Ziels gesammelt werden. Bereits belegte Ziele werden beim Erfüllen ihrer Voraussetzungen ohne Wiederholung abgeschlossen. Das gilt auch für Zustandsziele: einmal serverseitig belegtes Erreichen dauerhaft festhalten. Abriss, Bürgermeisterwechsel, Verluste oder ein Stadtwechsel setzen belegten Fortschritt und erfüllte Aufgaben nicht zurück.
 
-100 Basispunkte entsprechen 1 %. Zulässig sind ganze Zahlen von 0 bis 2000; ungültige Werte beim Serverstart mit verständlicher Meldung ablehnen. Fehlende Variablen verwenden den Standard, ausdrücklich 0 deaktiviert den jeweiligen Bonus. .env.example dokumentieren.
+Bei Migration vorhandene, eindeutig auswertbare persistente Berichte/Abschlussbelege einmalig nutzen. Fehlen solche Belege, Ereignisziele ab Aktivierung sammeln und dies verständlich erklären. Keine historischen Ausbildungen aus Garnisonsstärken erraten, keine alten Ressourcenbewegungen erfinden. Vor Aktivierung nachweisbare Zustandsziele können erfüllt werden; bereits verschwundene historische Gebäude werden ohne Beleg nicht unterstellt.
 
-Konfiguration ausschließlich serverseitig lesen und normalisierte Regeln in den unabhängigen Kern übergeben. Vorhandenes Verfahren für gespeicherte Weltregeln/Regelwechsel nutzen, ohne neue Umgebungsvariablen direkt in Kern- oder Browsercode auszuwerten. Änderungen gelten ab ihrem gespeicherten Aktivierungszeitpunkt für neu angenommene Aufträge; bereits bezahlte Aufträge/Reisen behalten ihre gespeicherten Werte. Es ist keine allgemeine Laufzeit-Konfigurationsoberfläche beauftragt.
+Für spätere Ereignisse Fortschritt in derselben fachlichen Transaktion sichern wie das zugrunde liegende Ergebnis. Verwende begrenzte Zähler und Nachweise statt einer unendlich wachsenden Kopie aller Spielereignisse. Prüfe auch Offline-Abrechnung, Neustart und Journal-Recovery. Aufgabenerfüllung darf nicht davon abhängen, dass die Aufgabenseite geöffnet ist.
 
-## 4. Bau und Ausbildung: Wirkung beim Annehmen eines Auftrags
+## 4. Einmalige Belohnungen und atomare Abholung
 
-Mit Forschungsstufe L und Bonus b in Basispunkten gilt der Geschwindigkeitsfaktor:
+Jede Aufgaben-ID ist pro Spieler höchstens einmal auszahlbar. Die fachliche Auszahlungsmarkierung bleibt dauerhaft gespeichert, auch nachdem normale Request-ID-Belege nach 30 Tagen bzw. wegen ihrer Anzahl entfernt wurden.
 
-F = (10000 + b × L) / 10000.
+Zustände klar darstellen: gesperrt, verfügbar, erfüllt/Belohnung abholbar, abgeholt. Beim Erfüllen Belohnungswerte und Katalogversion dauerhaft festhalten. Spätere Katalogänderungen verändern weder bestehende Ansprüche noch bereits erfolgte Auszahlungen. Umbenennen eines Titels erzeugt keine neue Aufgabe.
 
-Neue effektive Arbeitsdauer = max(1, ceil(bisherige berechnete Arbeitsdauer in Millisekunden / F)).
+Die UI lässt eine eigene Zielstadt ausdrücklich auswählen; standardmäßig die aktuell ausgewählte Stadt. Vor Abholung Bestände, Kapazitäten und Belohnung zeigen. Die Vorschau reserviert keinen Platz.
 
-- Die bisherige berechnete Arbeitsdauer enthält bereits vorhandene Gebäudestufen-/Mengenfaktoren. Forschung genau einmal darauf anwenden.
-- Beispiel: 60000 ms ohne Forschungsbonus werden bei Stufe 5 und Standardbonus zu 48000 ms. Das sind +25 % Geschwindigkeit beziehungsweise 20 % weniger Zeit, nicht 25 % weniger Zeit.
-- Bautechnik betrifft Neubau und Ausbau sämtlicher aktueller ziviler und militärischer Gebäude. Sofortiger Abriss, Forschungsdauer und Reisezeit werden nicht verkürzt.
-- Ausbildungstechnik betrifft neue Ausbildungs-/Herstellungsgruppen in Kaserne und Fahrzeugfabrik. Mengen, Kosten, Unterhalt und Kampfdaten bleiben gleich.
-- Wirkung wird bei serverseitiger Annahme und Bezahlung in die Queue festgeschrieben, auch für wartende Aufträge. Ein späterer Forschungsabschluss verkürzt weder den aktiven noch bereits wartende Aufträge.
-- Speichere nachvollziehbar Regelversion, angewendete Forschungsstufe, Bonus, Dauer ohne diesen Bonus und effektive Arbeitsdauer. Vorhandene Zahlungen und Termine nicht nachträglich rekonstruieren.
-- Hungerpausen bleiben erhalten: Ausbildung steht während der Pause und setzt dieselbe Restarbeit fort. Pausenzeiten dürfen Termine wie bisher verschieben; Forschung verändert diese Restarbeit nicht rückwirkend.
-- Neue Vorschau und tatsächliche Annahme verwenden denselben Kernpfad. Ändert sich die relevante Forschungsstufe/Regel zwischen beiden, muss der Nutzer die aktualisierte Vorschau sehen, bevor bezahlt wird. Keine Laufzeit vom Client übernehmen.
+Serverseitiger Ablauf:
+1. Sitzung, Aufgaben-ID und Eigentum der Zielstadt prüfen.
+2. Bestehende Zeitfortschreibung und fällige Ereignisse bis zum Befehlszeitpunkt in der bisherigen Reihenfolge anwenden.
+3. Erfüllung, noch offenen Anspruch und Platz für die vollständige Belohnung jeder Ressource neu prüfen.
+4. Nur wenn alles passt: Ressourcen, Abholzeit, Zielstadt, Belohnungsbeleg und Befehlsresultat gemeinsam atomar speichern.
+5. Erst nach erfolgreichem Speichern bestätigen und aktualisierten Zustand an alle angemeldeten Verbindungen dieses Spielers senden.
 
-## 5. Ladetechnik: gemeinsame Frachtkapazität und Betriebsöl
+Wenn nicht alles hineinpasst: gesamte Abholung ablehnen, keine Teilgutschrift, kein Verfall und kein „abgeholt“-Status. Fehlende Kapazität je Ressource erklären; andere Stadt wählen oder später versuchen. Schon bestehende Überbestände nicht abschneiden. Kein neues Zwischenlager und keine unbegrenzte Überfüllung durch Aufgaben.
 
-Die effektive Kapazität je Einheit wird einmalig berechnet:
+Gleichzeitige Abholversuche aus zwei Tabs mit verschiedenen requestIds dürfen zusammen nur eine Auszahlung erzeugen. Eine identische requestId mit geändertem Inhalt bleibt ungültig. Bei einer Wiederholung eines bereits bestätigten Befehls ursprüngliches Resultat zurückgeben; für einen neuen Befehl auf eine schon abgeholte Aufgabe eindeutig „bereits abgeholt“ ohne Gutschrift melden. Verlust einer Bestätigung, Neustart und Wiederaufnahme bleiben sicher.
 
-effektiveTypkapazität = floor(Basiskapazität × (10000 + b × L) / 10000).
+Nahrungsbelohnungen verwenden nach Gutschrift die vorhandene Versorgungsprüfung. Sie setzen weder Schonfrist noch Erholungszeit willkürlich zurück und verhindern keine fachlich bereits davor fälligen Verluste.
 
-Gruppenkapazität = Summe aus Anzahl je Typ × effektiver Typkapazität.
+## 5. Versorgungsübersicht für alle eigenen Städte
 
-- Je Typ zuerst abrunden, danach mit der Anzahl multiplizieren und summieren. Mit sicheren Ganzzahlen/rationalen Zwischenwerten arbeiten; keine schleichenden Rundungs- oder Doppelbonusfehler.
-- Standardbeispiele: Infanterie trägt auf Stufe 0 weiterhin 20, auf Stufe 1 genau 21 und auf Stufe 5 genau 25. Ein LKW trägt 200/210/250. Vier LKW tragen auf Stufe 5 insgesamt 1000 statt 800.
-- Es gelten die tatsächlich konfigurierten Basiskapazitäten. Niemals dauerhaft die Basiswerte im Weltregelsatz oder Einheitenkatalog mit dem Bonus überschreiben.
-- Späher behalten Güterkapazität 0. Ihre separaten Betriebsöltanks und die Tanks reiner General-Diensttransporte erhalten keinen Ladetechnikbonus.
-- Alle neuen Bewegungen mit normalem Frachtraum berücksichtigen Ladetechnik: NPC-Farmzüge, Feld-Eroberungszüge, Ressourcenlieferungen und entsprechende Truppenverlegungen. Reine Späh- und Generalreisen behalten ihre bisherigen Tankgrenzen.
-- Eigene Güter, freiwillige Ölladung und Betriebsöl belegen weiterhin gemeinsam die passenden Plätze. Mehr Traglast kann die Reichweite normaler Frachteinheiten erhöhen, erzeugt aber weder Öl noch freie Reserve.
-- Ölrate, Verbrauchsformel, Ankunftsverzögerung und normale Rückfahrt bleiben unverändert. Das gesamte bezahlte Betriebsöl wird nach den bestehenden Regeln verbraucht; kein Bonusrefund und kein zweiter Stadtabzug.
-- Bei Missionstart die effektiven Typkapazitäten, Forschungsstufe und Bonusregeln speichern. Die serverseitige Vorschau bindet dieselben Werte.
-- Kampfverluste verwenden für überlebende Einheiten die beim Start gespeicherten Typkapazitäten. Kein Wechsel auf den aktuellen Forschungsstand bei Kampf, Rückreise, Neustart oder Zustellung.
-- Weiterhin: Rückwegreserve vor eigener Ladung vor neuer Beute. Neue Beute höchstens nach freier Kapazität und tatsächlichem NPC-Vorrat; kein höherer Plünderertrag ohne freie Plätze.
-- Empfängerforschung verändert niemals die Transportkapazität einer fremden Lieferung. Die Annahme von Gütern richtet sich dagegen wie bisher nach dem tatsächlichen Lagerbestand und der aktuellen Lagerkapazität der Zielstadt bei Zustellung.
-- Dauerhafte Verlegung bleibt ohne freiwillige Ressourcenfracht und ohne Rückfahrt. Nach Ankunft verwenden erst künftig gestartete Aufträge die dann geltende Forschung des Besitzers.
+Ergänze unter „Stadt“ die Ansichten „Stadtansicht“, „Alle Städte“ und „Aufgaben“. Die vorhandenen sieben Hauptnavigationseinträge bleiben übersichtlich; keine weitere lange Seitenleistenliste.
 
-Rechenprobe für den vorhandenen Kampffall: 20 Infanteristen und 4 LKW haben mit Ladetechnik 5 insgesamt 1500 Plätze. Nach 5 Infanterie- und 1 LKW-Verlust bleiben 1125. Bei 22,5 Rückwegöl stehen floor(1125 − 22,5) = 1102 Güterplätze bereit; mit 300 eigener Ladung maximal 802 neue Beute, sofern der NPC sie besitzt. Dies ändert weder den Kampf noch seine Ölberechnung.
+„Alle Städte“ zeigt je Stadt:
+- Namen, Koordinaten, deutlich markierte aktuell ausgewählte Stadt und „Stadt öffnen“.
+- Nahrung mit Lagergrenze, Bruttoproduktion, Truppenunterhalt und Nettobilanz, einheitlich pro Stunde beschriftet.
+- Versorgungsstatus als Text und Symbol: ausgeglichen/Überschuss, Lager sinkt, Mangel mit Schonfrist, Hungerverluste oder Erholung entsprechend dem tatsächlichen Serverzustand.
+- Bei sinkendem Vorrat die geschätzte Zeit bis Lagerleerstand; bei aktivem Mangel verbleibende Schonfrist bzw. Zeitpunkt der nächsten tatsächlich geplanten Verlustwelle.
+- Anzahl stationierter Einheiten, verständlicher Hinweis auf pausierte Ausbildung und gegebenenfalls getrennte unterwegs befindliche Einheiten.
+- Kompakte Bestände/Kapazitäten der übrigen Ressourcen, bei Platzmangel in einem zugänglichen Detailbereich.
 
-## 6. Zeitpunkt, Mehrstadtbetrieb und Migration
+Erzeuge die Übersicht serverseitig aus den vorhandenen Kernfunktionen und einem gemeinsamen Abrechnungszeitpunkt für alle Städte. Insbesondere supplySummary mit dem korrekten Stadt-Kontext und dem globalen Forschungsstand nutzen. Keine zweite Unterhaltsformel im React-Client und keine fälschliche Nutzung der gerade aktiven Stadt für alle Zeilen.
 
-- Forschung ist genau zum gespeicherten Abschlusszeitpunkt wirksam. Vor jedem neuen Befehl alle fälligen Ereignisse bis einschließlich Befehlszeit abrechnen.
-- Alle eigenen Städte profitieren ab diesem Zeitpunkt, auch nicht geöffnete und später gegründete. Für Bau-/Ausbildungsgeschwindigkeit betrifft dies nur danach angenommene Aufträge.
-- Eine laufende Forschung bleibt an ihre zahlende Stadt, Universität und dortige Forschungsleitung gebunden. Stadtwechsel im Client verlagert nichts.
-- Bei gleichen Zeitstempeln die bestehende deterministische Ereignisreihenfolge erhalten und dokumentieren. Offline-Abrechnung in einem großen Schritt und in vielen kleinen Schritten muss dasselbe Ergebnis ergeben.
-- Ausgangspunkt ist aktuell Spielerschema 17 und Weltschema 4. Vor Änderung die tatsächlichen Versionen prüfen und nur nötige neue Versionen vergeben; bestehende Migrationsketten erhalten.
-- Neue Forschungs-IDs beginnen bei 0. Bestehende Forschung, Kosten, Universitäten, Standorte, Generäle, Queues, Städte, Punkte und Berichte bleiben erhalten.
-- Aktuell ist research-3-logistics-provisional aktiv; research-1-provisional und research-2-leadership-provisional werden ebenfalls für Altaufträge unterstützt. Auch nach Einführung einer neuen Version müssen alle bereits akzeptierten Forschungsaufträge korrekt abschließen.
-- Historische Bau-/Ausbildungsaufträge ohne Forschungsmetadaten behalten ihre gespeicherten Arbeitszeiten und Zahlungen; keine rückwirkenden Boni oder Neugebühren.
-- Historische Reisen verwenden ihre vorhandenen Kapazitäts-/Öl-/Ladungsregeln. Fehlende Forschungsmetadaten dürfen nicht aus heutigen Forschungsstufen ergänzt werden.
-- Keine unbekannten Datensätze stillschweigend zurücksetzen. Fehler müssen sichtbar bleiben, ohne den gespeicherten Originalstand zu überschreiben.
-- Forschungspunkte einmal spielerweit ableiten, auch bei fünf Städten. Wiederaufnahme/Restart darf keinen Abschluss oder Punktgewinn verdoppeln.
+Serverwerte sind verbindlich. Pro Sekunde gespeicherte Raten genau einmal mit 3600 in Stundenwerte umrechnen. Intern nicht vor der Verrechnung runden. Tatsächlich gespeicherte ENV-/Regelversionen, Bürgermeister, Forschung, Rückkehr und Verlegung berücksichtigen. Unterwegs befindliche Gruppen nicht doppelt zählen; General-only-Verlegung erzeugt keine fiktiven Einheiten.
 
-## 7. Forschungsoberfläche im Spielrahmen von Auftrag 16
+Für unveränderte negative Nettorate gilt:
+Zeit bis leer in Sekunden = aktueller Nahrungsbestand / Betrag der Nettorate pro Sekunde.
+Bei Nettorate >= 0 keine endliche Leerstandszeit behaupten. Keine Infinity-/NaN-Werte ins JSON schreiben. Bei bereits leerem Lager den echten Mangelszustand anzeigen.
 
-Die vorhandene Seite „Forschung“ ausbauen, ohne neue Hauptmenüpunkte oder lange zusätzliche Seitenleisten.
+Die Vorhersage ausdrücklich „bei unveränderten Raten“ nennen. Anstehende Ausbildungsabschlüsse, Rückkehr und Rollenwechsel können sie verändern. Keine vollständige Zukunftssimulation in diesem Auftrag. Schonfrist und Verlustzeitpunkte aus dem gespeicherten Versorgungssystem ableiten, nicht beim Öffnen der Seite von vorne starten. Reine Client-Countdowns dürfen Zeiten darstellen, aber keine Spielstände verändern.
 
-- Zeige die neun aktiven Technologien in übersichtlichen Gruppen, mit nachvollziehbaren Abhängigkeiten. Ein vollständig bedienbarer Karten-/Listenmodus genügt; keine zusätzliche Graph-Engine erforderlich.
-- Jede Technologie zeigt aktuelle/Maximalstufe, Wirkung jetzt und nach dem nächsten Upgrade sowie den Zustand verfügbar, gesperrt, läuft oder maximal.
-- Detailbereich oder zugängliches Modal: konkrete fehlende Voraussetzungen, zahlende Stadt, passende Universität, Forschungsleitung, Ressourcenpreis, Dauer und Aktion.
-- Wissensstand klar als spielerweit kennzeichnen; Zahlungs- und Forschungsort klar als Stadtbezug. Beim Stadtwechsel ungültige lokale Auswahl/Vorschau verwerfen, laufende Forschung sichtbar lassen.
-- Laufender Auftrag zeigt Technologie, Zielstufe, Ausgangsstadt und verbleibende Zeit. Fortschritt darf angezeigt werden, Abschluss wird ausschließlich vom Server bestätigt.
-- Bau- und Ausbildungsangebote zeigen tatsächliche Dauer und nachvollziehbaren Forschungsbonus. Alte Queueeinträge bei Bedarf als „Werte bei Auftragserteilung“ erklären.
-- Einsatz-/Liefer-/Verlegungsdialoge zeigen effektive Traglast, Ladetechnikanteil, Betriebsöl, eigene Ladung und freie Plätze; getrennte Tanks verständlich darstellen.
-- Bei +25 % Geschwindigkeit eine Zeitersparnis von 20 % korrekt beschriften. Keine pauschale Anzeige „25 % schneller fertig“.
-- Desktop und schmale Mobilansicht prüfen, Tastatur/Fokus/Schließen unterstützen; Information nicht ausschließlich über Farbe, Hover oder Verbindungslinien vermitteln.
-- Nach Wiederverbindung den autoritativen Zustand laden. Keine Forschung allein im Browser freischalten.
+Optional bekannte eingehende Nahrungslieferungen mit ETA und geplanter Menge zeigen, deutlich als noch nicht eingelagert. Keine Lagerannahme garantieren und ungeklärte Farmbeute nicht als sichere Versorgung buchen. Bei fremden Absendern nur bereits zulässige Empfängerinformationen verwenden.
 
-## 8. WebSocket, Befehle und Persistenz
+Eine Gesamtbilanz darf rein informativ erscheinen, muss aber die getrennten Stadtlager erklären. Ein Überschuss in Stadt A darf den Mangelstatus von Stadt B niemals grün färben.
 
-- Alle Spielaktionen, Angebote und Zustandsänderungen über die vorhandene WebSocket-Verbindung. Statische Dateien dürfen wie bisher per HTTP ausgeliefert werden.
-- Vorhandene Forschungsereignisse erweitern, statt einen konkurrierenden Transport oder REST-Spielendpunkte anzulegen.
-- Server prüft Eigentum, cityId, Universität, Generalstandort/-rolle, nächste Forschungsstufe, Voraussetzungen, Bezahlung und gemeinsame Queue.
-- Relevante Forschungs-/Regelstände in Vorschauen von Forschung, Bau, Ausbildung und Reisen einbinden. Bei veralteten Werten keine Abbuchung; aktualisierte Vorschau und verständlichen Grund liefern.
-- Befehls-IDs bleiben idempotent: doppelte Nachricht oder Wiederholung nach Reconnect darf weder doppelt bezahlen noch erneut einreihen oder belohnen.
-- Zustandsänderung, Zahlung und Wiederholungsbeleg atomar speichern; vorhandene Welt-/Spieler-Journale erhalten.
-- Nur Eigentümer-Sitzungen erhalten private Forschungsstände. Kein Leck fremder Forschung über Karten, Transportdialoge oder Broadcasts.
+## 6. Direkte Hilfe mit vorhandenen Aktionen
 
-## 9. Umsetzung und Abnahme
+Bei einer gefährdeten Stadt passende Aktionen anbieten:
+- „Nahrung liefern“ öffnet den vorhandenen Lieferdialog mit dieser eigenen Stadt als Ziel. Eine andere eigene Absenderstadt ausdrücklich wählen; verfügbare Nahrung, LKWs, Öl und Reichweite wie bisher prüfen.
+- „Bürgermeister verwalten“ führt zur Generalverwaltung im passenden Stadtkontext.
+- „Bauernhof ausbauen“ führt zur Stadtansicht und geeigneten vorhandenen Bauaktion.
+- „Truppen verlegen“ führt zur vorhandenen eigenen Verlegung; Hinweis auf den Unterhalt am Ziel.
 
-Arbeite in überprüfbaren Schritten: Bestand prüfen → Katalog/Migration → Bau/Ausbildung → Frachtintegration → Forschungs-UI → gezielte Integration und Dokumentation. Halte den Auftrag bis zum beschriebenen spielbaren Ablauf zusammen; reine Datenstruktur ohne Effekte erfüllt ihn nicht.
+Es werden nur Formulare vorbereitet. Nichts automatisch absenden, keine Ressourcen oder Einheiten automatisch auswählen/umbuchen und keinen erforderlichen General für Kampfaufträge umgehen. Ressourcenlieferungen bleiben ohne General möglich.
 
-Mindestens folgende Risiken mit gezielten automatisierten Tests abdecken:
+Beim Wechsel zwischen Städten bestehende Regeln für ungesendete Formulare beachten. Keine Eingabe stillschweigend auf eine andere Stadt anwenden. Auftragsdaten nennen stets die expliziten Quell-/Zielstadt-IDs.
 
-1. Alle sechs alten Technologien behalten Voraussetzungen, Preise und Effekte; drei neue starten bei 0. Fehlende Vorgänger/Universität, falsche Stufe, fehlende Mittel und parallele Forschung in einer anderen Stadt werden abgewiesen.
-2. Neues Wissen wirkt einmal in allen fünf Städten. 10 Forschungspunkte je abgeschlossener neuer Stufe, keine Punkte aus Migration, Vorschau oder bloßem Start.
-3. Bau-/Ausbildungsdauer bei Stufen 0, 1 und 5, mit vorhandenen Gebäude-/Mengenfaktoren; zivile und militärische Bauten sowie alle vorhandenen Einheitentypen.
-4. Aktive und wartende Altaufträge überstehen Forschungsabschluss und Neustart unverändert. Neue Aufträge nutzen den Bonus; Hungerpause erhält ihre Restarbeit.
-5. Traglast je Typ und Gruppe einschließlich abweichender konfigurierter Basiskapazität; Boni genau einmal. Späher-/Generaltanks unverändert. Kosten-/Kapazitätsgrenzen und zu schwere Ladung prüfen.
-6. Fracht-Rechenprobe aus Abschnitt 5 einschließlich Verluste, Reserve und Beute; laufende Mission behält beim Forschungsabschluss ihre alten Kapazitäten.
-7. Lieferung an eigene und fremde Stadt, dauerhafte Verlegung, reine General- und Späherreise; Empfängerforschung verändert keinen Frachtraum. Bestehende Unterhalts-/Ölregeln bleiben erhalten.
-8. Offline-Zeitfortschritt, simultane Abschlüsse, Restart sowie Migration bestehender Forschungsversionen und Missionen; Vergleich großer mit kleinen Zeitschritten.
-9. Veraltete Vorschau, wiederholte Befehls-ID und zwei gleichzeitige Sitzungen: genau eine zulässige Zahlung/Änderung; keine fremden privaten Forschungsdaten.
-10. ENV-Standard, 0, Obergrenze und ungültige Werte; gespeicherter Regelwechsel ändert nur neue Aufträge.
+## 7. Einführung und UI
 
-Führe npm test und den vorhandenen Client-Build aus; ergänze Browserprüfung des Spielablaufs auf Desktop und Mobilansicht. Dokumentiere ausgeführte Befehle, Ergebnisse und tatsächliche Grenzen. Keine nicht ausgeführten Tests als bestanden angeben.
+- Für neue Spieler eine kleine, nicht blockierende Einstiegskarte mit nächstem Ziel und „Zur Aufgabe“. Ausblendbar und jederzeit über „Aufgaben“ wieder erreichbar.
+- Bestandsspieler bekommen keinen erzwungenen Rundgang. Aufgaben sind normal zugänglich und nach Migration korrekt eingeordnet.
+- Aufgaben zeigen Nutzen, Ziel/Fortschritt, Voraussetzungen, Belohnung und eindeutige Aktion. Gesperrte Aufgaben nennen den fehlenden Schritt. Erfüllte Aufgaben bieten „Belohnung abholen“; abgeholte wandern in einen einklappbaren Bereich.
+- Keine Belohnungen für das Anklicken von Hilfetexten oder bloßes Öffnen einer Seite. Ausblenden/erneut Öffnen der Einführung setzt keinen Fortschritt zurück.
+- Ein kompakter Badge zeigt abholbare Belohnungen. Keine blinkenden Dauerhinweise und keine neue endlos wachsende Sidebar.
+- Desktop: übersichtliche Stadttabelle; Mobilgeräte: gut lesbare Karten mit priorisierten Nahrungswerten, keine notwendige horizontale Seitenverschiebung.
+- Texte, Symbole und Tastaturbedienung ergänzen Farben. Fokusführung, Dialogbeschriftung, Escape/Schließen und sichtbare Fokusmarkierung prüfen.
+- Bei Verbindungsabbruch letzten Stand mit Zeitpunkt als veraltet markieren; keine erfolgreichen Abholungen vortäuschen. Nach Resume den Serverstand übernehmen.
+- Weltkarte, Windrose, Stadtwechsel und bisherige Aktionspanels bleiben unabhängig bedienbar.
 
-Spielbarer Abnahmepfad:
-- Zwei eigene Städte, Universität mit erreichbaren Voraussetzungen und dortige freie Forschungsleitung.
-- Vor dem Forschungsabschluss mindestens einen Bau-/Ausbildungsauftrag und einen Transport starten.
-- Eine neue Technologie erforschen; alte Aktionen laufen mit alten Werten weiter.
-- Neue passende Aktion in der anderen eigenen Stadt erhält den Bonus; Anzeige und Server stimmen überein.
-- Für alle drei Technologien wiederholen, Sitzung neu verbinden und Server neu starten.
-- Bestehende Spielstände ohne Reset weiterspielen.
+## 8. WebSocket, Speicherung und Migration
 
-Aktualisiere README.md, docs/PROJECT.md, docs/WEBSOCKET.md und .env.example passend zum tatsächlich implementierten Stand. Erstelle docs/RESEARCH_EXPANSION_VALIDATION.md mit Balanceformeln, Migrationsverhalten, ausgeführten Tests, Browsernachweisen und bekannten Grenzen. Die Quellenabgrenzung in docs/RESEARCH_REFERENCE.md bewahren. PR-Beschreibung erklärt Nutzen, Verhalten, Migration und Prüfung.
+Erweitere das vorhandene Protokoll minimal. Beispielsweise:
+- tasks.claim mit taskId und cityId; Werte der Belohnung kommen ausschließlich vom Server.
+- Bestehende city.snapshot/city.updated um spielerweiten Aufgabenstatus und cityOverview mit gemeinsamem asOf-Zeitpunkt ergänzen.
+- Eine bestätigte Abholung enthält Aufgabe, tatsächliche Zielstadt und gutgeschriebene Ressourcen. Fehler folgen dem vorhandenen Fehlerformat.
 
-## 10. Abgrenzung und danach
+Verwende passende Namen nach Prüfung des aktuellen Protokolls und dokumentiere sie vollständig. Keine zusätzlichen parallelen WebSockets, HTTP-Spielendpunkte oder Client-Polling-Schleifen. Vorhandene serverseitige Ticks/Pushes verwenden; Änderungen an Aufgaben oder Versorgung müssen auch bei nicht ausgewählter Stadt und in allen Tabs ankommen.
 
-Dieser Auftrag implementiert keine vollständige Kopie der 19 historischen Forschungsthemen. Keine neuen Kampfboni, Truppenarten, Flugzeuge, Raketen, Bevölkerung, Gold/Stahl, Generalsausrüstung, Bündnisse, PvP oder Föderation.
+Ein dauerhaftes Aufgabenobjekt umfasst Schema-/Katalogversion, Aktivierungszeit, begrenzten Fortschritt, erreichte Ziele, erfüllte Aufgaben samt eingefrorener Belohnung und dauerhafte Abholbelege. Einführungsausblendung getrennt von fachlichem Fortschritt behandeln.
 
-Anschließend als eigenen Auftrag vorschlagen: Einführung/Aufgaben mit einmaligen Belohnungen und einer stadtübergreifenden Versorgungsübersicht. Danach Bündnisse/Unterstützung, geregelter Handel und PvP-Vorbereitung weiter konkretisieren. Matrix bleibt ein eigener Entwicklungsstrang.
+Gelesener Ausgangspunkt: Spielerschema 17, Weltschema 4. Führe eine explizite, idempotente Migration für den neuen persistierten Aufgabenstand ein, im unveränderten Ausgangspunkt 17 → 18. Prüfe sämtliche Schema-Gates, canonicalJSON, Stadtadapter, Validierung, Legacy-Import und neue Konten. Bei zwischenzeitlich erhöhtem Schema eine konfliktfreie nächste Version verwenden. Das Weltschema nur ändern, falls tatsächlich erforderlich.
 
-Erwartetes Ergebnis: ein erweiterbarer, verständlicher Forschungskatalog mit drei nachweislich funktionierenden Verbesserungen und unverändert nutzbaren bestehenden Spielständen.
+Bestehende Städte, Aufträge, Missionen, Generäle, Rollen, Forschung, Fracht, Punkte, Regelhistorien, Hungerzähler und Weltpositionen erhalten. Unbekannte/beschädigte Zustände nicht still zurücksetzen. Nachweise dürfen bei Journal-Wiederholung nicht doppelt zählen; fehlgeschlagene Speicherung darf keinen nur im RAM bereits abgeholten Anspruch zurücklassen.
+
+## 9. Abnahme mit gezielten Prüfungen
+
+Automatisierte Tests für die kritischen Übergänge ergänzen und bestehende relevante Tests ausführen:
+
+1. Frischer Spieler kann die neun Einführungsaufgaben mit normalen Spielaktionen erfüllen; keine zirkuläre Voraussetzung. Zwischenvoraussetzungen sind erreichbar und verständlich.
+2. Zustandsnachweise berücksichtigen alle eigenen Städte. Ereignisse vor Freischaltung zählen genau einmal; spätere Abrisse/Rollenwechsel löschen keinen belegten Fortschritt.
+3. Abgebrochene/ungültige Aktionen, bloß eingeplante Ausbildung, transferierte Truppen und mitgebrachte Nahrung erfüllen keine falschen Aufgaben.
+4. Raid: Sieg allein genügt nicht; positive tatsächlich eingelagerte geplünderte Nahrung zählt. Lieferung: Teilannahme mit positiver Nahrung zählt, Nullannahme nicht.
+5. Zwei Tabs mit unterschiedlichen requestIds, wiederholte Requests, verlorene Bestätigung und Neustart ergeben exakt eine Belohnung je Aufgabe.
+6. Fehlende Kapazität auch nur einer Ressource führt zu keiner Gutschrift; Anspruch bleibt offen. Exakt passender Lagerplatz funktioniert; fremde Zielstadt wird abgewiesen.
+7. Migration vorhandener Schema-17-Spieler einschließlich fünf Städten, Forschung, laufenden Missionen und belegbaren alten Berichten erhält Daten und ist wiederholbar.
+8. Aufgabenfortschritt und Belege überstehen Offline-Abrechnung und Recovery, ohne Ereignisse erneut zu zählen. Kommandantenpunkte bleiben unverändert.
+9. Versorgung: unterschiedliche Bürgermeister/Truppen/Lager in zwei Städten, Stadtwechsel, Ausbildungsabschluss, Rückkehr, Verlegung und Forschungsabschluss ergeben den korrekten Stadtwert. Nahrung pro Stunde ist exakt aus der Kernrate abgeleitet.
+10. Defizit trotz positivem Gesamtsaldo wird angezeigt. Unterwegs befindliche Truppen verursachen nach aktuellem Regelsatz keinen Stadtunterhalt. Abholung während Mangel nutzt bestehende Schonfrist-/Erholungsregeln.
+11. UI-Nachweis auf Desktop und schmalem Bildschirm: Aufgaben erfüllen/abholen, volles Lager behandeln, gefährdete Stadt erkennen und Lieferdialog korrekt vorbereiten. Tastaturbedienung, Reconnect und zwei Tabs prüfen.
+12. Bestehende Weltkarte mit Windrose sowie Forschung, Logistik und Stadtwechsel funktionieren weiterhin.
+
+Nutze kontrollierte Serverzeiten für Zeitgrenzfälle. Keine langen Wartezeiten in Tests und keine Tests, die nur die Implementierung nachschreiben. npm test und npm run build ausführen; nötige Browserprüfungen tatsächlich durchführen und belegen. Fehler beheben oder verbleibende Grenzen offen benennen.
+
+## 10. Dokumentation und Abschluss
+
+README.md, docs/PROJECT.md und docs/WEBSOCKET.md auf den tatsächlichen Stand bringen. Historische Abschnitte als Historie erhalten; widersprüchliche Aussagen zum aktuellen Unterhalt oder Schema im aktuellen Einstieg berichtigen.
+
+Erstelle docs/TASKS_SUPPLY_VALIDATION.md mit tatsächlich ausgeführten Befehlen, Ergebnissen, Migrationsfällen und Desktop-/Mobilnachweisen. Keine behaupteten Prüfungen ohne Ausführung. Provisorische Belohnungswerte und Grenzen der Versorgungsprognose ausdrücklich nennen.
+
+Im Abschluss kurz berichten: spielbarer Ablauf, relevante Dateien, getestete Fälle und offene Einschränkungen. Implementiere diesen Auftrag vollständig; keine zusätzlichen Spielsysteme vorziehen. Anschließend können Bündnisse und Unterstützung innerhalb derselben Welt als eigener Auftrag konkretisiert werden.
