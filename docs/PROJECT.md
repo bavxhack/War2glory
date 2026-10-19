@@ -4,6 +4,12 @@
 
 Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spielcode im Browser und auf dem Server wird in JavaScript geschrieben. HTML und CSS übernehmen Struktur und Darstellung. Jeder soll später eine eigene Instanz betreiben können. Die Teilnahme an einer Föderation bleibt optional. Blockchain und eine zentrale Pflichtregistrierung sind nicht vorgesehen.
 
+## Aktueller Stand: Auftrag 18
+
+Spielerschema 18 und Weltschema 4. Zwölf einmalige Aufgaben im unabhängigen Katalog `tasks-1-provisional`; neun davon bilden die Einführung. Fortschritt und eingefrorene Ansprüche sind spielerweit, Abholbelege dauerhaft. Serverseitige Ausbildungsabschlüsse und bestätigte Berichte/Lieferannahmen zählen in ihrer bestehenden Transaktion. Bestandsmigration errät keine historischen Ausbildungen. Belohnungen passen vollständig in eine ausdrücklich gewählte eigene Stadt oder bleiben offen; kein automatischer Versand, keine zusätzlichen Punkte/XP.
+
+Unter Stadt bleiben Stadtansicht, Alle Städte und Aufgaben erreichbar. Versorgung nutzt dieselben Kernraten mit lokalem Bürgermeister und globaler Forschung. Aktueller Stadtunterhalt erfasst stationierte Truppen; historische gespeicherte Versorgungsregeln bleiben verbindlich. Die bestehende isometrische Karte mit Windrose, alle sieben Hauptnavigationseinträge, Forschung und Logistik bleiben erhalten. Die untenstehenden Etappen und alten Schemaangaben sind Entwicklungshistorie.
+
 ## Etappen
 
 | Etappe | Ergebnis | Status |
@@ -28,7 +34,7 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 | UI 16 | Erkennbare Hauptnavigation, kompakter Stadtkopf, Aktionen vor Statuslisten, mobile Drawer | Implementiert mit Auftrag 16; Konzept und Browsernachweise |
 | 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
 | Forschung+ / 17 | Versionierter Forschungskatalog, Bau-, Ausbildungs- und Ladetechnik mit verständlicher Forschungsansicht | Implementiert; vom Nutzer am 19.10.2026 als abgeschlossen bestätigt, Prüfbelege in RESEARCH_EXPANSION_VALIDATION.md |
-| Einstieg / 18 | Einmalige Aufgabenbelohnungen und stadtübergreifende Versorgungsübersicht | Am 19.10.2026 spezifiziert; Umsetzung und Prüfung ausstehend |
+| Einstieg / 18 | Einmalige Aufgabenbelohnungen und stadtübergreifende Versorgungsübersicht | Implementiert als Prototyp; Prüfbelege in TASKS_SUPPLY_VALIDATION.md |
 | Ausbau+ | Aufgaben, Stadtwirtschaft, Radar/Verteidigung, taktischer Kampf und weitere Einheiten | Recherchierte Kandidaten, kein unmittelbarer Implementierungsauftrag |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -1024,7 +1030,7 @@ Ein Wissensstand und ein Forschungsauftrag je Kommandant; Zahlung und Forschungs
 
 Die Forschungsseite gruppiert neun Karten mit Abhängigkeiten, Status, Wirkung, Kosten und Forschungsort. Bauangebote und verbindliche Ausbildungsprüfung erklären den Bonus; Reisevorschauen zeigen Ladetechnik und getrennte Tanks. Schema 17/4 genügt: additive Normalisierung neuer IDs auf 0, bestehende Migrationsketten und Forschungsversionen 1–3 bleiben erhalten. Unbekannte Forschungs-IDs führen zu einem sichtbaren Fehler, ohne die Spielerdatei zurückzusetzen. Ausgeführte Prüfungen: RESEARCH_EXPANSION_VALIDATION.md.
 
-Am 19.10.2026 wurde der Abschluss von Auftrag 17 vom Nutzer bestätigt. Einführung/Aufgaben mit einmaligen Belohnungen und stadtübergreifender Versorgungsübersicht sind jetzt als Auftrag 18 spezifiziert, noch nicht implementiert. Danach Bündnisse/Unterstützung, geregelten Handel und PvP-Vorbereitung konkretisieren. Matrix bleibt ein eigener Entwicklungsstrang.
+Am 19.10.2026 wurde der Abschluss von Auftrag 17 vom Nutzer bestätigt. Einführung/Aufgaben mit einmaligen Belohnungen und stadtübergreifender Versorgungsübersicht sind inzwischen als Auftrag 18 implementiert; Prüfbelege stehen in TASKS_SUPPLY_VALIDATION.md. Danach Bündnisse/Unterstützung, geregelten Handel und PvP-Vorbereitung konkretisieren. Matrix bleibt ein eigener Entwicklungsstrang.
 
 
 ## Weltkartenansicht: Windrose und Relief
@@ -1032,9 +1038,9 @@ Am 19.10.2026 wurde der Abschluss von Auftrag 17 vom Nutzer bestätigt. Einführ
 Implementiert: Navigation ausschließlich durch ausdrückliche Bedienelemente (acht Windrosentasten, Zentrierung, Suche und Zoom); kein Verschieben durch Ziehen/Wischen oder globale Pfeiltasten. Die Windrose liegt über der Karte. Größere Felder in kleineren Standardausschnitten (Desktop 5×5, schmal 3×3), volle Kartenbreite, lesbare Koordinaten/Namen und lokale SVG-Grafiken für Gelände und räumlich gezeichnete Stadtminiaturen verbessern die Übersicht. Eigene, fremde und NPC-Städte bleiben zusätzlich durch Text unterscheidbar. Kleine Welten werden innerhalb ihrer gespeicherten Grenzen angezeigt. Die Darstellung ist 2,5D; Serverregeln, Welt-/Spielerschemata, Entfernungsmodell, Erkundung und Spielstände bleiben unverändert. Tatsächlich ausgeführte Prüfungen und Grenzen: WORLD_MAP_VALIDATION.md.
 
 
-## Geplanter Auftrag 18: Einführung, Aufgaben und Versorgung aller Städte
+## Auftrag 18: Einführung, Aufgaben und Versorgung aller Städte
 
-Am 19.10.2026 als nächster Implementierungsauftrag spezifiziert. **Noch nicht implementiert oder durch den Planungschat getestet.** Die vollständige Arbeitsanweisung steht in [CODEX_PROMPT.md](../CODEX_PROMPT.md). Ausgangspunkt ist der gelesene main-Stand 7cad05dba65a6c52d570331f1b0cddc40f253204 mit abgeschlossener Forschungserweiterung und räumlicher Karte/Windrose.
+Am 19.10.2026 spezifiziert und anschließend implementiert. **Der Planungschat führte keine Tests aus; tatsächlich ausgeführte Implementierungsprüfungen stehen in [TASKS_SUPPLY_VALIDATION.md](TASKS_SUPPLY_VALIDATION.md).** Die vollständige Arbeitsanweisung steht in [CODEX_PROMPT.md](../CODEX_PROMPT.md). Ausgangspunkt ist der gelesene main-Stand 7cad05dba65a6c52d570331f1b0cddc40f253204 mit abgeschlossener Forschungserweiterung und räumlicher Karte/Windrose.
 
 ### Spielbarer Ablauf und Umfang
 
@@ -1087,4 +1093,4 @@ Gesamtüberschuss ist kein gemeinsames Nahrungslager. Eine unterversorgte Stadt 
 
 Kritische Prüfungen: neue/bestehende Spieler, idempotente Migration, Ereignisse vor Freischaltung, sichere Auszahlung bei zwei Tabs und Speicherfehlern, Lagergrenzen, Offline-Fortschritt, korrekte Beute-/Liefernachweise sowie stadtweise Versorgung nach Forschung, Ausbildung, Rückkehr und Verlegung. Desktop, mobile Darstellung, Tastatur, Reconnect und unveränderte Windrose prüfen.
 
-Codex dokumentiert tatsächlich ausgeführte Tests und Browsernachweise in docs/TASKS_SUPPLY_VALIDATION.md und aktualisiert README sowie WEBSOCKET. Bis dahin bleibt Auftrag 18 geplant. Keine täglichen Aufgaben, neue Währung, automatische Transporte, Kampfregeln oder Föderation in diesem Auftrag. Als danach zu konkretisierende Phase folgen Bündnisse und Unterstützung innerhalb derselben Welt; Handel, PvP und Matrix behalten eigene Aufträge.
+Codex dokumentiert tatsächlich ausgeführte Tests und Browsernachweise in docs/TASKS_SUPPLY_VALIDATION.md und aktualisiert README sowie WEBSOCKET. Auftrag 18 ist als Prototyp implementiert. Keine täglichen Aufgaben, neue Währung, automatische Transporte, Kampfregeln oder Föderation in diesem Auftrag. Als danach zu konkretisierende Phase folgen Bündnisse und Unterstützung innerhalb derselben Welt; Handel, PvP und Matrix behalten eigene Aufträge.

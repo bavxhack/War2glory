@@ -1,3 +1,4 @@
+import { recordTaskTraining, observeTaskCity } from './tasks.js';
 import { missionUnits, clampMissionCargo } from './logistics.js';
 import { advanceCity, buildingProductionRates, productionRates } from './index.js';
 import { effectiveAttributes } from './military.js';
@@ -125,6 +126,8 @@ export function advanceSupply(previous, now, activatedAt = previous.supply?.acti
   if (player.city.updatedAt < cursor) player.city = advanceCity(player.city, cursor);
   const previouslyDue = player.military.trainingQueue.filter(job => job.finishesAt <= cursor && !job.pausedForSupply);
   for (const job of previouslyDue) player.military.units[job.unit] += job.amount;
+  recordTaskTraining(player, previouslyDue, cursor);
+  observeTaskCity(player, cursor);
   player.military.trainingQueue = player.military.trainingQueue.filter(job => !previouslyDue.includes(job));
   supply.lossThresholdMs ??= supply.shortageMs < cycleRules.graceMs ? cycleRules.graceMs
     : cycleRules.graceMs + (Math.floor((supply.shortageMs - cycleRules.graceMs) / cycleRules.lossIntervalMs) + 1) * cycleRules.lossIntervalMs;
@@ -164,8 +167,10 @@ export function advanceSupply(previous, now, activatedAt = previous.supply?.acti
     if (!shortage && trainingAt === cursor) {
       const completed = player.military.trainingQueue.filter(job => job.finishesAt <= cursor);
       for (const job of completed) player.military.units[job.unit] += job.amount;
+      recordTaskTraining(player, completed, cursor);
       player.military.trainingQueue = player.military.trainingQueue.filter(job => !completed.includes(job));
     }
+    observeTaskCity(player, cursor);
     if (lossBoundary) {
       supply.shortageMs = supply.lossThresholdMs;
       supply.lossThresholdMs += cycleRules.lossIntervalMs;
@@ -175,6 +180,7 @@ export function advanceSupply(previous, now, activatedAt = previous.supply?.acti
     if (!shortage && supply.recoveryStartedAt != null && cursor >= supply.recoveryStartedAt + cycleRules.recoveryMs) { supply.shortageMs = 0; supply.cycleRules = null; cycleRules = rules; supply.lossThresholdMs = rules.graceMs; supply.recoveryStartedAt = null; }
 
   }
+  observeTaskCity(player, until);
   supply.updatedAt = until;
   const summary = supplySummary(player);
   supply.inShortage = player.city.resources.food <= 0 && summary.upkeep > summary.production && summary.units > 0;

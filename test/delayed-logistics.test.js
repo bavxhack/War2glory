@@ -155,7 +155,7 @@ test('worldwide activation and restart migrate schema 13 without altering paid s
   const old = { ...SUPPLY_RULES, version: 'old', graceMs: 10000 }; delete old.upkeepScope;
   f.storage.world.supplyRuleHistory = [{ effectiveAt: 0, rules: old }]; await f.storage.saveWorld(); await f.storage.savePlayer(p);
   const restarted = await new WorldStorage(f.dir, 'test', () => 5000, parseConfiguration(), quiet).initialize();
-  p = await restarted.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 17); assert.equal(p.city.resources.food, 0); assert.equal(p.military.missions[0].delayMinutes, 0);
+  p = await restarted.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 18); assert.equal(p.city.resources.food, 0); assert.equal(p.military.missions[0].delayMinutes, 0);
   assert.equal(p.military.missions[0].paidOil, 0); assert.equal(p.military.missions[0].arrivesAt, 60000); assert.equal(p.supply.shortageMs, 5000);
   assert.equal(restarted.world.supplyRuleHistory.at(-1).effectiveAt, 5000); assert.equal(restarted.world.supplyRuleHistory.at(-1).rules.upkeepScope, 'stationed');
   const history = structuredClone(restarted.world.supplyRuleHistory);
@@ -247,7 +247,7 @@ test('schema 13 migration write failure leaves original intact and retries once 
   const save = f.storage.savePlayer.bind(f.storage); f.storage.savePlayer = () => { throw new Error('migration-save-failure'); };
   await assert.rejects(f.storage.loadPlayer(p.playerId), /migration-save-failure/);
   const { readFile } = await import('node:fs/promises'); assert.deepEqual(JSON.parse(await readFile(f.storage.playerFile(p.playerId), 'utf8')), p);
-  f.storage.savePlayer = save; const migrated = await f.storage.loadPlayer(p.playerId); assert.equal(migrated.schemaVersion, 17); assert.equal(migrated.military.missions[0].delayMinutes, 0);
+  f.storage.savePlayer = save; const migrated = await f.storage.loadPlayer(p.playerId); assert.equal(migrated.schemaVersion, 18); assert.equal(migrated.military.missions[0].delayMinutes, 0);
   assert.equal(migrated.military.missions[0].arrivesAt, p.military.missions[0].arrivesAt); assert.deepEqual(await f.storage.loadPlayer(p.playerId), migrated);
 });
 

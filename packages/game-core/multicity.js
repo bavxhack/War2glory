@@ -1,3 +1,4 @@
+import { mergeTaskEvidence, observeTaskRecords } from './tasks.js';
 import { newCity, commanderScore } from './index.js';
 import { newMilitary } from './military.js';
 import { advanceSupplyHistory, refreshSupplyAt, settleSupplyAt } from './supply.js';
@@ -33,6 +34,7 @@ export function migrateCities(player, entities = []) {
   return exposeCity(player, id);
 }
 export function commitCity(player, view) {
+  mergeTaskEvidence(player.tasks, view.tasks, view.city.updatedAt);
   const index = player.cities.findIndex(c => c.id === view.cityId);
   if (index < 0) throw new Error('Unbekannte oder fremde cityId.');
   const { research, military: unused, supply: unusedSupply, ...city } = view.city;
@@ -47,7 +49,7 @@ export function commitCity(player, view) {
 }
 export function canonicalJSON(previous) {
   const player = structuredClone(previous);
-  if (![16, 17].includes(player.schemaVersion)) return player;
+  if (![16, 17, 18].includes(player.schemaVersion)) return player;
   for (const mission of player.military.missions) mission.originCityId ??= player.cities[0].id;
   if (player.city) commitCity(player, { ...player, military: { ...player.military, missions: player.military.missions.filter(m => m.originCityId === player.cityId) } });
   delete player.city; delete player.supply; delete player.cityId;
@@ -66,11 +68,13 @@ export function advanceCities(previous, at, activatedAt, history, options = {}) 
     if (completed) commitCity(player, completed);
     if (boundary === finishAt && !(options.deferLossAtEnd && boundary === at)) for (const city of [...player.cities]) commitCity(player, settleSupplyAt(cityView(player, city.id), boundary));
   }
+  observeTaskRecords(player, at);
   return exposeCity(player, previous.cityId ?? player.cities[0].id);
 }
 function applyEach(previous, at, action) {
   const player = canonicalJSON(previous);
   for (const city of [...player.cities]) commitCity(player, action(cityView(player, city.id), at));
+  observeTaskRecords(player, at);
   return exposeCity(player, previous.cityId ?? player.cities[0].id);
 }
 export const refreshCities = (player, at) => applyEach(player, at, refreshSupplyAt);
