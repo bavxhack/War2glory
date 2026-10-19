@@ -1,5 +1,6 @@
+import { newTasks, validateTasks, observeTaskCity, observeTaskRecords } from '../../packages/game-core/tasks.js';
 import { migrateGeneralLocations, validateCityTransport, isCityTransport, finishCityTransport, incomingDeliveries } from '../../packages/game-core/city-logistics.js';
-import { validateCities, migrateCities, canonicalJSON, exposeCity, commitCity, advanceCities, refreshCities, settleCities } from '../../packages/game-core/multicity.js';
+import { validateCities, migrateCities, canonicalJSON, cityView, exposeCity, commitCity, advanceCities, refreshCities, settleCities } from '../../packages/game-core/multicity.js';
 import { expireClaims, FIELD_RAID_RULESET, FIELD_SCOUT_RULESET } from '../../packages/game-core/settlement.js';
 import { CARGO_RAID_RULESET, resolveCargoArrival, unloadCargo, operatingFuel, validateMissionCargo } from '../../packages/game-core/cargo.js';
 import { LOGISTICS_RAID_RULESET, missionUnits, missionCapacity, truckCombatLosses } from '../../packages/game-core/logistics.js';
@@ -18,7 +19,7 @@ import { SUPPLY_RULES } from '../../packages/game-core/supply.js';
 import { advanceNpc, NPC_RULES, randomFreeLocation, terrainAt, WORLD_CONFIG, WORLD_SCHEMA_VERSION } from '../../packages/game-core/world.js';
 
 const scrypt = promisify(scryptCallback);
-export const PLAYER_SCHEMA_VERSION = 17;
+export const PLAYER_SCHEMA_VERSION = 18;
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function readJson(file, fallback) {
@@ -161,6 +162,7 @@ export class WorldStorage {
       const entity = this.#allocatePlayerCity(player, account);
       migrateCities(player, this.world.map.entities);
       migrateGeneralLocations(player);
+      player.tasks = { ...newTasks(now), showIntroduction: true }; player.schemaVersion = 18;
       await atomicWrite(this.worldFile, this.world);
       try { await this.savePlayer(player); }
       catch (error) { this.#removeEntity(entity.id); await atomicWrite(this.worldFile, this.world); throw error; }
@@ -303,8 +305,16 @@ export class WorldStorage {
     if (player.schemaVersion === 14) { migrated = true; player.schemaVersion = 15; }
     if (player.schemaVersion === 15) { migrated = true; migrateCities(player, this.world.map.entities); }
     if (player.schemaVersion === 16) { migrated = true; migrateGeneralLocations(player); }
+    if (player.schemaVersion === 17) {
+      migrated = true;
+      if (player.tasks !== undefined) throw new Error('Unerwarteter Aufgabenstand vor Migration.');
+      player.tasks = newTasks(this.clock()); player.schemaVersion = 18;
+      for (const city of player.cities) observeTaskCity(cityView(player, city.id), this.clock());
+      observeTaskRecords(player, this.clock());
+    }
     if (player.schemaVersion !== PLAYER_SCHEMA_VERSION) throw new Error(`Unbekannte Spieler-Schemaversion: ${player.schemaVersion}.`);
     validateCities(player);
+    validateTasks(player.tasks, player.cities.map(c => c.id));
     exposeCity(player);
     for (const mission of player.military.missions) { validateMissionCargo(mission); validateCityTransport(player,mission); }
     if (!Number.isFinite(player.city.resources.oil) || player.city.resources.oil < 0 || !Number.isSafeInteger(player.military.units.truck) || player.military.units.truck < 0) throw new Error('Inkonsistente Öl- oder LKW-Bestände in Schema 13.');

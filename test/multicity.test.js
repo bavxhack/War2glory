@@ -44,13 +44,13 @@ async function conquer(f, extra = {}) { const report = await scout(f); const mis
 test('schema 15 migration keeps one canonical city, cargo, mayor, global research and portraits; second load is idempotent', async t => {
   const f = await fixture(t), original = f.player;
   // Generate the actual old shape without canonical aliases.
-  const legacy = structuredClone(original); legacy.schemaVersion = 15;
+  const legacy = structuredClone(original); legacy.schemaVersion = 15; delete legacy.tasks;
   delete legacy.cities; delete legacy.cityId; delete legacy.research; delete legacy.city.id;
   legacy.military = assignMayor(legacy.military, legacy.military.generals[0].id);
   legacy.city.research.active = { cityId: undefined, universityId: 'old-university', finishesAt: 100000, researcher: { generalId: null } };
   await f.storage.savePlayer(legacy);
   const migrated = await f.storage.loadPlayer(legacy.playerId), again = await f.storage.loadPlayer(legacy.playerId);
-  assert.equal(migrated.schemaVersion, 17); assert.equal(migrated.cities.length, 1); assert.equal(migrated.cities[0].id, f.home.id);
+  assert.equal(migrated.schemaVersion, 18); assert.equal(migrated.cities.length, 1); assert.equal(migrated.cities[0].id, f.home.id);
   assert.equal(migrated.cities[0].military.mayorGeneralId, legacy.military.mayorGeneralId);
   assert.equal(migrated.research.active.cityId, f.home.id); assert.deepEqual(migrated.city.resources, legacy.city.resources);
   assert.deepEqual(migrated.military.generals, legacy.military.generals); assert.deepEqual(migrated, again);

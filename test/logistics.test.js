@@ -190,7 +190,7 @@ test('migration 12 retains portraits, read status, resources, investments, queue
   Object.assign(p.city.militarySlots[0], { building: 'barracks', level: 1 });
   p.military.missions = [1, 2, 3].map((v, i) => ({ id: `old-${v}`, type: 'raid', ruleset: ['npc-pve-1-provisional', 'npc-pve-2-skills-provisional', 'npc-pve-3-general-bases-provisional'][i], infantry: 1, status: 'outbound', arrivesAt: 60000, returnsAt: 120000 }));
   const portrait = p.military.generals[0].portraitId, messages = structuredClone(p.mailbox); await f.storage.savePlayer(p);
-  p = await f.storage.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 17); assert.equal(p.city.resources.oil, 0); assert.equal(p.military.units.truck, 0);
+  p = await f.storage.loadPlayer(p.playerId); assert.equal(p.schemaVersion, 18); assert.equal(p.city.resources.oil, 0); assert.equal(p.military.units.truck, 0);
   assert.equal(p.city.research.levels.motorization, 0); assert.deepEqual(p.mailbox, messages); assert.equal(p.military.generals[0].portraitId, portrait);
   assert.equal(p.military.trainingQueue[0].trainingSlotId, 'military-plot-1'); assert.equal(p.city.research.active.finishesAt, 60000);
   assert.ok(p.military.missions.every(m => !m.units && !m.paidOil)); assert.deepEqual(await f.storage.loadPlayer(p.playerId), p);
