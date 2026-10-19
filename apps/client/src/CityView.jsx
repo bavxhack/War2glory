@@ -6,7 +6,7 @@ function Plot({ slot, index, state, selected, onSelect }) { const job = state.ci
 
 export function CityView({ state, transport, onPreview, onResearch }) {
   const [selectedId, setSelectedId] = useState(null); const slot = state.city.buildingSlots.find(item => item.id === selectedId); const busy = transport.hasPending();
-  const construct = (slotId, building) => { try { transport.mutate('construction.enqueue', { slotId, building }); } catch (error) { transport.setMessage(error.message); } };
+  const construct = (slotId, building) => { try { transport.mutate('construction.enqueue', { slotId, building, researchEffect: (state.offers.upgrade[slotId] ?? state.offers.build[building]).researchEffect }); } catch (error) { transport.setMessage(error.message); } };
   return <div className="game-layout"><section className="map-panel" aria-labelledby="city-heading"><div className="heading"><div><span className="kicker">STADTANSICHT</span><h2 id="city-heading">Siedlung</h2></div><span>Grundstück auswählen</span></div><div className="city-scene"><div className="river"/><div className="road horizontal"/><div className="road vertical"/><div className="city-grid" aria-label="Bauplätze">{state.city.buildingSlots.map((item, index) => <Plot key={item.id} slot={item} index={index} state={state} selected={item.id === selectedId} onSelect={() => setSelectedId(item.id)}/>)}</div></div></section><SidebarActions><section className="card selection" aria-live="polite"><Selection slot={slot} state={state} busy={busy} construct={construct} onPreview={onPreview} onResearch={onResearch}/></section></SidebarActions></div>;
 }
 function Selection({ slot, state, busy, construct, onPreview, onResearch }) {

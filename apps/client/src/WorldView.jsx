@@ -1,131 +1,21 @@
+import { LoadingResearch } from './LoadingResearch.jsx';
 import { SidebarActions } from './SidebarActions.jsx';
-import { useCallback, useRef, useState } from 'react';
-import { finishMapPointer, mapSelectionCoordinate } from '../map-navigation.js';
+import { useCallback, useState } from 'react';
 import { ActionButton, GameArt, Dialog } from './ui.jsx';
+import { IsometricMap } from './IsometricMap.jsx';
 
 const terrainLabels = { plains: 'Ebene', forest: 'Wald', hills: 'Hügel', water: 'Wasser' };
 export function WorldView({ state, map, details, transport }) {
-  const [size, setSize] = useState(11);
-  const [center, setCenter] = useState(map?.ownCity ?? { x: 7, y: 7 });
-  const [coordinate, setCoordinate] = useState('');
-  const [scouting, setScouting] = useState(null);
-  const [raiding, setRaiding] = useState(null);
-  const [drag, setDrag] = useState(null);
-  const root = useRef(null);
-  const suppressClick = useRef(false);
-  const pressedCoordinate = useRef(null);
-
-  const request = (nextCenter = center, nextSize = size) => {
-    const bounds = map?.bounds ?? { width: 24, height: 24 };
-    const actual = Math.min(nextSize, bounds.width, bounds.height);
-    const x = Math.max(0, Math.min(bounds.width - actual, Math.round(nextCenter.x - actual / 2)));
-    const y = Math.max(0, Math.min(bounds.height - actual, Math.round(nextCenter.y - actual / 2)));
-    setCenter({ x: x + actual / 2, y: y + actual / 2 });
-    transport.requestMap({ x, y, width: actual, height: actual });
-  };
-  const pan = (x, y) => request({ x: center.x + x, y: center.y + y });
-  const zoom = delta => {
-    const next = Math.max(Math.min(5, map?.bounds.width ?? 5, map?.bounds.height ?? 5), Math.min(15, map?.bounds.width ?? 15, map?.bounds.height ?? 15, size + delta));
-    setSize(next);
-    request(center, next);
-  };
-  const entityByPosition = new Map((map?.entities ?? []).map(entity => [`${entity.x}:${entity.y}`, entity]));
-  const terrainByPosition = new Map((map?.terrain ?? []).map(terrain => [`${terrain.x}:${terrain.y}`, terrain]));
-  const select = (entity, terrain) => {
-    transport.setMapDetails({ entity, terrain });
-    if (entity) transport.details(entity.id);
-  };
-  const selectTileFromEvent = event => {
-    const tile = event.target.closest('[data-map-coordinate]');
-    const key = mapSelectionCoordinate({
-      clickedCoordinate: tile && event.currentTarget.contains(tile) ? tile.dataset.mapCoordinate : null,
-      pressedCoordinate: pressedCoordinate.current,
-      suppressClick: suppressClick.current,
-    });
-    suppressClick.current = false;
-    pressedCoordinate.current = null;
-    if (!key) return;
-    select(entityByPosition.get(key), terrainByPosition.get(key));
-  };
-
-  return <section aria-labelledby="world-heading">
-    <div className="world-toolbar">
-      <div><span className="kicker">GEMEINSAME WELT</span><h2 id="world-heading">Weltkarte</h2></div>
-      <form onSubmit={event => {
-        event.preventDefault();
-        const match = coordinate.match(/^\s*(\d+)\s*[,; ]\s*(\d+)\s*$/);
-        if (!match) return transport.setMessage('Koordinate als x, y eingeben.');
-        request({ x: Number(match[1]), y: Number(match[2]) });
-      }}>
-        <label>Koordinate <input value={coordinate} onChange={event => setCoordinate(event.target.value)} placeholder="z. B. 12, 8" inputMode="numeric"/></label>
-        <button>Suchen</button>
-      </form>
-      <div className="zoom">
-        <button onClick={() => zoom(2)} aria-label="Verkleinern">−</button>
-        <output>{Math.round(1100 / size)} %</output>
-        <button onClick={() => zoom(-2)} aria-label="Vergrößern">+</button>
-        <button onClick={() => map?.ownCity && request(map.ownCity)}>Zur eigenen Stadt</button>
-      </div>
-    </div>
-    <div className="world-layout">
-      <div className="map-stage">
-        <div
-          ref={root}
-          className={`world-map${drag ? ' dragging' : ''}`}
-          style={{ '--map-columns': map?.viewport.width ?? size }}
-          role="grid"
-          tabIndex="0"
-          aria-label="Weltkarte mit quadratischen Feldern"
-          onClick={selectTileFromEvent}
-          onKeyDown={event => {
-            const offsets = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-            if (offsets[event.key]) { event.preventDefault(); pan(...offsets[event.key]); }
-          }}
-          onPointerDown={event => {
-            if (event.button !== 0 || !event.isPrimary) return;
-            suppressClick.current = false;
-            pressedCoordinate.current = event.target.closest('[data-map-coordinate]')?.dataset.mapCoordinate ?? null;
-            root.current.setPointerCapture(event.pointerId);
-            setDrag({ id: event.pointerId, start: { x: event.clientX, y: event.clientY } });
-          }}
-          onPointerCancel={() => { suppressClick.current = true; pressedCoordinate.current = null; setDrag(null); }}
-          onPointerUp={event => {
-            if (drag?.id !== event.pointerId) return;
-            const tileSize = root.current.querySelector('.world-tile')?.getBoundingClientRect().width || 46;
-            const release = finishMapPointer(drag.start, { x: event.clientX, y: event.clientY }, tileSize);
-            suppressClick.current = release.suppressClick;
-            setDrag(null);
-            if (release.suppressClick) pan(release.offset.x, release.offset.y);
-          }}
-        >
-          {map?.terrain.map(terrain => {
-            const key = `${terrain.x}:${terrain.y}`;
-            const entity = entityByPosition.get(key);
-            return <button
-              type="button"
-              role="gridcell"
-              key={key}
-              data-map-coordinate={key}
-              className={`world-tile ${terrain.type}${entity ? ` has-city ${entity.type}` : ''}${details?.terrain?.x === terrain.x && details?.terrain?.y === terrain.y ? ' selected' : ''}`}
-              aria-label={entity ? `${entity.name}, ${terrain.x}, ${terrain.y}` : `${terrain.type}, ${terrain.x}, ${terrain.y}`}
-            >
-              <span className="coordinates">{terrain.x},{terrain.y}</span>
-              {entity && <><GameArt type="town"/><strong>{entity.name}</strong></>}
-            </button>;
-          })}
-        </div>
-        <div className="pan-controls">
-          {[['up','▲',0,-1],['left','◀',-1,0],['down','▼',0,1],['right','▶',1,0]].map(([key,label,x,y]) => <button key={key} aria-label={`Karte nach ${key}`} onClick={() => pan(x,y)}>{label}</button>)}
-        </div>
-        <p className="map-hint">Karte mit Maus oder Finger ziehen · Pfeiltasten funktionieren ebenfalls</p>
-      </div>
-      <SidebarActions><div className="map-sidebar">
-        <MapDetails selection={details} state={state} onScout={setScouting} onRaid={setRaiding}/><FieldActions key={`${state.cityId}-${details?.terrain?.x}-${details?.terrain?.y}`} selection={details} state={state} transport={transport}/>
-        <section className="card legend"><h3>Legende</h3><span><i className="marker own"/>Eigene Stadt</span><span><i className="marker player"/>Spielerstadt</span><span><i className="marker npc"/>NPC-Stadt</span><small>Entfernung: Luftlinie in Kartenfeldern.</small></section>
-      </div></SidebarActions>
-    </div>
-    <ScoutingDialog key={scouting?.id ?? 'scout-closed'} target={scouting} state={state} transport={transport} onClose={() => setScouting(null)}/>
-    <RaidDialog key={raiding?.id ?? 'raid-closed'} target={raiding} state={state} transport={transport} onClose={() => setRaiding(null)}/>
+  const [scouting,setScouting]=useState(null),[raiding,setRaiding]=useState(null);
+  return <section className="world-view iso-world-view" aria-labelledby="world-heading">
+    <IsometricMap map={map} cityId={state.cityId} transport={transport} selection={details}/>
+    <SidebarActions><div className="map-sidebar">
+      <MapDetails selection={details} state={state} onScout={setScouting} onRaid={setRaiding}/>
+      <FieldActions key={`${state.cityId}-${details?.terrain?.x}-${details?.terrain?.y}`} selection={details} state={state} transport={transport}/>
+      <section className="card legend"><h3>Legende</h3><span>★ Eigene befestigte Stadt</span><span>◆ Spielerstadt / Handelsort</span><span>⬟ NPC-Festung</span><span>⚑ Reserviertes Feld</span><small>Windrose: kurz klicken oder gedrückt halten. Maßstab und Auswahl bleiben erhalten.</small></section>
+    </div></SidebarActions>
+    <ScoutingDialog key={scouting?.id??'scout-closed'} target={scouting} state={state} transport={transport} onClose={()=>setScouting(null)}/>
+    <RaidDialog key={raiding?.id??'raid-closed'} target={raiding} state={state} transport={transport} onClose={()=>setRaiding(null)}/>
   </section>;
 }
 function MapDetails({ selection, state, onScout, onRaid }) { if (!selection) return <section className="card"><p>Wähle ein Feld oder eine Stadt.</p></section>; const { entity, terrain } = selection; const distance = Number.isFinite(entity?.distance) ? entity.distance : 0; const general = state.military.generals.find(item => item.status === 'idle' && item.cityId === state.cityId); const scouts = state.military.units.scout; return <section className="card has-selection" tabIndex="-1" aria-live="polite"><span className="kicker">KOORDINATE {terrain.x}, {terrain.y}</span>{entity && <GameArt type="town" label={entity.name}/>}<h2>{entity?.name ?? 'Unbebautes Feld'}</h2><p>Gelände: {terrainLabels[terrain.type]}</p>{entity && <>{<p>{entity.type === 'claim' ? 'Reserviertes Feld' : entity.type === 'npc' ? `NPC-Stadt · Schwierigkeit ${entity.difficulty}` : `${entity.type === 'own-city' ? 'Eigene Stadt' : 'Spielerstadt'} · ${entity.commanderName}`}</p>}<p>Entfernung: {distance.toFixed(2)} Felder Luftlinie</p>{entity.type !== 'own-city' && <p className="notice">Ressourcen, Garnison und Verteidigung: Aufklärung erforderlich.</p>}{entity.type === 'npc' && <ActionButton label="Stadt ausspähen" detail={!general ? 'Kein freier General' : scouts < 1 ? 'Zuerst Aufklärungsflugzeuge ausbilden' : `Hinweg ca. ${Math.max(5, Math.ceil(distance) * 5)} s`} disabled={!general || scouts < 1} onClick={() => onScout(entity)}/>} {entity.type === 'npc' && <ActionButton label="NPC angreifen" detail={!general ? 'Kein freier General' : state.military.units.infantry < 1 ? 'Zuerst Infanterie ausbilden' : 'Vorläufige PvE-Regeln · Verluste möglich'} disabled={!general || state.military.units.infantry < 1} onClick={() => onRaid(entity)}/>} {entity.type === 'player-city' && <p className="notice">Spielerstädte können noch nicht ausgespäht werden.</p>}</>}</section>; }
@@ -163,7 +53,7 @@ function MissionDialog({ target, state, transport, onClose, type }) {
     {type === 'raid' && <fieldset className="cargo-inputs"><legend>Eigene Ressourcenladung</legend>{Object.entries({ wood: 'Holz', stone: 'Stein', food: 'Nahrung', oil: 'Öl (freiwillige Ladung)' }).map(([key, label]) => <label key={key}>{label}<input disabled={busy} type="number" min="0" step="1" max={Math.floor(state.city.resources[key])} value={cargo[key]} onChange={event => { setCargo({ ...cargo, [key]: Number(event.target.value) }); setPreview(null); }}/></label>)}<p>Alle Güter wiegen je einen Platz. Eigene Ladung kehrt zurück; mitgenommene Nahrung wird unterwegs nicht verbraucht. Betriebsöl benötigt zusätzlich Platz und wird verbrannt.</p></fieldset>}
     {type === 'scout' && <p>Späher tragen keine Güter oder Beute. Ihre separaten Tanks fassen {state.logisticsRules.scoutFuelCapacity} Betriebsöl je Späher.</p>}
     <p>Maximal {state.militaryRules.maxMissionUnits} Einheiten insgesamt. Kein Führungslimit. Unterwegs verbrauchen Truppen keine Nahrung aus der Stadt. Sie verlassen die Stadt sofort, auch bei zusätzlicher Verzögerung. Öl für Hin- und Rückweg wird beim Start einmalig bezahlt. Bei Ölmangel zuerst Ölverarbeitung erforschen und eine Raffinerie bauen.</p>
-    {preview && <div className="mission-preview"><strong>{type === 'raid' ? `Gemeinsame Traglast vor Verlusten: ${preview.capacity}` : `Tankkapazität: ${preview.tankCapacity}`}</strong><span>Eigene Ladung: {preview.ownCargoAmount} · Betriebsöl geladen: {preview.totalOil} · Startbelegung: {preview.startOccupancy} · freie Startplätze: {preview.freeStartCapacity}</span><span>Hinwegverbrauch einschließlich Rundungsrest: {preview.outboundConsumption} · Rückwegreserve: {preview.returnReserve}</span>{type === 'raid' && <span>Prognose ohne Kampfverluste: maximal {preview.projectedLootCapacity} zusätzliche Nahrung am Ziel. Eigene Ladung und Rückwegöl haben Vorrang; tatsächliche Beute hängt auch vom NPC-Bestand ab.</span>}<span>{preview.travelMs / 1000} s Grundhinreise + {preview.delayMinutes} zusätzliche Minuten = {preview.outboundTravelMs / 1000} s gesamte Hinreise · {preview.travelMs / 1000} s Rückweg · {preview.distanceFields} Felder</span><span>Öl: {preview.baseOil} Grundbedarf ({preview.normalOneWayOil} je Richtung) + {preview.delayOil} Verzögerungszuschlag · verlängerter Hinweg {preview.outboundOil}, Rückweg {preview.returnOil} · einmalig aufgerundet {preview.totalOil}</span><span>Stadtunterhalt: {preview.upkeepBeforePerHour.toLocaleString('de-DE')} → {preview.upkeepAfterPerHour.toLocaleString('de-DE')} Nahrung/h</span><span>Voraussichtliche Ankunft: {new Date(preview.arrivesAt).toLocaleString('de-DE')} · Rückkehr: {new Date(preview.returnsAt).toLocaleString('de-DE')}. Termine verschieben sich mit dem tatsächlichen Start.</span>{type === 'raid' && <span>Gespeicherte Boni aus Grundwerten und Skills: Angriff +{preview.combatBonuses.attackPercent} % · Verteidigung −{preview.combatBonuses.defensePercent} %</span>}</div>}
+    {preview && <div className="mission-preview"><LoadingResearch preview={preview}/><strong>{type === 'raid' ? `Gemeinsame Traglast vor Verlusten: ${preview.capacity}` : `Tankkapazität: ${preview.tankCapacity}`}</strong><span>Eigene Ladung: {preview.ownCargoAmount} · Betriebsöl geladen: {preview.totalOil} · Startbelegung: {preview.startOccupancy} · freie Startplätze: {preview.freeStartCapacity}</span><span>Hinwegverbrauch einschließlich Rundungsrest: {preview.outboundConsumption} · Rückwegreserve: {preview.returnReserve}</span>{type === 'raid' && <span>Prognose ohne Kampfverluste: maximal {preview.projectedLootCapacity} zusätzliche Nahrung am Ziel. Eigene Ladung und Rückwegöl haben Vorrang; tatsächliche Beute hängt auch vom NPC-Bestand ab.</span>}<span>{preview.travelMs / 1000} s Grundhinreise + {preview.delayMinutes} zusätzliche Minuten = {preview.outboundTravelMs / 1000} s gesamte Hinreise · {preview.travelMs / 1000} s Rückweg · {preview.distanceFields} Felder</span><span>Öl: {preview.baseOil} Grundbedarf ({preview.normalOneWayOil} je Richtung) + {preview.delayOil} Verzögerungszuschlag · verlängerter Hinweg {preview.outboundOil}, Rückweg {preview.returnOil} · einmalig aufgerundet {preview.totalOil}</span><span>Stadtunterhalt: {preview.upkeepBeforePerHour.toLocaleString('de-DE')} → {preview.upkeepAfterPerHour.toLocaleString('de-DE')} Nahrung/h</span><span>Voraussichtliche Ankunft: {new Date(preview.arrivesAt).toLocaleString('de-DE')} · Rückkehr: {new Date(preview.returnsAt).toLocaleString('de-DE')}. Termine verschieben sich mit dem tatsächlichen Start.</span>{type === 'raid' && <span>Gespeicherte Boni aus Grundwerten und Skills: Angriff +{preview.combatBonuses.attackPercent} % · Verteidigung −{preview.combatBonuses.defensePercent} %</span>}</div>}
     {error && <p role="alert">{error}</p>}
   </Dialog>;
 }
@@ -233,7 +123,7 @@ function FieldDialog({ kind, terrain, report, claim, state, transport, onClose }
         {preview.combatForecast && <div className={`field-combat ${preview.combatForecast.victory ? 'victory' : 'defeat'}`} role="status"><strong>{preview.combatForecast.victory ? 'Sieg erwartet' : 'Niederlage erwartet'}</strong><span>Voraussichtlich {preview.combatForecast.survivors} überlebende Infanteristen · {preview.combatForecast.attackerLosses} Infanterieverluste.</span><small>Prognose aus deiner Aufklärung. Andere Spieler können das Feld bis zur Ankunft verändern.</small></div>}
         <div className="field-preview-facts"><div><span>Betriebsöl · einmalig</span><strong>{preview.totalOil}</strong></div><div><span>Hinreise</span><strong>{Math.ceil(preview.outboundTravelMs / 1000)} s</strong></div><div><span>Rückreise</span><strong>{Math.ceil(preview.travelMs / 1000)} s</strong></div></div>
         <p>Hinwegverbrauch {preview.outboundConsumption} Öl · Rückwegreserve {preview.returnReserve} Öl.</p>
-        {conquest ? <><progress aria-label="Transportbelegung" max={preview.capacity} value={preview.startOccupancy}/><p>Belegung {preview.startOccupancy}/{preview.capacity} · eigene Ladung {preview.ownCargoAmount} · freier Platz {preview.freeStartCapacity}.</p><p>Bei einem Sieg reservierst du das Feld. Danach gründest du gegen Gebühr eine Stadt.</p></> : <p>Betriebsöltanks: {preview.totalOil}/{preview.tankCapacity} belegt.</p>}
+        {conquest ? <><LoadingResearch preview={preview}/><progress aria-label="Transportbelegung" max={preview.capacity} value={preview.startOccupancy}/><p>Belegung {preview.startOccupancy}/{preview.capacity} · eigene Ladung {preview.ownCargoAmount} · freier Platz {preview.freeStartCapacity}.</p><p>Bei einem Sieg reservierst du das Feld. Danach gründest du gegen Gebühr eine Stadt.</p></> : <p>Betriebsöltanks: {preview.totalOil}/{preview.tankCapacity} belegt.</p>}
       </>}
     </section>}
     {error && <p className="notice" role="alert">{error}</p>}

@@ -42,3 +42,34 @@ Die vorhandene eigene Bildtafel `game-art.png` diente als Stilreferenz: fiktive 
 `apps/client/building-art.js` beschreibt Beschriftung und Rasterposition. `BuildingArt` bindet die typabhängige Datei und tatsächliche Stufe ein. Hintergrundgröße 500%×200%, Positionen horizontal 0/25/50/75/100% und vertikal 0/100%. Quadratische Bildflächen verhindern Verzerrung oder den Anschnitt benachbarter Stufen. Vite versieht jede Bildreihe mit einem Inhalts-Hash; der Browser lädt sie von derselben lokalen Spielinstanz.
 
 Neubauangebote zeigen Stufe 1. Bei einem laufenden Ausbau bleibt das aktuelle Motiv erhalten, bis der Server den Abschluss meldet. Die Universität in der Forschung zeigt die ausgewählte Universität, auch wenn mehrere unterschiedlich ausgebaute Gebäude vorhanden sind. Spielstände benötigen keine Migration, da bestehende Gebäudestufen die Auswahl bestimmen. Die älteren Bildtafeln und SVGs bleiben für Truppen, Stadtmotive und bestehende URLs erhalten.
+
+## Forschungsbilder (18.10.2026)
+
+`research-technologies.webp` enthält neun eigens mit OpenAI Image Generation erstellte Motive in einem gleichmäßigen 3×3-Raster (1254×1254 Pixel). Die PNG-Quelle wurde ohne Motivänderung oder Skalierung als WebP mit Qualität 88 codiert. Keine übernommenen War2Glory-Grafiken, echten Marken oder externen Bildanfragen. Stil: warmes Licht, gedeckte Olivfarben und realistisch gemalte frühindustrielle Werkzeuge und Anlagen, passend zu den bestehenden eigenen Spielbildern.
+
+| Rasterposition | Stabile Forschungs-ID | Motiv |
+| --- | --- | --- |
+| Oben links | forestry | Sägewerk, Säge und Baumstämme |
+| Oben Mitte | masonry | Steinbruch, Hammer und Meißel |
+| Oben rechts | agriculture | Getreide, Felder und Erntegerät |
+| Mitte links | oilProcessing | Destillationsapparatur und Raffinerie |
+| Mitte | motorization | Offener Motor und LKW-Werkstatt |
+| Mitte rechts | logistics | Geordnete Lagerregale und Bestandsbuch |
+| Unten links | constructionEngineering | Baupläne, Vermessung und Baustelle |
+| Unten Mitte | trainingTechniques | Ausbilder und Hindernisparcours |
+| Unten rechts | loadingTechniques | Verladekran und Fracht-LKW |
+
+`ResearchArt` ordnet stabile IDs den neun unterschiedlichen Ausschnitten zu. Quadratische Bildflächen und `background-size: 300% 300%` zeigen jedes Motiv vollständig. Vite versioniert die lokal ausgelieferte Bilddatei. Die Bilder beeinflussen weder Forschungswerte noch Spielstände; die Technologie bleibt zusätzlich als Text beschriftet.
+
+
+## Weltkarten-Relief (18.10.2026)
+
+`src/WorldTileArt.jsx` enthält eigens im Projekt gezeichnete SVG-Motive für Ebene, Wald, Hügel, Wasser und Stadtminiaturen. Sichtbare Dach-/Wandflächen, Lichtseiten und Schatten erzeugen einen 2,5D-Eindruck. Eigene, fremde und NPC-Städte unterscheiden sich in Dach-/Flaggenfarben und zusätzlich in Textbeschriftung; reservierte Felder zeigen eine Fahne statt einer Stadt. Die Vektorgrafiken werden lokal mit dem Client ausgeliefert, ohne Bilddienste, fremde Spielgrafiken oder neue Abhängigkeiten. Es werden weder tatsächliche Höhenwerte noch zusätzliche Erkenntnisse über fremde Städte vorgetäuscht. Serverdaten und Spielstände werden nicht durch die Grafik verändert.
+
+## Isometrische Stadt- und Landschaftsmotive (19.10.2026)
+
+`isometric-world.webp` ist eine eigens mit OpenAI Image Generation erstellte transparente Bildtafel (1536×1024, 3×2 gleich große Zellen). Die PNG-Arbeitsquelle wurde ohne Motivänderung/Skalierung in WebP mit Qualität 90 codiert. Obere Reihe: eigene befestigte Stadt mit markantem Uhrturm und blauen Dächern; fremder Handelsort mit Fachwerk und Markthalle; NPC-Festung mit massivem Hauptturm. Untere Reihe: Baumgruppe, felsiger Hügel, dekorative Feld-/Mühlengruppe. Die Motive teilen eine schräge Vogelperspektive sowie Licht von links oben und Kontaktschatten nach rechts unten. Keine übernommenen Originalgrafiken oder echten Marken/Flaggen.
+
+`IsometricScene` ordnet Ausschnitte den bereits öffentlich sichtbaren Gelände-/Stadttypen zu. Geländegrundflächen, Küsten, Wasser und die perspektivische Auswahlkontur werden als SVG gezeichnet. Objekte werden nach Welt-X+Y und stabilem X-Tiebreaker von hinten nach vorne aufgebaut; hohe Städte ragen über ihre Grundraute. Bild- und Geometrieauswahl haben eigene Trefferflächen, damit transparente Bildecken keine fremden Felder auswählen. Beschriftungen bleiben aufrecht und werden bei Überlappung versetzt. Die Grafiken sind rein dekorativ und fügen keine Gebäude, Erträge, Truppen, Höhenregeln oder Informationen über fremde Bestände hinzu.
+
+Es waren keine lokalen Original-Screenshots von War2Glory als verifizierte Kartenreferenz verfügbar. Die Darstellung ist eine eigenständige Annäherung an klassische isometrische Strategiespiele; eine pixelgenaue Übereinstimmung wird nicht behauptet. Alle Motive werden lokal und mit Vite-Inhalts-Hash ausgeliefert. Die vorherige SVG-Reliefansicht ist durch diese gemeinsame Projektion ersetzt.

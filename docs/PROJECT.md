@@ -1014,3 +1014,18 @@ Implementiert: zentrale Postbox mit getrennten Nachrichten-/Aufklärungs-/Angrif
 Generalfreie Ressourcenlieferungen an eigene/fremde Städte derselben Welt mit LKW-Rückfahrt, Teilannahme und Rückfracht. Dauerhafte Einwegverlegung von Infanterie/Spähern/LKWs und optional mehreren Generälen in eigene Städte, einschließlich General-only-Diensttransport. Generäle haben eindeutige Standorte; Rollen und neue Einsätze sind ortsgebunden. Kein Handel, Rückruf, Fremdstationieren oder Föderation.
 
 React-Spielrahmen mit sieben Hauptpunkten, kompaktem Stadtkopf und Kontext-Tabs Aktionen/Aktivitäten/Versorgung. Mobile Navigation und native Dialoge nutzen den vorhandenen Transport und Illustrationen. Spielerweite Seiten benennen alle Städte, lokale Seiten die Ausgangsstadt. Migration 16 → 17 und Nachweise stehen in LOGISTICS_UI_VALIDATION.md; historische Auftragsabschnitte beschreiben ihren damaligen Stand.
+
+## Implementierter Auftrag 17
+
+Der versionierte Katalog `research-4-engineering-provisional` umfasst neun wirksame Technologien. Bautechnik, Ausbildungstechnik und Ladetechnik erweitern bestehende Bau-, Ausbildungs- und Frachtpfade. Alle neuen Werte sind eigene vorläufige Balanceentscheidungen. Der historische Quellenstatus in RESEARCH_REFERENCE.md bleibt unverändert.
+
+Ein Wissensstand und ein Forschungsauftrag je Kommandant; Zahlung und Forschungsleitung bleiben ortsgebunden. Neue Arbeitsaufträge speichern Basisdauer, effektive Dauer, Forschungsstufe und Bonusregeln. Neue Missionen speichern effektive Typkapazitäten, einschließlich der Grundlage für spätere Verluste. Kein rückwirkender Bonus auf bezahlte Aufträge, keine veränderten Kampf-, Reisezeit-, Lager- oder Unterhaltsregeln. Validierte serverseitige ENV und gespeicherte Forschungsregelhistorie steuern neue Aufträge ab Neustartzeitpunkt.
+
+Die Forschungsseite gruppiert neun Karten mit Abhängigkeiten, Status, Wirkung, Kosten und Forschungsort. Bauangebote und verbindliche Ausbildungsprüfung erklären den Bonus; Reisevorschauen zeigen Ladetechnik und getrennte Tanks. Schema 17/4 genügt: additive Normalisierung neuer IDs auf 0, bestehende Migrationsketten und Forschungsversionen 1–3 bleiben erhalten. Unbekannte Forschungs-IDs führen zu einem sichtbaren Fehler, ohne die Spielerdatei zurückzusetzen. Ausgeführte Prüfungen: RESEARCH_EXPANSION_VALIDATION.md.
+
+Als nächsten eigenständigen Auftrag vorschlagen: Einführung/Aufgaben mit einmaligen Belohnungen und stadtübergreifender Versorgungsübersicht. Danach Bündnisse/Unterstützung, geregelten Handel und PvP-Vorbereitung konkretisieren. Matrix bleibt ein eigener Entwicklungsstrang.
+
+
+## Weltkartenansicht: Windrose und Relief
+
+Implementiert: Navigation ausschließlich durch ausdrückliche Bedienelemente (acht Windrosentasten, Zentrierung, Suche und Zoom); kein Verschieben durch Ziehen/Wischen oder globale Pfeiltasten. Die Windrose liegt über der Karte. Größere Felder in kleineren Standardausschnitten (Desktop 5×5, schmal 3×3), volle Kartenbreite, lesbare Koordinaten/Namen und lokale SVG-Grafiken für Gelände und räumlich gezeichnete Stadtminiaturen verbessern die Übersicht. Eigene, fremde und NPC-Städte bleiben zusätzlich durch Text unterscheidbar. Kleine Welten werden innerhalb ihrer gespeicherten Grenzen angezeigt. Die Darstellung ist 2,5D; Serverregeln, Welt-/Spielerschemata, Entfernungsmodell, Erkundung und Spielstände bleiben unverändert. Tatsächlich ausgeführte Prüfungen und Grenzen: WORLD_MAP_VALIDATION.md.

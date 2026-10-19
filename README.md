@@ -123,7 +123,7 @@ Bei jedem Pull Request testet die GitHub-Actions-Pipeline den Code und prüft de
 - Atomare JSON-Spielstände pro Spieler, stabile Instanz-ID, ausdrückliche Übernahme der alten Demo-Stadt und Produktion während Abwesenheit.
 - Maschinenlesbare Serverbeschreibung als Vorbereitung auf Föderation.
 - Dauerhafte gemeinsame 24×24-Weltkarte mit Gelände, zufällig vergebenen eindeutigen Spielerpositionen und 18 gemeinsam sichtbaren NPC-Städten.
-- Kartenwechsel, Verschieben per Maus, Touch, Richtungstasten oder Pfeiltasten, Koordinatensuche, Zoom und öffentliche Stadtinformationen über WebSocket.
+- Kartenwechsel, Bewegung über die Windrose mit acht Richtungstasten, Koordinatensuche, Zoom und öffentliche Stadtinformationen über WebSocket.
 - Abgeleitete Kommandantenpunkte, ein getrennter Militärbereich mit vier Bauplätzen sowie persistente Gruppenausbildung von Spähern/Infanterie mit drei eigenen Warteschlangenslots je Kaserne. Einheitenkarten visualisieren Späher als Aufklärungsflugzeuge.
 - Ein idempotent vergebener kostenloser Startgeneral, eine auf mehrere Generäle ausgelegte Verwaltung mit sicherer Namensänderung und verlustfreie NPC-Aufklärung mit gezielter Generalwahl, Hin-/Rückmarsch, privaten historischen Berichten und einmaliger Erstziel-Erfahrung.
 - Führung, Angriff, Verteidigung sowie getrennte Erfahrungs-/Skillzähler sind als persistente und getestete Grundlage vorhanden. Manuelle XP-Umrechnung und Skillverteilung sind mit dem vorläufigen Regelsatz aus Auftrag 10 aktiv; Führung verbessert Bürgermeister, verteilte Angriff-/Verteidigungspunkte wirken auf neue Farmzüge.
@@ -231,3 +231,23 @@ Die Postbox bündelt Aufklärungsberichte, Angriffsberichte, eingegangene Nachri
 Nachrichten gehen an den Kommandantennamen eines anderen registrierten Spielers derselben Welt; Antworten übernehmen Empfänger und Betreff. Betreff bis 100, Text bis 4000 Zeichen; maximal fünf neue Nachrichten pro Minute (eigene Prototypgrenze). Namen und Text werden ausschließlich als Text dargestellt. Nachrichten, Absenderkopie und Lesestatus bleiben nach Abmeldung/Neustart erhalten. Online-Spieler und deren weitere Tabs erhalten Änderungen über den bestehenden privaten WebSocket; Offline-Empfänger sehen sie beim nächsten Login.
 
 Bei neuen ungelesenen Nachrichten oder zurückgekehrten Aufklärungs-/Angriffsberichten blinkt das Postbox-Symbol rot und zeigt die ungelesene Anzahl. Öffnen eines Eintrags markiert nur diesen als gelesen. Bei reduzierter Bewegung bleibt das Symbol rot ohne Animation. Gesendete Nachrichten zählen nicht als ungelesener Eingang. Schema 12 ergänzt die Postbox; alle alten Berichte und Spielstände bleiben erhalten, historische Berichte gelten zunächst als gelesen. Es gibt noch keine Löschung, Anhänge oder Nachrichten zwischen Serverwelten.
+
+## Forschungsbaum und Technik (Auftrag 17)
+
+Neun aktive Technologien im gemeinsamen, versionierten Katalog: Die sechs bisherigen behalten ihre Regeln. Neu sind **Bautechnik**, **Ausbildungstechnik** (einschließlich LKW-Herstellung) und **Ladetechnik**, jeweils Stufe 0–5. Diese Werte sind eigene vorläufige Balanceentscheidungen, keine rekonstruierten Originalwerte. Forschung bleibt spielerweit mit einem laufenden Auftrag; bezahlt wird aus der ausdrücklich gewählten Stadt. Bautechnik benötigt Steinverarbeitung 1, Ladetechnik Lagerlogistik 1; Universität mindestens max(2, Zielstufe).
+
+Je neuer Zielstufe L: 150×L Holz und Stein, 90×L Sekunden vor bestehendem Universitäts-/Leitungsbonus. Standardwirkung je Stufe +5 % Geschwindigkeit beziehungsweise Traglast. +25 % Geschwindigkeit bedeutet 20 % Zeitersparnis. Bau-/Ausbildungsaufträge und Reisen speichern ihre Werte bei Annahme; bestehende bezahlte Aktionen werden nicht nachträglich verändert. Ladetechnik erhöht Frachtraum, Lagerlogistik weiterhin Stadtlager. Späher- und General-Diensttransporttanks bleiben unverändert.
+
+Die drei `RESEARCH_*_BONUS_BPS` in `.env.example` erlauben ganze 0–2000 Basispunkte je Stufe (Standard 500). Ein Neustart speichert den Regelwechsel mit Aktivierungszeit. Spielerschema 17 und Weltschema 4 bleiben bestehen; fehlende neue Wissensstände werden mit 0 ergänzt. Forschungsaufträge der Versionen 1–3 bleiben abschließbar. Tests, Browserprüfungen und Grenzen: [RESEARCH_EXPANSION_VALIDATION.md](docs/RESEARCH_EXPANSION_VALIDATION.md).
+
+Die neun Forschungsarten besitzen jeweils ein eigenes Bildmotiv. Die Karten zeigen Bild, Namen, Stufe und Status; genaue Wirkung, Preise und Voraussetzungen werden erst über das Caret „Beschreibung & Voraussetzungen“ aufgeklappt. Die Aufklappfunktion ist auch mit Tastatur bedienbar.
+
+## Isometrische Weltkarte mit fester Windrose
+
+Die Weltkarte liegt in einem an den verfügbaren Platz angepassten Kartenfenster. Quadratische Weltfelder erscheinen als Rauten; befestigte Städte, Baumgruppen, Felsen und Hügel erhalten Höhenstaffelung, Überdeckung und gemeinsame Schatten. Namen, Koordinaten und Stadttypen bleiben aufrecht lesbar. Die lokale Grafik ist eine eigene Interpretation klassischer Strategiespiele, keine behauptete Originalkopie.
+
+Die Windrose bleibt unten rechts **im Kartenfenster** stehen: kurzer Klick bewegt die Kamera um einen festen Schritt, Gedrückthalten fährt kontinuierlich weiter. Loslassen, Zeigerabbruch und Fokusverlust stoppen sofort. Alle acht Richtungen beziehen sich auf den Bildschirm. Die Mitte zentriert die ausgewählte eigene Stadt bei unverändertem Maßstab. Die Bedienung funktioniert auch mit Tab und Enter/Leertaste; Zoomen und Seitenscrollen sind zum Erkunden nicht nötig. Zusätzliche Suche und Maßstabwahl bleiben aufklappbar.
+
+Die Kamera bewegt sich unmittelbar im Client. Benötigte öffentliche Kartenausschnitte werden gebündelt über den vorhandenen WebSocket nachgeladen und zwischengespeichert; verspätete Antworten verschieben weder Kamera noch Auswahl zurück. Spielstände, Weltkoordinaten, Entfernungen und Reisezeiten bleiben unverändert. Screenshots, ausgeführte Prüfungen und Grenzen: [WORLD_MAP_VALIDATION.md](docs/WORLD_MAP_VALIDATION.md).
+
+Die isometrischen Felder starten mit 240 px Breite (mobil 208 px). Stadtgrundflächen sind auf 80 % der Feldbreite begrenzt und am Feldboden verankert; die vergrößerten Felder lassen sichtbaren Abstand zwischen benachbarten Städten.

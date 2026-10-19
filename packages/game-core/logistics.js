@@ -1,3 +1,4 @@
+import { loadingRules } from './research.js';
 import { CARGO_RULES, CARGO_RAID_RULESET, CARGO_SCOUT_RULESET, validateCargo, cargoAmount, oneWayFuelMilli, goodsCapacity } from './cargo.js';
 import { combatBonuses, effectiveAttributes, MILITARY_RULES, validateMissionUnits } from './military.js';
 
@@ -43,6 +44,7 @@ export function fuelPlan(oneWayMilli, travelMs, delayMinutes) {
 }
 
 export function missionQuote(player, command, origin, target, rules = LOGISTICS_RULES, now = player.city.updatedAt) {
+  rules = loadingRules(rules, player.city);
   const type = command.type;
   const delayMinutes = command.delayMinutes === undefined ? 0 : command.delayMinutes;
   if (!Number.isSafeInteger(delayMinutes) || delayMinutes < 0 || delayMinutes > rules.maxAttackDelayMinutes) throw new Error(`Zusatzverzögerung: ganze Minuten zwischen 0 und ${rules.maxAttackDelayMinutes} erforderlich.`);

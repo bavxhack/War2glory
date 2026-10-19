@@ -300,7 +300,7 @@ test('WebSocket research: private preview, two connections, deduplication, stora
   let p = await running.server.storage.loadPlayer(owner.snapshot.player.id);
   Object.assign(p.city.buildingSlots[3], { building: 'university', buildingId: 'owned-university', level: 1 });
   p.city.resources.wood = 1000; p.city.resources.stone = 1000; await running.server.storage.savePlayer(p);
-  const command = { technology: 'forestry', targetLevel: 1, universityId: 'owned-university', rulesetVersion: 'research-3-logistics-provisional' };
+  const command = { technology: 'forestry', targetLevel: 1, universityId: 'owned-university', rulesetVersion: 'research-4-engineering-provisional' };
   async function request(client, type, payload, responseType = 'command.ok', id) { const requestId = client.send(type, payload, id); return (await client.next(responseType, requestId)).payload; }
   assert.match((await request(other, 'research.preview', command, 'command.error')).message, /eigene/);
   const preview = await request(a, 'research.preview', command, 'research.preview'); assert.equal(preview.cost.wood, 100); assert.equal(preview.durationMs, 60000);
@@ -371,7 +371,7 @@ test('Auftrag 12: two candidate pools, atomic recruitment, three roles, research
   const raidPayload = { generalId: C.id, targetId: target.id, infantry: 20 };
   const raidPreview = await request(a, 'raid.preview', raidPayload, 'raid.preview');
   await request(a, 'raid.start', { ...raidPayload, preview: raidPreview });
-  const researchCommand = { universityId: 'university', technology: 'forestry', targetLevel: 2, rulesetVersion: 'research-3-logistics-provisional' };
+  const researchCommand = { universityId: 'university', technology: 'forestry', targetLevel: 2, rulesetVersion: 'research-4-engineering-provisional' };
   const researchPreview = await request(a, 'research.preview', researchCommand, 'research.preview');
   assert.equal(researchPreview.durationWithoutGeneralMs, 110000);
   await request(a, 'research.start', { ...researchCommand, expectedUniversityLevel: 2, researcher: researchPreview.researcher });

@@ -44,7 +44,7 @@ export class GameTransport {
       return;
     }
     const request = this.#requests.get(event.requestId);
-    if (request && ['delivery.preview', 'transfer.preview', 'field.scout.preview', 'field.conquest.preview', 'city.found.preview', 'raid.preview', 'scouting.preview', 'general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
+    if (request && ['training.preview', 'delivery.preview', 'transfer.preview', 'field.scout.preview', 'field.conquest.preview', 'city.found.preview', 'raid.preview', 'scouting.preview', 'general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
       this.#requests.delete(event.requestId);
       if (event.type === 'command.error') request.reject(new Error(event.payload.message));
       else if (request.cityId && request.cityId !== this.selectedCityId) request.reject(new Error('Stadt wurde gewechselt. Bitte erneut prüfen.'));
@@ -67,9 +67,13 @@ export class GameTransport {
       this.#set({ game: event.payload, switching: false });
     }
     else if (event.type === 'map.snapshot' && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) {
-      const selection = this.state.mapDetails, tile = selection?.terrain;
-      const entity = tile ? event.payload.entities?.find(e => e.x === tile.x && e.y === tile.y) : null;
-      this.#set({ map: event.payload, ...(tile ? { mapDetails: { ...selection, entity } } : {}) });
+      const old=this.state.map;
+      if (old?.world?.instanceId === event.payload.world?.instanceId && Number.isFinite(old?.revision) && event.payload.revision < old.revision) return;
+      const selection=this.state.mapDetails,tile=selection?.terrain,v=event.payload.viewport;
+      const covered=tile&&v&&tile.x>=v.x&&tile.x<v.x+v.width&&tile.y>=v.y&&tile.y<v.y+v.height;
+      const found=covered?event.payload.entities?.find(e=>e.x===tile.x&&e.y===tile.y):null;
+      const entity=covered?(found&&found.id===selection.entity?.id?{...selection.entity,...found}:found):selection?.entity;
+      this.#set({map:event.payload,...(covered?{mapDetails:{...selection,entity}}:{})});
     }
     else if (event.type === 'map.changed' && this.state.map && event.payload.revision > this.state.map.revision) this.requestMap(this.state.map.viewport);
     else if (event.type === 'map.details' && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ mapDetails: event.payload });

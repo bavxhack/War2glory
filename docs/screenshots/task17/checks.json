@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "Desktop: Bau, Ausbildung und generalfreie Lieferung vor Forschung per UI gestartet.",
+    "Bautechnik: UI-Forschung bestätigt, Abschluss über Serverzeit, Bonus in zweiter Stadt geprüft; Altmission behält Kapazität.",
+    "Ausbildungstechnik: UI-Forschung bestätigt, Abschluss über Serverzeit, Bonus in zweiter Stadt geprüft; Altmission behält Kapazität.",
+    "Ladetechnik: UI-Forschung bestätigt, Abschluss über Serverzeit, Bonus in zweiter Stadt geprüft; Altmission behält Kapazität.",
+    "Neun Forschungsbilder geladen; alle Beschreibungen zunächst geschlossen und einzeln per Tastatur auf-/zuklappbar.",
+    "Mobil 390×844: neun Karten, kein horizontaler Seitenüberlauf, Aktionenpanel per Tastatur/Escape geschlossen.",
+    "Mobil 320×844: Forschungsansicht ohne horizontalen Seitenüberlauf.",
+    "Sitzung über Reload wiederaufgenommen.",
+    "Serverneustart: Forschungsstufen und historische Missionskapazität aus JSON erhalten."
+  ],
+  "errors": []
+}
