@@ -6,7 +6,7 @@ const terrainNames={plains:'Ebene',forest:'Wald',hills:'Hügel',water:'Wasser'};
 const colors={plains:'#a4b579',forest:'#799466',hills:'#aaa57d',water:'#5994a2'};
 function Sprite({ kind, width }) {
   const index={ 'own-city':0,'player-city':1,npc:2,forest:3,hills:4,plains:5 }[kind];
-  return <svg x={-width/2} y={-width*.80} width={width} height={width} viewBox={`${(index%3)*400} ${Math.floor(index/3)*400} 400 400`} overflow="hidden" className="iso-sprite" pointerEvents="none" aria-hidden="true"><image href={atlas} width="1200" height="800"/></svg>;
+  return <svg x={-width/2} y={-width*.78} width={width} height={width} viewBox={`${(index%3)*400} ${Math.floor(index/3)*400} 400 400`} overflow="hidden" data-sprite-width={width} className="iso-sprite" pointerEvents="none" aria-hidden="true"><image href={atlas} width="1200" height="800"/></svg>;
 }
 
 export function IsometricScene({ cache, bounds, tileWidth, selected, onSelect }) {
@@ -37,8 +37,8 @@ export function IsometricScene({ cache, bounds, tileWidth, selected, onSelect })
     <g className="iso-object-layer">{painted.map(t=>{const key=`${t.x}:${t.y}`,e=cache.entities.get(key),p=project(t,tileWidth),kind=e?.type??t.type;
       if(kind==='water'||kind==='plains'&&(t.x*3+t.y)%7!==0)return null;
       return <g key={key} className={`iso-object ${e?'iso-city':''}`} data-map-coordinate={key} data-entity-type={e?.type} data-depth={t.x+t.y} transform={`translate(${p.x} ${p.y})`} role={e?'button':undefined} tabIndex={e?0:undefined} aria-label={e?`${e.name}, ${mapEntityLabel(e.type)}, ${t.x}, ${t.y}`:undefined} onClick={event=>select(event,key)} onKeyDown={event=>keyboard(event,key)}>
-        <path className="iso-object-hit" d={e?`M${-tileWidth*.7} -15 ${-tileWidth*.6} ${-tileWidth*.65} ${-tileWidth*.2} ${-tileWidth*.8} 0 ${-tileWidth*1.15} ${tileWidth*.25} ${-tileWidth*.75} ${tileWidth*.65} ${-tileWidth*.6} ${tileWidth*.7} 0 0 ${tileWidth*.24}Z`:`M${-tileWidth*.52} 0 ${-tileWidth*.45} ${-tileWidth*.65} 0 ${-tileWidth*.8} ${tileWidth*.5} ${-tileWidth*.55} ${tileWidth*.52} 0 0 ${tileWidth*.2}Z`} fill="transparent" pointerEvents="all"/>
-        {kind==='claim'?<g><ellipse cy="8" rx="20" ry="7" fill="#263e2a66"/><path d="M0 8v-65l28 10L0-36" fill="#e5ca7c" stroke="#6d5739" strokeWidth="3"/></g>:<Sprite kind={kind} width={tileWidth*(e?1.5:kind==='hills'?1.1:kind==='forest'?.85:.9)}/>}
+        <path className="iso-object-hit" d={e?`M${-tileWidth*.37} 0 ${-tileWidth*.32} ${-tileWidth*.34} ${-tileWidth*.1} ${-tileWidth*.43} 0 ${-tileWidth*.62} ${tileWidth*.13} ${-tileWidth*.4} ${tileWidth*.35} ${-tileWidth*.32} ${tileWidth*.37} 0 0 ${tileWidth*.17}Z`:`M${-tileWidth*.31} 0 ${-tileWidth*.27} ${-tileWidth*.4} 0 ${-tileWidth*.53} ${tileWidth*.3} ${-tileWidth*.35} ${tileWidth*.31} 0 0 ${tileWidth*.14}Z`} fill="transparent" pointerEvents="all"/>
+        {kind==='claim'?<g><ellipse cy="8" rx="20" ry="7" fill="#263e2a66"/><path d="M0 8v-65l28 10L0-36" fill="#e5ca7c" stroke="#6d5739" strokeWidth="3"/></g>:<Sprite kind={kind} width={tileWidth*(e ? .8 : kind==='hills' ? .8 : kind==='forest' ? .65 : .7)}/>}
       </g>;
     })}</g>
     {selected&&(()=>{const [x,y]=selected.split(':').map(Number),p=project({x,y},tileWidth);return <polygon className="iso-selection-outline" points={`0,${-h} ${w},0 0,${h} ${-w},0`} transform={`translate(${p.x} ${p.y})`} fill="#ffe58418" stroke="#ffe68c" strokeWidth="3" pointerEvents="none"/>;})()}

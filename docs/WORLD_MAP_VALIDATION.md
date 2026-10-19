@@ -8,7 +8,13 @@ Die Karte ist eine isometrische 2,5D-Szene mit rautenförmigem Boden, Schatten u
 
 Die Windrose bleibt innerhalb des Kartenrahmens unten rechts. Acht Richtungen entsprechen der Bildschirmrichtung der Kamera; die Landschaft läuft entgegengesetzt. Ein kurzer Druck bewegt 64 Bildpixel. Nach 220 ms Haltezeit folgt Bewegung mit 170 Bildpixeln pro Sekunde, unabhängig von Bildrate und Tastaturwiederholung. Loslassen außerhalb, Pointer-Cancel, Fokusverlust und versteckte Dokumente stoppen die Bewegung. Enter/Leertaste und Touch werden unterstützt. Navigation verändert weder Auswahl noch Zoom und löst keine Spielaktion aus. Ziehen, Wischen, Mausrad und lose Pfeiltasten bewegen die Kamera nicht.
 
-Suche, eigener Stadtmittelpunkt und expliziter Zoom verwenden dieselbe Projektion. Der anfängliche Maßstab beträgt 144 px pro Raute, auf schmalen Geräten 128 px; Navigation hält den Maßstab konstant. Die responsive Kartenfläche benötigt kein Scrollen der Seite. Jenseits der ausdrücklich gezeichneten Weltgrenze liegt eine dekorative Wasserfläche ohne auswählbare Felder.
+Suche, eigener Stadtmittelpunkt und expliziter Zoom verwenden dieselbe Projektion. Der anfängliche Maßstab beträgt 240 px pro Raute, auf schmalen Geräten 208 px; Navigation hält den Maßstab konstant. Die responsive Kartenfläche benötigt kein Scrollen der Seite. Jenseits der ausdrücklich gezeichneten Weltgrenze liegt eine dekorative Wasserfläche ohne auswählbare Felder.
+
+## Korrektur der Stadt-/Feldgrößen
+
+Die Felder wurden von 144 auf 240 px am Desktop und von 128 auf 208 px auf schmalen Geräten vergrößert. Stadtgrafiken belegen jetzt 80 % statt 150 % der Feldbreite; ihr Bodenanker wurde nachjustiert. Dadurch passen Mauern und Stadtgrundfläche mit Abstand in die zugehörige Raute. Türme dürfen als erhöhte Objekte weiterhin vor dahinterliegende Felder ragen. Die Trefferflächen für Städte und Gelände wurden entsprechend verkleinert, damit unsichtbare alte Trefferbereiche keine Nachbarfelder auswählen. Der explizite Zoom reicht nun von 160 bis 320 px.
+
+Der ergänzte Browsercheck prüft die tatsächliche Stadtbreite sowie freie, korrekt zugeordnete vordere Feldränder für alle drei Stadttypen. Ein Zwischenlauf zeigte an einem seitlichen Rand eine Überdeckung durch ein Vordergrundobjekt; die Prüfung verwendet daher die Bodenränder vor den Gebäuden, während erhöhte Architektur weiterhin gemäß Tiefensortierung auswählbar bleibt. Die zu großen Geländetrefferflächen wurden dabei korrigiert. Abschlussbefehle und neue Screenshots wurden nach der Korrektur erneut erzeugt (`work/isometric-size-test.log`, `work/isometric-size-build.log`, `work/isometric-size-browser.log`).
 
 ## Projektion, Daten und Spielstände
 
@@ -24,7 +30,7 @@ Es gibt keine neuen Serverbefehle, Geländearten oder Spielregeln. Auswahl, Aufk
 | --- | --- |
 | `npm test` | 238 Tests bestanden, 0 fehlgeschlagen |
 | `npm run build` | Produktionsbuild erfolgreich |
-| `PLAYWRIGHT_MODULE=/opt/codex/runtimes/cua/lib/node_modules/playwright/index.mjs node scripts/validate-world-map-ui.mjs` | Neun Browserprüfgruppen erfolgreich, keine JavaScript-Seitenfehler |
+| `PLAYWRIGHT_MODULE=/opt/codex/runtimes/cua/lib/node_modules/playwright/index.mjs node scripts/validate-world-map-ui.mjs` | Zehn Browserprüfgruppen erfolgreich, keine JavaScript-Seitenfehler |
 | `git diff --check` | Keine Whitespacefehler |
 
 Sechs neue automatisierte Kameratests prüfen Projektion und inverse Auswahl bei mehreren Maßstäben und Weltenden, alle acht Bildschirmrichtungen, Stopp an Grenzen, zeitbasierte Bewegung, Abbruch/Richtungswechsel, Cache-Revisionen und begrenzte Nachladeblöcke einschließlich kleiner Welten. Zwei Transporttests prüfen erhaltene Auswahl/Details, veraltete Antworten und weiterhin leere Felder. Bestehende Spiellogik- und Persistenztests bleiben Bestandteil des vollständigen Testsatzes.
