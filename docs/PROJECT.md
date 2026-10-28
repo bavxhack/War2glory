@@ -10,6 +10,29 @@ Spielerschema 18 und Weltschema 4. Zwölf einmalige Aufgaben im unabhängigen Ka
 
 Unter Stadt bleiben Stadtansicht, Alle Städte und Aufgaben erreichbar. Versorgung nutzt dieselben Kernraten mit lokalem Bürgermeister und globaler Forschung. Aktueller Stadtunterhalt erfasst stationierte Truppen; historische gespeicherte Versorgungsregeln bleiben verbindlich. Die bestehende isometrische Karte mit Windrose, alle sieben Hauptnavigationseinträge, Forschung und Logistik bleiben erhalten. Die untenstehenden Etappen und alten Schemaangaben sind Entwicklungshistorie.
 
+## Nächster Schritt: Zwischenauftrag 18a vor Auftrag 19
+
+Am 28.10.2026 hat der Nutzer Auftrag 18 als fertig bestätigt und ein umfassendes UI-/UX-Refactoring vor Auftrag 19 beauftragt. **18a ist spezifiziert, noch nicht implementiert.** Der Planungschat hat die Clientansichten, Transport, Styles und relevante Serverbefehle statisch geprüft; keine neuen Laufzeittests ausgeführt.
+
+Arbeitsanweisung: [CODEX_PROMPT.md](../CODEX_PROMPT.md). Audit, vollständige Aktionszuordnung und neues Bedienkonzept: [UX_REFACTOR_18A.md](UX_REFACTOR_18A.md).
+
+Die sieben Hauptbereiche bleiben erhalten. Primäre Aktionen wandern direkt an ihre Objekte und in die zugehörigen Formulare. Das rechte Panel dient optional dem Status; ein zusätzlicher mobiler Aktionen-Dialog entfällt als Pflichtschritt. Diese Entscheidung ersetzt die entsprechende Panel-Vorgabe des historischen UI-Konzepts aus Auftrag 16.
+
+Umfang:
+- Gebäudekacheln mit direktem Ausbau, Baukatalog am freien Platz, Forschung an Universität und Ausbildung an Kaserne/Fabrik; Abriss unter „Mehr“ mit Folgenbestätigung.
+- Direkte Forschungsaktionen und automatische bestehende Servervorschauen in Planungsformularen; Startbutton bei Eingaben und Kosten statt in anderer Sidebar.
+- Generalverwaltung und Rekrutierung im Hauptbereich; klare Bereiche für Rolle, Entwicklung und Namen. XP-Kauf und Verteilung bleiben getrennte Serveraktionen.
+- Sofort sichtbare kontextgerechte Kartenaktionen bei Auswahl; Windrose, Maßstab, Projektion und Regeln bleiben erhalten.
+- Zusammenhängende Liefer-/Verlegungsformulare mit expliziter Richtung. Versorgungshilfe: Nahrung in die betroffene Stadt liefern, Truppen aus ihr verlegen.
+- Aufgaben führen zur konkreten Aktion. Sichtbar gewählte Zielstadt und Belohnung ermöglichen direkte Einzelabholung; Einmaligkeit und Lagerprüfung bleiben.
+- „Alle anzeigen“ öffnet vollständige Aktivitäten, einschließlich Farmzügen/Aufklärung/Eroberung. Berichte bieten aktuelle Folgeplanung, ohne historische Werte als aktuelle Verfügbarkeit zu übernehmen.
+- Fachlicher Entwurfsschutz statt pauschalem onInput; lokale Fehler-/Erfolgsmeldungen, sichere veraltete Vorschauen und Reconnect.
+- Einheitliche Touch-/Tastaturbedienung, keine Modalstapel, lesbare Dauern, keine Hauptaktion ausschließlich bei Hover.
+
+Eigene UX-Abnahmeziele, keine bereits gemessenen Verbesserungen: sichtbares Gebäude mit einem Klick ausbauen; Baukatalog in zwei Klicks bis Neubau; Forschungskarte in zwei Klicks bis Start bei gültigem Ort; gültig ausgefüllten Transport nach automatischer Vorschau mit einem Klick starten. Preise und Folgen bleiben vorher sichtbar. Klicks, Texteingaben, Scrollwechsel und Wartezeiten getrennt dokumentieren.
+
+Codex muss vor/nach Umsetzung alle Aktionswege im Browser prüfen, npm test und npm run build ausführen und tatsächliche Nachweise in docs/UX_REFACTOR_18A_VALIDATION.md festhalten. Forschung, Nahrung, Öl, Fracht, Punkte, Generäle, Schema 18/4, Aufgabenansprüche und Spielstände erhalten. Keine neue Spielmechanik. Auftrag 19 bleibt bis Abschluss von 18a zurückgestellt.
+
 ## Etappen
 
 | Etappe | Ergebnis | Status |
@@ -35,6 +58,7 @@ Unter Stadt bleiben Stadtansicht, Alle Städte und Aufgaben erreichbar. Versorgu
 | 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
 | Forschung+ / 17 | Versionierter Forschungskatalog, Bau-, Ausbildungs- und Ladetechnik mit verständlicher Forschungsansicht | Implementiert; vom Nutzer am 19.10.2026 als abgeschlossen bestätigt, Prüfbelege in RESEARCH_EXPANSION_VALIDATION.md |
 | Einstieg / 18 | Einmalige Aufgabenbelohnungen und stadtübergreifende Versorgungsübersicht | Implementiert als Prototyp; Prüfbelege in TASKS_SUPPLY_VALIDATION.md |
+| UI/UX / 18a | Direkte Objektaktionen, zusammenhängende Formulare, automatische Vorschauen und vollständige Aktionswege | Zwischenauftrag vor 19 am 28.10.2026 spezifiziert; Umsetzung/Browserprüfung ausstehend |
 | Ausbau+ | Aufgaben, Stadtwirtschaft, Radar/Verteidigung, taktischer Kampf und weitere Einheiten | Recherchierte Kandidaten, kein unmittelbarer Implementierungsauftrag |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
