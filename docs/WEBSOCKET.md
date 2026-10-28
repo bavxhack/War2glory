@@ -1,10 +1,12 @@
 # WebSocket-, Konto- und Speicherformat
 
+Aktuell gelten Spielerschema **18**, Weltschema **4** und Transportversion **1**. Stadtunterhalt verwendet den gespeicherten Regelsatz, derzeit ausschließlich stationierte Truppen. Frühere Schemaabschnitte bleiben als Historie erhalten.
+
 ## Ereignisprotokoll (Version 1)
 
 Die Anwendung lädt nur statische Dateien, `GET /health` und die öffentliche Föderationsbeschreibung über HTTP. Private Spielstände und Spielbefehle sind ausschließlich über `GET /game` als WebSocket-Upgrade erreichbar. Jedes Clientereignis enthält `version`, `type`, eine eindeutige `requestId` und `payload`. Antworten tragen dieselbe `requestId`; Push-Ereignisse benötigen keine.
 
-Der Server akzeptiert `auth.register`, `auth.login`, `auth.resume`, `auth.logout`, `city.sync`, `construction.enqueue`, `building.preview`, `building.demolish`, `training.enqueue`, `scouting.start`, `raid.start`, `general.rename`, `general.mayor`, `general.preview`, `general.convert`, `general.distribute`, `research.preview`, `research.start`, `map.viewport` und `map.details`. Er sendet zusätzlich `map.snapshot`, `map.details` und bei neu registrierten Städten `map.changed`. Kartenausschnitte sind höchstens 15×15 Felder groß; Koordinaten, IDs und eine kurze Anfragerate werden serverseitig geprüft. Antworten auf öffentliche Kartendetails enthalten keine Ressourcen, Garnisonen, Bauaufträge oder Regenerationszeitstempel. Nachrichten sind auf 16 KiB begrenzt. Der Server prüft Format, Ereignistyp und Origin. Hinter einem Reverse Proxy werden erlaubte öffentliche Origins explizit angegeben:
+Der Server akzeptiert `auth.register`, `auth.login`, `auth.resume`, `auth.logout`, `city.sync`, `tasks.claim`, `construction.enqueue`, `building.preview`, `building.demolish`, `training.enqueue`, `scouting.start`, `raid.start`, `general.rename`, `general.mayor`, `general.preview`, `general.convert`, `general.distribute`, `research.preview`, `research.start`, `map.viewport` und `map.details`. Er sendet zusätzlich `map.snapshot`, `map.details` und bei neu registrierten Städten `map.changed`. Kartenausschnitte sind höchstens 15×15 Felder groß; Koordinaten, IDs und eine kurze Anfragerate werden serverseitig geprüft. Antworten auf öffentliche Kartendetails enthalten keine Ressourcen, Garnisonen, Bauaufträge oder Regenerationszeitstempel. Nachrichten sind auf 16 KiB begrenzt. Der Server prüft Format, Ereignistyp und Origin. Hinter einem Reverse Proxy werden erlaubte öffentliche Origins explizit angegeben:
 
 ```sh
 npm start -- --host 0.0.0.0 --origins https://spiel.example.org
@@ -16,7 +18,7 @@ Der Proxy muss WebSocket-Upgrades weiterreichen. Externer Zugriff muss TLS verwe
 
 Passwörter werden mit Node.js `scrypt`, zufälligem 128-Bit-Salt und konstantem Vergleich geprüft. Sitzungsschlüssel besitzen 256 Bit Zufall, laufen nach 30 Tagen ab, sind widerrufbar und werden serverseitig nur SHA-256-gehasht gespeichert. Der Browser speichert den Schlüssel in `localStorage`, damit ein Neustart wieder zur Stadt führt. Das schützt nicht gegen JavaScript aus einer XSS-Lücke derselben Origin. Passwortwiederherstellung und Mehrfaktor-Anmeldung sind noch nicht vorhanden.
 
-Eine bestätigte Befehls-ID bleibt 30 Tage lang erhalten, höchstens die letzten 500 IDs pro Spieler. Dieselbe ID und derselbe Inhalt liefern eine idempotente Bestätigung einschließlich des gespeicherten Abrissergebnisses. Ein abweichender Inhalt wird abgewiesen. Zustandsänderungen werden je Welt serialisiert und erst nach erfolgreichem atomarem Speichern bestätigt.
+Gewöhnliche bestätigte Befehls-IDs bleiben 30 Tage lang erhalten, höchstens die letzten 500 IDs pro Spieler. Bau-, Ausbildungs-, Forschungs- und Aufgabenabholbelege sind davon dauerhaft ausgenommen; Missionsbelege bleiben an ihren Missionen erhalten. Dieselbe ID und derselbe Inhalt liefern eine idempotente Bestätigung einschließlich des gespeicherten Abrissergebnisses. Ein abweichender Inhalt wird abgewiesen. Zustandsänderungen werden je Welt serialisiert und erst nach erfolgreichem atomarem Speichern bestätigt.
 
 ## JSON-Ablage, Sicherung und Altstadt
 
@@ -224,3 +226,28 @@ Der Client lädt nur benötigte öffentliche 12×12-Blöcke (am Weltende kleiner
 `map.snapshot` ergänzt den Cache, statt die Kamera auf die angefragte Position zu setzen. Kleinere Revisionen derselben Welt werden verworfen. Eine höhere Kartenrevision verwirft alte Cacheinhalte, bevor neue Ausschnitte übernommen werden. Eine außerhalb des beantworteten Ausschnitts liegende Auswahl bleibt erhalten. Bei gleicher Stadt-ID bleiben bereits geladene Detailinformationen bestehen; ein weiterhin leeres Feld erhält kein künstliches Stadtobjekt. Die privaten Aufklärungsregeln werden nicht erweitert.
 
 Mausziehen, Wischen, Mausrad und lose Pfeiltasten verändern die Kamera nicht. Die Windrose selbst fängt Zeiger- und Tastaturbedienung ab; Pointer-Capture und globale Release-/Cancel-/Blur-/Visibility-Beendigung verhindern hängende Bewegung. Navigation löst keine Feldwahl oder Spielaktion aus. Feld-/Objektklick beziehungsweise fokussierter Button/Enter verwenden weiterhin `map.details` und die vorhandenen Einsatz-/Feldaktionen. Die gewählte eigene Stadt stammt weiterhin aus dem autoritativen Stadt-/Kartenzustand.
+
+
+## Aufgaben und Versorgungsübersicht (Auftrag 18)
+
+Weiterhin genau ein WebSocket je Client; keine privaten HTTP-Endpunkte und kein Client-Polling. Neuer Befehl:
+
+```json
+{"version":1,"type":"tasks.claim","requestId":"unique-claim-001","payload":{"taskId":"intro.farm","cityId":"city-owned-id"}}
+```
+
+Sitzung, Aufgaben-ID und eigene Zielstadt werden geprüft. Die Weltqueue rechnet sämtliche fälligen Ereignisse vor der Auszahlung ab. Anspruch und Platz für **alle** Ressourcen werden erneut geprüft. Bei Erfolg werden Ressourcen, dauerhafte Abholmarkierung, Fingerprint und Befehlsresultat gemeinsam im bestehenden Journal gespeichert. Erst danach folgt `command.ok` mit `{duplicate,taskId,cityId,reward:{wood,stone,food,oil},catalogVersion,claimedAt}` und `city.updated` an alle angemeldeten Verbindungen. Keine XP-/Punktegutschrift. Nach Gutschrift wird bestehende Versorgung ohne Zurücksetzen der Hungerhistorie aktualisiert.
+
+Fehler verwenden `command.error {message}`: unbekannte/unerfüllte Aufgabe, fremde Stadt, bereits abgeholt oder fehlender Lagerplatz je Ressource. Keine Teilannahme, kein Verfall. Derselbe kanonische Payload mit derselben requestId liefert das ursprüngliche Ergebnis; geänderter Inhalt wird abgewiesen. Andere requestId auf denselben ausgezahlten Anspruch meldet „bereits abgeholt“. Dauerhafte Ansprüche sichern die Auszahlung unabhängig von der gewöhnlichen Befehlsbereinigung; ihre Fingerprints erlauben zusätzlich Replay aus dem Abholbeleg.
+
+Private `city.snapshot` und `city.updated` ergänzen:
+
+- `tasks`: `catalogVersion`, `activatedAt`, `migrationNote`, `showIntroduction`, `claimable`, `introComplete`, `list`.
+- `tasks.list[]`: stabile `id`, `title`, `explanation`, `prerequisites`, Verweis `action` auf bestehende Ansicht, `progress`, `target`, `reached`, `status` (`locked`, `available`, `completed`, `claimed`), eingefrorene `reward`/`catalogVersion`, gegebenenfalls `completedAt` und `claim {claimedAt,cityId,requestId,result,fingerprint}`.
+- `cityOverview {asOf,cities}`: gemeinsamer tatsächlicher Abrechnungszeitpunkt; jede Zeile enthält `id,name,x,y,resources,capacities`, `productionPerHour,upkeepPerHour,netPerHour`, `secondsUntilEmpty` (bei nichtnegativer Nettorate `null`), `stationedUnits,deployedUnits,trainingPaused`, `status` (`balanced`,`declining`,`grace`,`losses`,`recovery`), `nextLossAt,graceRemainingMs,recoveryEndsAt` (nicht zutreffende Termine `null`). Stundenwerte kommen genau einmal aus Kernrate × 3600. Prognose ausschließlich bei unveränderten Raten; keine Zusicherung künftiger Lieferannahme.
+
+Persistiert wird `tasks {schemaVersion:1,catalogVersion,activatedAt,training,evidence,completed,migrationNote,showIntroduction?}`. `training` enthält je eigener Stadt einen bei 10 begrenzten Infanterieabschlusszähler; die gezählten stabilen Queuejobs werden in derselben Transaktion aus der Queue entfernt. `evidence` speichert höchstens zwölf erreichte Ziele, `completed` höchstens zwölf eingefrorene Ansprüche samt dauerhaften Abholbelegen. Keine zusätzliche unbegrenzte Ereigniskopie. Ergebnisse aus parallel fortgeschriebenen Stadtansichten werden monoton zusammengeführt.
+
+Migration **17 → 18** aktiviert den Stand einmalig. Vorhandene fertige Gebäude, Forschung, gültige Bürgermeister und Städte liefern Zustandsnachweise. Eindeutige zurückgekehrte NPC-Berichte und tatsächlich angenommene eigene Lieferungen liefern historische Ereignisnachweise; reine Truppenbestände liefern keine Ausbildungsnachweise. Ältere Migrationen, Legacy-Import und neue Konten laufen weiter. Unbekannte Aufgaben-/Spielerschemata und beschädigte Ansprüche werden abgewiesen. Welt bleibt Schema 4, Karte und Weltpositionen werden nicht verändert.
+
+Die neue Einstiegskarte erscheint nur für neu registrierte Konten; Ausblenden wird getrennt vom Spielstand als `intro.hidden.<playerId>` im lokalen Browser gespeichert. Aufgaben bleiben immer erreichbar. Der lokale UI-Schalter löscht oder erzeugt keinen fachlichen Fortschritt. Bei Verbindungsabbruch zeigt die Oberfläche den veralteten Stand mit Zeitstempel und deaktiviert Abholungen; nach Resume gilt der Serverstand.

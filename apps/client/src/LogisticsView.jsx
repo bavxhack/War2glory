@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { SidebarActions } from './SidebarActions.jsx';
 import { resourceLabels, formatDuration } from './ui.jsx';
 
-export function LogisticsView({state,transport,onDraftChange,connected}) {
-  const [mode,setMode] = useState('delivery'), [targetId,setTarget] = useState(''), [units,setUnits] = useState({infantry:0,scout:0,truck:1});
+export function LogisticsView({state,transport,onDraftChange,connected,initialDraft}) {
+  const [mode,setMode] = useState(initialDraft?.mode??'delivery'), [targetId,setTarget] = useState(initialDraft?.targetCityId??''), [units,setUnits] = useState({infantry:0,scout:0,truck:initialDraft?0:1});
   const [cargo,setCargo] = useState({wood:0,stone:0,food:0,oil:0}), [generalId,setGeneral] = useState(''), [generalIds,setGenerals] = useState([]);
   const [preview,setPreview] = useState(null), [busy,setBusy] = useState(false), [error,setError] = useState(''), [filter,setFilter] = useState('city'), [typeFilter,setTypeFilter] = useState('all'), [dirty,setDirty] = useState(false);
   useEffect(() => { onDraftChange(dirty); return () => onDraftChange(false); },[dirty,onDraftChange]);

@@ -69,7 +69,7 @@ test('battle cargo loss and defeat/full losses preserve independent ledgers, old
   const f = await fixture(t), legacy = f.send(f.player, { ...f.command, cargo: {} }), m = legacy.military.missions[0];
   delete m.cargo; m.ruleset = 'npc-pve-4-logistics-provisional'; m.logistics.oilMilliPerField = { infantry: 0, truck: 0 }; m.paidOil = 0; legacyPlayer(legacy); legacy.schemaVersion = 14;
   legacy.mailbox.readReportIds = ['historical-read']; const profile = structuredClone(legacy.military.generals[0]); await f.storage.savePlayer(legacy);
-  const migrated = await f.storage.loadPlayer(legacy.playerId); assert.equal(migrated.schemaVersion, 17); assert.deepEqual(migrated.military.missions[0], JSON.parse(JSON.stringify({ ...m, originCityId: migrated.cities[0].id }))); assert.deepEqual(migrated.military.generals[0], profile);
+  const migrated = await f.storage.loadPlayer(legacy.playerId); assert.equal(migrated.schemaVersion, 18); assert.deepEqual(migrated.military.missions[0], JSON.parse(JSON.stringify({ ...m, originCityId: migrated.cities[0].id }))); assert.deepEqual(migrated.military.generals[0], profile);
   await f.storage.advanceWorld(50000); const r = (await f.storage.loadPlayer(legacy.playerId)).military.reports[0]; assert.equal(r.loadedFood, 900); assert.equal(r.cargo, undefined); assert.equal(r.paidOil, 0);
 });
 
@@ -98,7 +98,7 @@ test('corrupt freight/schema rejected without reset; schema14 save failure retry
   const f = await fixture(t); const sent = f.send(); legacyPlayer(sent); sent.schemaVersion = 14; await f.storage.savePlayer(sent);
   const save = f.storage.savePlayer.bind(f.storage); f.storage.savePlayer = () => { throw new Error('migration-failure'); };
   await assert.rejects(f.storage.loadPlayer(sent.playerId), /migration-failure/); assert.deepEqual(JSON.parse(await readFile(f.storage.playerFile(sent.playerId), 'utf8')), JSON.parse(JSON.stringify(sent)));
-  f.storage.savePlayer = save; const current = await f.storage.loadPlayer(sent.playerId); assert.equal(current.schemaVersion, 17);
+  f.storage.savePlayer = save; const current = await f.storage.loadPlayer(sent.playerId); assert.equal(current.schemaVersion, 18);
   current.military.missions[0].cargo.lost.oil = 1; await save(current); await assert.rejects(f.storage.loadPlayer(current.playerId), /ladungsbilanz/);
   current.military.missions[0].cargo.lost.oil = 0; delete current.military.missions[0].cargo; await save(current); await assert.rejects(f.storage.loadPlayer(current.playerId), /frachtversion/);
 });

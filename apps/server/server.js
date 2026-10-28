@@ -1,3 +1,5 @@
+import { claimTask, taskSnapshot } from '../../packages/game-core/tasks.js';
+import { cityOverview } from '../../packages/game-core/city-overview.js';
 import { cityTransportQuote, stableJSON, transportFuel, startCityTransport, requireGeneralLocation, incomingDeliveries, isCityTransport } from '../../packages/game-core/city-logistics.js';
 import { canonicalJSON, exposeCity, ownedCity, playerScore, refreshCities } from '../../packages/game-core/multicity.js';
 import { ensureField, fieldMissionQuote, startFieldMission, foundingQuote, foundCity } from '../../packages/game-core/settlement.js';
@@ -36,6 +38,7 @@ const staticFiles = new Map([
 const mimeTypes = new Map([['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'], ['.css', 'text/css; charset=utf-8'], ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'], ['.woff2', 'font/woff2']]);
 
 function commandFingerprint(type, payload) {
+  if (type === 'tasks.claim') return stableJSON([type,payload]);
   if (type.startsWith('field.') || type === 'city.found') return JSON.stringify([type, payload]);
   return JSON.stringify([payload?.cityId, legacyCommandFingerprint(type, payload)]);
 }
@@ -79,6 +82,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     return {
       world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ruleset: RULESET,
       cityId, cities: player.cities.map(c => ({ id: c.id, name: c.name, ...(() => { const e = storage.world.map.entities.find(e => e.id === c.id); return { x: e?.x, y: e?.y }; })(), resources: c.resources, constructionQueue: c.constructionQueue, inShortage: c.supply?.inShortage ?? false })),
+      tasks: { ...taskSnapshot(player), showIntroduction: !!player.tasks.showIntroduction }, cityOverview: cityOverview(player,storage.world.map.entities,current.city.updatedAt),
       migrationNotices: player.migrationNotices ?? [],
       transports: player.military.missions.filter(isCityTransport).map(({commandFingerprint, ...m}) => ({...m,operatingFuel:transportFuel(m,now)})),
       incomingTransports: storage.incomingTransports?.get(player.playerId) ?? [],
@@ -301,7 +305,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         response(peer, 'command.ok', message.requestId, result);
         for (const player of players) broadcast(player.playerId, 'city.updated', connection => snapshot(player, connection.account, connection.cityId));
       });
-      if (!['field.scout.start', 'field.conquest.start', 'city.found', 'general.recruit', 'general.researcher', 'construction.enqueue', 'training.enqueue', 'scouting.start', 'raid.start', 'building.demolish', 'general.rename', 'general.mayor', 'general.convert', 'general.distribute', 'research.start'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
+      if (!['tasks.claim', 'field.scout.start', 'field.conquest.start', 'city.found', 'general.recruit', 'general.researcher', 'construction.enqueue', 'training.enqueue', 'scouting.start', 'raid.start', 'building.demolish', 'general.rename', 'general.mayor', 'general.convert', 'general.distribute', 'research.start'].includes(message.type)) throw new Error('Ereignistyp ist nicht erlaubt.');
       await storage.exclusive(async () => {
         const now = clock();
         await storage.advanceWorld(now);
@@ -311,7 +315,8 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         player.processedCommands = (player.processedCommands ?? []).filter(item => item.durable || item.acceptedAt + COMMAND_TTL_MS > now);
         player.processedCommands = [...player.processedCommands.filter(i => i.durable), ...player.processedCommands.filter(i => !i.durable).slice(-MAX_PROCESSED_COMMANDS)];
         const missionReceipt = player.military.missions.find(m => m.id === message.requestId && m.commandFingerprint);
-        const existing = player.processedCommands.find(item => item.id === message.requestId) ?? (missionReceipt ? { fingerprint: missionReceipt.commandFingerprint, result: {} } : null);
+        const taskReceipt = Object.values(player.tasks.completed).map(c => c.claim).find(c => c?.requestId === message.requestId);
+        const existing = player.processedCommands.find(item => item.id === message.requestId) ?? (taskReceipt ? { fingerprint: taskReceipt.fingerprint, result: taskReceipt.result } : null) ?? (missionReceipt ? { fingerprint: missionReceipt.commandFingerprint, result: {} } : null);
         const fingerprint = commandFingerprint(message.type, message.payload);
         if (existing && existing.fingerprint !== fingerprint) throw new Error('Diese Befehls-ID wurde bereits mit anderem Inhalt verwendet.');
         if (!existing) {
@@ -360,6 +365,10 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
             if (message.type === 'general.distribute') Object.assign(player, refreshSupplyAt(player, now));
           }
           let result = {};
+          if (message.type === 'tasks.claim') {
+            result = claimTask(player,message.payload.taskId,message.payload.cityId,message.requestId,now);
+            player.tasks.completed[message.payload.taskId].claim.fingerprint = fingerprint;
+          }
           if (['field.scout.start', 'field.conquest.start'].includes(message.type)) {
             const field = ensureField(storage.world, message.payload.x, message.payload.y, storage.config.settlement, randomInt);
             const origin = storage.world.map.entities.find(e => e.id === player.cityId);
@@ -383,11 +392,12 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
             if (player.military.researcherGeneralId && player.military.generals.find(g => g.id === player.military.researcherGeneralId)?.cityId === player.cityId && !player.city.buildingSlots.some(s => s.building === 'university' && s.level > 0)) Object.assign(player, assignResearcher(player, { generalId: null, expectedRoleVersion: player.military.roleVersion }));
           }
           Object.assign(player, refreshCities(player, now));
-          player.processedCommands.push({ id: message.requestId, fingerprint, acceptedAt: now, result, durable: ['research.start', 'construction.enqueue', 'training.enqueue'].includes(message.type) });
+          player.processedCommands.push({ id: message.requestId, fingerprint, acceptedAt: now, result, durable: ['tasks.claim', 'research.start', 'construction.enqueue', 'training.enqueue'].includes(message.type) });
           if (['scouting.start', 'raid.start', 'field.scout.start', 'field.conquest.start', 'city.found'].includes(message.type)) {
             storage.world.nextEventSequence++;
             try { await storage.commitPlayers([player], true); } catch (error) { storage.world.nextEventSequence--; throw error; }
           }
+          else if (message.type === 'tasks.claim') await storage.commitPlayers([player]);
           else await storage.savePlayer(player);
         }
         response(peer, 'command.ok', message.requestId, { duplicate: Boolean(existing), ...(existing?.result ?? player.processedCommands.at(-1)?.result ?? {}) });
@@ -396,7 +406,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       });
     } catch (error) {
       errorResponse(peer, message.requestId, error);
-      if (peer.playerId && ['construction.enqueue', 'training.preview', 'training.enqueue', 'general.preview', 'general.convert', 'general.distribute', 'research.preview', 'research.start', 'raid.preview', 'raid.start', 'scouting.preview', 'scouting.start'].includes(message.type)) {
+      if (peer.playerId && ['tasks.claim', 'construction.enqueue', 'training.preview', 'training.enqueue', 'general.preview', 'general.convert', 'general.distribute', 'research.preview', 'research.start', 'raid.preview', 'raid.start', 'scouting.preview', 'scouting.start'].includes(message.type)) {
         await storage.exclusive(async () => {
           const player = await storage.loadPlayer(peer.playerId);
           response(peer, 'city.snapshot', message.requestId, snapshot(player, peer.account, peer.cityId));

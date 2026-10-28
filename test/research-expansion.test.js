@@ -180,7 +180,7 @@ test('schema 17 normalization adds only zero levels; unknown research preserves 
  for(const id of ['constructionEngineering','trainingTechniques','loadingTechniques'])delete p.research.levels[id];
  p.research.ruleset='research-3-logistics-provisional';
  p.research.active={id:'historical-research',technology:'forestry',targetLevel:1,ruleset:'research-3-logistics-provisional',cityId:p.cities[0].id,universityId:'uni',startsAt:0,finishesAt:100000,durationMs:100000,paidCost:{wood:100,stone:100}};
- await f.storage.advanceWorld(0);{const advanced=canonicalJSON(await f.storage.loadPlayer(f.id));p.military.candidatePool=advanced.military.candidatePool;for(let i=0;i<p.cities.length;i++)p.cities[i].supply=advanced.cities[i].supply;}const original=structuredClone(p),file=join(f.dir,'players',`${f.id}.json`);await writeFile(file,JSON.stringify(p));
+ await f.storage.advanceWorld(0);{const advanced=canonicalJSON(await f.storage.loadPlayer(f.id));p.military.candidatePool=advanced.military.candidatePool;p.tasks=advanced.tasks;for(let i=0;i<p.cities.length;i++)p.cities[i].supply=advanced.cities[i].supply;}const original=structuredClone(p),file=join(f.dir,'players',`${f.id}.json`);await writeFile(file,JSON.stringify(p));
  const reopened=await new WorldStorage(f.dir,'test',()=>0,f.config).initialize();p=canonicalJSON(await reopened.loadPlayer(f.id));
  for(const id of ['constructionEngineering','trainingTechniques','loadingTechniques']) {assert.equal(p.research.levels[id],0);delete p.research.levels[id];}
  assert.deepEqual(p,original);
