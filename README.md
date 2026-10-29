@@ -6,11 +6,19 @@ Repository: https://github.com/bavxhack/War2glory
 
 **Weiterentwicklung mit Codex:** Der Startauftrag steht in [CODEX_PROMPT.md](CODEX_PROMPT.md). Projektregeln stehen in [AGENTS.md](AGENTS.md).
 
+## Direkte Bedienung (Zwischenauftrag 18a)
+
+Gebäudekarten bieten Ausbau und Baukatalog direkt an; Universität und Ausbildungsgebäude öffnen die passende Planung. Forschung, Einsätze, Rekrutierung, XP-Kauf, Verteilung und Transporte laden vorhandene Servervorschauen automatisch. Preise, Quelle/Ziel und der bewusste Start liegen zusammen. Es gibt keinen verpflichtenden allgemeinen Aktionen-Dialog mehr.
+
+Generäle besitzen sichtbare Reiter für Verwaltung/Rekrutierung und getrennte Detailbereiche. Die Feldkarte erscheint sofort bei Auswahl; Projektion, Maßstab und Windrose bleiben erhalten. Versorgungshilfe richtet Lieferungen **hierher**, Verlegungen **von hier**. Aufgaben zeigen die Belohnungszielstadt vor der direkten Einzelabholung. Aktivitäten sind vollständig nach Stadt, Gebäude und Typ filterbar. Echte Entwürfe erhalten gezielten Schutz; Suchfilter zählen nicht als Spielauftrag.
+
+Spielerschema **18**, Weltschema **4** und alle Spielregeln bleiben erhalten. Die zusätzliche private Aktivitätenprojektion enthält ausschließlich eigene Queues/Reisemetadaten. Tatsächlich ausgeführte Vorher-/Nachher-Prüfungen, Browsernachweise und Grenzen: [UX_REFACTOR_18A_VALIDATION.md](docs/UX_REFACTOR_18A_VALIDATION.md). Frühere Beschreibungen des rechten Aktionenpanels dokumentieren den historischen Stand. Auftrag 19 wurde nicht begonnen.
+
 ## Einführung, Aufgaben und Versorgung (Auftrag 18)
 
 Unter **Stadt → Aufgaben** stehen neun einmalige Einführungsaufgaben und drei freiwillige Ausbauaufgaben. Eine vorhandene Spielaktion ausführen, bestätigten Fortschritt sehen und die Belohnung ausdrücklich in einer eigenen Stadt abholen. Erfüllung schaltet Folgeschritte unabhängig von der Abholung frei. Volle Lager verhindern die gesamte Auszahlung, ohne den Anspruch zu löschen. Aufgaben vergeben keine Kommandantenpunkte oder General-XP. Alle Belohnungen sind eigene vorläufige Projektwerte.
 
-**Stadt → Alle Städte** zeigt getrennte Nahrungslager, Produktion, Truppenunterhalt und Netto pro Stunde sowie Schonfrist, Verlustwelle und Erholung je Stadt. Die Prognose gilt bei unveränderten Raten; ein Überschuss versorgt andere Städte nicht automatisch. Direkthilfe öffnet bestehende Bau-, Bürgermeister-, Liefer- und Verlegungsansichten. Lieferhilfe verlangt eine andere eigene Ausgangsstadt und bereitet nur das Formular vor.
+**Stadt → Alle Städte** zeigt getrennte Nahrungslager, Produktion, Truppenunterhalt und Netto pro Stunde sowie Schonfrist, Verlustwelle und Erholung je Stadt. Die Prognose gilt bei unveränderten Raten; ein Überschuss versorgt andere Städte nicht automatisch. Direkthilfe öffnet bestehende Bau-, Bürgermeister-, Liefer- und Verlegungsansichten. Lieferhilfe öffnet das Formular mit der betroffenen Stadt als Ziel; die Ausgangsstadt steht ausdrücklich im Formular. Es wird nichts automatisch versendet.
 
 Aktuell: **Spielerschema 18 / Weltschema 4**, neun Forschungen und isometrische Weltkarte mit Windrose. Migration 17 → 18 übernimmt belegbare Zustandsziele und gespeicherte Rückkehr-/Lieferbelege. Ohne Ausbildungsbelege zählt Ausbildung erst ab Aktivierung; Truppenbestände werden nicht als historische Ausbildung gewertet. Aufgaben und dauerhafte Abholbelege überstehen Stadtwechsel, Offline-Abrechnung und Neustarts. Bestehende Abschnitte zu früheren Schemata dokumentieren die Entwicklungsgeschichte. Aktueller Unterhalt betrifft ausschließlich stationierte Truppen nach dem gespeicherten Regelsatz.
 

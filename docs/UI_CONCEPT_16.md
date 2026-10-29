@@ -1,5 +1,7 @@
 # UI-Konzept für Auftrag 16: Klarer Spielrahmen und direkt erreichbare Aktionen
 
+Historisches Konzept: Die Pflicht zur Bedienung im rechten Aktionenpanel wurde mit Zwischenauftrag 18a ersetzt. Aktueller Nachweis: [UX_REFACTOR_18A_VALIDATION.md](UX_REFACTOR_18A_VALIDATION.md).
+
 Stand: 12.10.2026. Zur Umsetzung beauftragt, kein bereits implementiertes Design. Dieses Dokument ergänzt CODEX_PROMPT.md. Der Planungschat erstellt das Konzept; Codex setzt es im bestehenden React-Client um.
 
 ## Problem und Ziel

@@ -1,0 +1,31 @@
+{
+  "checks": [
+    "Ausbau: 1 Klick auf sichtbarer Kachel, Preis vorher sichtbar.",
+    "Neubau: 2 Klicks einschließlich Baukatalog.",
+    "Ausbildung: Kaserne → automatisches Angebot → Start, 2 Klicks plus Einheit/Menge.",
+    "Gebäude → Alle Aufträge öffnet die vollständige Liste mit richtigem Stadt-/Gebäudefilter.",
+    "Forschung: 2 Klicks, automatische Vorschau ohne Panel.",
+    "Vertauschte Vorschauantworten: A gibt den geänderten Entwurf B nicht frei.",
+    "Tatsächlich umgekehrte Antwortreihenfolge D vor C: die späte C-Antwort überschreibt D nicht.",
+    "Quellenwechsel mit Entwurf: vor dem Wechsel entscheiden; Bleiben erhält Quelle und Eingaben.",
+    "Späte Antwort nach geschlossenem Formular öffnet es nicht erneut.",
+    "Generalfreie Fremdlieferung: 1 Startklick nach automatischer Vorschau, Bericht und Rückfahrt.",
+    "Permanente Verlegung: 1 Startklick, richtige Stadt und Generalstandort.",
+    "XP-Kauf und getrennte irreversible Verteilung: automatische Angebote und direkte Eingabe.",
+    "Nachrichtenentwurf bei Navigation geschützt, Bleiben erhält Text, explizites Senden.",
+    "Vier stadtübergreifende Bauaufträge: vierter Eintrag tatsächlich erreichbar, keine Dreierkürzung.",
+    "1440×900: sieben Bereiche ohne horizontalen Dokumentüberlauf.",
+    "1280×800: sieben Bereiche ohne horizontalen Dokumentüberlauf.",
+    "768×1024: sieben Bereiche ohne horizontalen Dokumentüberlauf.",
+    "390×844: sieben Bereiche ohne horizontalen Dokumentüberlauf.",
+    "320×844: sieben Bereiche ohne horizontalen Dokumentüberlauf.",
+    "Suche ist kein Spielentwurf und erzeugt keine Verwerfen-Warnung.",
+    "Versorgungshilfe setzt Verlegequelle auf die betroffene Stadt, kein automatischer Start.",
+    "Reconnect behält lesbare Oberfläche, kein blinder Neustart einer Mutation.",
+    "Zwei Tabs behalten unabhängige Ausgangsstädte.",
+    "200%-Arbeitsfläche (640 CSS-Pixel), Enter/Tab/Escape und Fokus im Dialog.",
+    "320px: Feldkarte und Windrose überlappen nicht; Schließen erhält Kamera. Ressourcendetails wechseln in einer Dialogebene.",
+    "Abmelden/anderes Konto anmelden: private Ansichten und Entwürfe werden vollständig neu angelegt."
+  ],
+  "errors": []
+}

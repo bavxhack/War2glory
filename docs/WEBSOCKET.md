@@ -2,6 +2,12 @@
 
 Aktuell gelten Spielerschema **18**, Weltschema **4** und Transportversion **1**. Stadtunterhalt verwendet den gespeicherten Regelsatz, derzeit ausschließlich stationierte Truppen. Frühere Schemaabschnitte bleiben als Historie erhalten.
 
+## Ergänzung 18a: Aktivitäten und automatische Vorschauen
+
+`city.snapshot` / `city.updated` enthalten zusätzlich `activities.cities` mit ID, Name, vollständiger eigener Bauqueue (`construction`) und Ausbildungsqueue (`training`) jeder eigenen Stadt. `activities.missions` enthält ausschließlich aktive eigene Reisen mit ID/Typ/Status, Ausgangs-/Zielbezug, Koordinaten und Reisezeitpunkten. Keine fremden Queues, Auftragsfingerprints oder privaten Aufklärungsinhalte werden ergänzt. Bekannte eingehende Transporte bleiben in `incomingTransports`.
+
+Es gibt keine neuen Spielbefehle, keine neue Verbindung und kein neues Speicherschema. Der Client bündelt bestehende Preview-Anfragen für den konkreten Entwurf und verwirft Antworten nach Entwurfs-, Stadt-, Objekt-, Versions- oder Verbindungswechsel. Ein Versand erfolgt ausschließlich durch den finalen Button. Nach Verbindungsverlust bleibt der Ausgang eines versendeten Auftrags zunächst unklar; es erfolgt kein automatisches Wiederholen mit neuer ID. Vor neuer Vorschaufreigabe wird der Stadtstand abgeglichen. Karten- und Abrissantworten sind zusätzlich an die zuletzt ausdrücklich angeforderte Auswahl gebunden.
+
 ## Ereignisprotokoll (Version 1)
 
 Die Anwendung lädt nur statische Dateien, `GET /health` und die öffentliche Föderationsbeschreibung über HTTP. Private Spielstände und Spielbefehle sind ausschließlich über `GET /game` als WebSocket-Upgrade erreichbar. Jedes Clientereignis enthält `version`, `type`, eine eindeutige `requestId` und `payload`. Antworten tragen dieselbe `requestId`; Push-Ereignisse benötigen keine.

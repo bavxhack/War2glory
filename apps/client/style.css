@@ -295,7 +295,6 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 .workspace-layout { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:start; }
 .workspace-content { min-width:0; }
 .workspace-content .game-layout,.workspace-content .world-layout { grid-template-columns:minmax(0,1fr); }
-.persistent-sidebar { min-width:0; padding-top:0; position:sticky; top:16px; max-height:calc(100dvh - 32px); overflow:auto; scrollbar-width:thin; }
 .city-activity.card { margin:0; padding:18px; border-color:#607450; }
 .city-activity-heading { display:grid; grid-template-columns:1fr auto; gap:6px; margin-bottom:14px; }
 .city-activity-heading .kicker { grid-column:1/-1; }
@@ -319,9 +318,6 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 .activity-training>summary>span,.activity-supply>summary>span { float:right; font-size:.75rem; }
 .city-activity .queue.card,.city-activity .supply-status.card { margin:12px 0 0; padding:10px; font-size:.75rem; }
 .city-activity .queue h2,.city-activity .supply-status h2 { font-size:.9rem; }
-.sidebar-actions { margin-top:18px; border-top:1px solid #607450; padding-top:16px; }
-.sidebar-actions-heading h2 { margin:4px 0 12px; font-size:1.1rem; }
-.sidebar-actions .map-sidebar { display:block; }
 .sidebar-empty { font-size:.85rem; color:#aebfa4; }
 .topbar>div:first-child { display:grid; gap:10px; min-width:0; }
 .city-switcher { display:flex; align-items:center; gap:14px; width:min(480px,100%); text-align:left; padding:12px 16px 12px 12px; border:1px solid #647952; border-radius:14px; background:linear-gradient(120deg,#2b3f2d,#1b2a1d); color:#f7f2df; cursor:pointer; box-shadow:0 5px 18px #0003; }
@@ -343,12 +339,10 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 .city-choice-badge { font-size:.72rem; color:#d5e59b; white-space:nowrap; }
 @media(max-width:1000px) {
   .workspace-layout { grid-template-columns:minmax(0,1fr); }
-  .persistent-sidebar { position:static; max-height:none; overflow:visible; grid-row:1; }
   .city-activity { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
   .city-activity-heading { grid-column:1/-1; margin-bottom:0; }
   .activity-section { min-width:0; }
   .activity-training,.activity-supply { grid-column:1/-1; }
-  .sidebar-actions { margin-bottom:18px; }
 }
 @media(max-width:560px) {
   .city-switcher { width:100%; gap:10px; padding:10px; }
@@ -361,17 +355,10 @@ progress { width: 100%; accent-color: var(--accent, #b6915b); }
 }
 .visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 @media(min-width:1001px) {
-  .persistent-sidebar { display:flex; flex-direction:column; overflow:visible; }
-  .persistent-sidebar>.city-activity { flex-shrink:0; max-height:65dvh; overflow:auto; scrollbar-width:thin; }
-  .persistent-sidebar>.sidebar-actions { min-height:0; overflow:auto; scrollbar-width:thin; }
 }
 .selected-technology { outline:2px solid #d5e59b; outline-offset:2px; }
-.sidebar-actions .research-controls label,.sidebar-actions .research-selection { font-size:.85rem; }
-.sidebar-actions select { width:100%; padding:.6rem; border:1px solid #65755d; border-radius:.5rem; background:#111a10; color:#f7f2df; font:inherit; }
 .recruitment-actions { padding:12px; border:1px solid #45584c; border-radius:10px; }
 .recruitment-actions>summary { cursor:pointer; font-weight:700; }
-.sidebar-actions .general-grid { grid-template-columns:minmax(0,1fr); }
-.sidebar-actions .general-section { min-width:0; }
 /* Auftrag 16: permanent navigation, compact city context, independent action panel. */
 .game-shell { display:grid; grid-template-columns:224px minmax(0,1fr); height:100dvh; overflow:hidden; }
 .game-main { width:100%; max-width:none; min-width:0; min-height:0; margin:0; padding:12px 16px; display:flex; flex-direction:column; overflow:hidden; }
@@ -397,15 +384,8 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 .workspace-heading { display:flex; align-items:center; justify-content:space-between; padding:8px 0; gap:8px; min-width:0; overflow-wrap:anywhere; }
 .workspace-heading>span { min-width:0; }
 .workspace-heading>button { flex-shrink:0; white-space:nowrap; }
-.game-shell .workspace-layout { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 320px; grid-template-rows:minmax(0,1fr); align-items:stretch; gap:12px; overflow:hidden; }
+.game-shell .workspace-layout { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr); align-items:stretch; gap:12px; overflow:hidden; }
 .game-shell .workspace-content { min-width:0; min-height:0; overflow:auto; overscroll-behavior:contain; padding:0 4px 16px 0; }
-.game-shell .persistent-sidebar { position:static; padding:12px; display:block; min-height:0; max-height:none; overflow:auto; border:1px solid #52624c; border-radius:12px; background:#1b261a; }
-.game-shell .persistent-sidebar>h2 { font-size:18px; margin:0 0 8px; }
-.context-tabs { display:flex; gap:4px; margin-bottom:12px; }
-.context-tabs button { flex:1; padding:7px 3px; font-size:12px; }
-.context-tabs button[aria-selected="true"] { background:#d5e59b; color:#182314; font-weight:bold; }
-.game-shell .sidebar-actions { padding:0; }
-.game-shell .sidebar-actions .card { margin:0 0 10px; padding:12px; }
 .game-shell .workspace-content .game-layout,.game-shell .workspace-content .world-layout { display:block; }
 .game-shell .city-scene { min-height:500px; padding:20px; }
 .game-shell .city-grid { gap:16px; }
@@ -426,12 +406,10 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 .game-shell h2,.game-shell h3,.game-shell p,.game-shell strong { overflow-wrap:anywhere; }
 @media(max-width:1279px) {
  .game-shell { grid-template-columns:minmax(0,1fr); }
- .game-shell .workspace-layout { grid-template-columns:minmax(0,1fr); }
- .game-main { padding:10px; }
+  .game-main { padding:10px; }
  .menu-toggle { padding:6px; margin-bottom:5px; }
  .city-header { grid-template-columns:minmax(170px,240px) minmax(0,1fr); }
  .game-shell .workspace-content .city-scene { min-height:450px; }
- dialog .sidebar-actions { padding:0; }
 }
 @media(max-width:767px) {
  .game-main { padding:8px 8px calc(66px + env(safe-area-inset-bottom)); }
@@ -464,7 +442,6 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
  .dialog-actions button { max-width:100%; overflow-wrap:anywhere; }
 }
 .game-shell .menu-toggle,.game-shell .workspace-heading button,.game-shell .mobile-resource-button,.mobile-bottom-nav button { background:#253522; color:#edf3df; border:1px solid #617656; border-radius:7px; }
-.sidebar-actions button:not(.secondary):not(.action):not(:disabled) { background:#d5e59b; color:#1c2817; padding:9px 12px; border:1px solid #b6ca80; border-radius:6px; }
 @media(max-width:767px) {
  .city-header-title { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:5px; }
  .city-header-title .menu-toggle { grid-column:1; grid-row:1; margin:0; }
@@ -602,3 +579,49 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 .overview-actions {display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.8rem}
 .view-tabs {display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
 @media(max-width:700px){.overview-row{display:flex;flex-direction:column}.task-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* 18a: actions live with their objects; a single content scroll surface. */
+.game-shell .city-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); align-items:stretch; }
+.game-shell .building-card { display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; text-align:left; padding:16px; min-width:0; transform:none; cursor:default; }
+.building-card .game-art { align-self:center; }
+.building-card h3 { font-size:17px; margin:8px 0; }
+.building-card p { font-size:13px; line-height:1.5; margin:8px 0; }
+.building-card small { display:block; }
+.building-card button { margin:4px 0; }
+.game-shell button, .mission-dialog button, .game-shell summary, .mission-dialog summary { min-height:44px; }
+.game-shell input:not([type=checkbox]), .game-shell select, .mission-dialog input:not([type=checkbox]), .mission-dialog select { min-height:44px; max-width:100%; }
+.mission-dialog input,.mission-dialog select { width:100%; }
+.game-shell .building-card:hover { transform:none; }
+.form-summary,.mission-dialog .dialog-actions { position:sticky; bottom:0; padding:12px 0; background:#172017; z-index:2; display:flex; flex-wrap:wrap; gap:8px; }
+.mission-dialog { scroll-padding-bottom:100px; }
+.iso-world-view { position:relative; }
+.iso-world-view > .map-sidebar { position:absolute; z-index:20; right:12px; top:65px; width:min(300px,38%); max-height:calc(100% - 80px); overflow:auto; padding:0; pointer-events:auto; }
+.iso-world-view .map-sidebar .card { padding:12px; }
+.iso-world-view .map-sidebar .game-art,.iso-world-view .map-sidebar .legend { display:none; }
+.iso-world-view .map-sidebar h2 { font-size:17px; }
+.iso-world-view .map-sidebar p { margin:6px 0; font-size:12px; }
+.iso-world-view .map-sidebar .action { padding:8px; }
+.stepper input { max-width:75px; }
+@media(max-width:767px) {
+ .game-shell .city-grid.compact,.game-shell .unit-visuals { grid-template-columns:minmax(0,1fr); }
+ .iso-world-view > .map-sidebar { top:auto; bottom:0; right:0; width:calc(100% - 135px); max-height:45%; font-size:12px; }
+ .iso-world-view .map-sidebar .field-footnote,.iso-world-view .map-sidebar .field-steps { display:none; }
+ .form-summary { padding-bottom:12px; }
+ .mission-dialog .dialog-actions { position:sticky; bottom:0; }
+}
+.iso-world-view > .map-sidebar { max-height:calc(100% - 260px); }
+@media(max-width:767px) { .iso-world-view > .map-sidebar { left:0; right:auto; width:calc(100% - 165px); max-height:50%; } }
+@media(min-width:768px) { .iso-world-view > .map-sidebar { left:12px; right:auto; } }
+.game-shell button:not(:disabled), .mission-dialog button:not(:disabled) { border:1px solid #718668; border-radius:8px; background:#30472f; color:#f0f4e8; padding:9px 12px; cursor:pointer; }
+.game-shell button[aria-pressed="true"], .game-shell button[aria-current="page"], .game-shell .building-card > button, .game-shell .form-summary button, .mission-dialog .dialog-actions button:last-child { background:#d5e59b; color:#172017; font-weight:700; }
+.game-shell button:disabled,.mission-dialog button:disabled { border:1px solid #50604b; border-radius:8px; background:#344131; color:#b3bcad; padding:9px 12px; cursor:not-allowed; }
+.game-shell .building-card small { font-size:12px; line-height:1.4; }
+.game-shell .building-card .game-art { width:140px; height:105px; }
+.game-shell .iso-compass button { padding:1px; }
+.game-shell button,.mission-dialog button { min-width:44px; }
+.mission-dialog .dialog-close { min-width:44px; min-height:44px; }
+.mission-dialog .attribute-list > div { flex-wrap:wrap; gap:8px; }
+@media(max-width:767px) and (min-height:650px) { .iso-world-view > .map-sidebar { left:0; right:0; top:70px; bottom:auto; width:100%; max-height:35%; } }
+
+.game-shell select { max-width:100%; padding:9px; border:1px solid #65755d; border-radius:6px; background:#111a10; color:#f7f2df; font:inherit; }
+.game-shell .main-navigation nav button[aria-current="page"] { background:#d5e59b; color:#172017; }
