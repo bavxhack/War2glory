@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Dialog, resourceLabels } from './ui.jsx';
 const number = (n) => n.toLocaleString('de-DE', { maximumFractionDigits: 2 });
 const rewardText = (r) =>
@@ -18,8 +18,9 @@ export function TasksView({ state, transport, connected, onAction }) {
   }, [busy]);
   const city = state.cityOverview.cities.find((c) => c.id === cityId),
     task = state.tasks.list.find((t) => t.id === claim);
-  async function collect() {
-    setBusy(true);
+  const sending=useRef(false);
+  async function collect(task) {
+    if(sending.current)return;sending.current=true;setBusy(true);
     setError('');
     try {
       await transport.request('tasks.claim', { taskId: task.id, cityId });
@@ -27,7 +28,7 @@ export function TasksView({ state, transport, connected, onAction }) {
     } catch (e) {
       setError(e.message);
     } finally {
-      setBusy(false);
+      sending.current=false;setBusy(false);
     }
   }
   function card(t) {
@@ -60,15 +61,11 @@ export function TasksView({ state, transport, connected, onAction }) {
               .join(' · ')}
           </p>
         )}
-        <p>Belohnung: {rewardText(t.reward)}</p>
+        <p>Belohnung: {rewardText(t.reward)}</p>{t.status==='completed'&&city&&Object.entries(t.reward).filter(([k,n])=>n>0&&city.resources[k]+n>city.capacities[k]).map(([k,n])=><p key={k} className="notice">{number(city.resources[k]+n-city.capacities[k])} Lagerplatz für {resourceLabels[k]} fehlt in {city.name}.</p>)}
         {t.status === 'completed' ? (
           <button
-            disabled={!connected}
-            onClick={() => {
-              setClaim(t.id);
-              setCity(state.cityId);
-              setError('');
-            }}
+            disabled={!connected||busy}
+            onClick={() => void collect(t)}
           >
             Belohnung abholen · {t.title}
           </button>
@@ -80,7 +77,7 @@ export function TasksView({ state, transport, connected, onAction }) {
             · {new Date(t.claim.claimedAt).toLocaleString('de-DE')}
           </p>
         ) : (
-          <button onClick={() => onAction(t.action)}>
+          <button onClick={() => onAction(t)}>
             Zur Spielaktion · {t.title}
           </button>
         )}
@@ -98,6 +95,7 @@ export function TasksView({ state, transport, connected, onAction }) {
       </p>
       <p>{state.tasks.migrationNote}</p>
       <p>Alle Belohnungen sind vorläufige eigene Projektwerte.</p>
+      <label>Belohnungszielstadt<select aria-label="Belohnungszielstadt" value={cityId} onChange={e=>setCity(e.target.value)}>{state.cities.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><p>Alles oder nichts: Der Server prüft den gesamten Platz vor Auszahlung.</p>{error&&<p role="alert">{error}</p>}
       <div className="task-grid">
         {state.tasks.list.filter((t) => t.status !== 'claimed').map(card)}
       </div>
@@ -108,54 +106,7 @@ export function TasksView({ state, transport, connected, onAction }) {
         </summary>
         {state.tasks.list.filter((t) => t.status === 'claimed').map(card)}
       </details>
-      {task && (
-        <Dialog
-          open
-          title={`Belohnung · ${task.title}`}
-          kicker="AUFGABEN"
-          onClose={close}
-          actions={
-            <button
-              disabled={busy || !connected || task.status !== 'completed'}
-              onClick={() => void collect()}
-            >
-              Vollständige Belohnung abholen
-            </button>
-          }
-        >
-          <label>
-            Zielstadt
-            <select
-              value={cityId}
-              disabled={busy}
-              onChange={(e) => setCity(e.target.value)}
-            >
-              {state.cities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p>Belohnung: {rewardText(task.reward)}</p>
-          {city &&
-            Object.entries(task.reward).map(([k, n]) => (
-              <p key={k}>
-                {resourceLabels[k]}: {number(city.resources[k])} /{' '}
-                {city.capacities[k]} → +{n}
-                {n > 0 && city.resources[k] + n > city.capacities[k]
-                  ? ` · ${number(city.resources[k] + n - city.capacities[k])} Platz fehlt`
-                  : ''}
-              </p>
-            ))}
-          <p>
-            Die Vorschau reserviert keinen Platz. Der Server prüft erneut; bei
-            Platzmangel bleibt der gesamte Anspruch offen.
-          </p>
-          {!connected && <p role="alert">Stand veraltet · keine Verbindung.</p>}
-          {error && <p role="alert">{error}</p>}
-        </Dialog>
-      )}
+
     </section>
   );
 }
@@ -249,7 +200,7 @@ export function CitiesView({ state, onOpen, onHelp }) {
               </details>
               <div className="overview-actions">
                 <button onClick={() => onHelp('delivery', c.id)}>
-                  Nahrung liefern
+                  Nahrung hierher liefern
                 </button>
                 <button onClick={() => onHelp('generals', c.id)}>
                   Bürgermeister verwalten
@@ -258,7 +209,7 @@ export function CitiesView({ state, onOpen, onHelp }) {
                   Bauernhof ausbauen
                 </button>
                 <button onClick={() => onHelp('transfer', c.id)}>
-                  Truppen verlegen
+                  Truppen von hier verlegen
                 </button>
               </div>
             </div>

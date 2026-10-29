@@ -1,3 +1,4 @@
+import { activityView } from './activity-view.js';
 import { claimTask, taskSnapshot } from '../../packages/game-core/tasks.js';
 import { cityOverview } from '../../packages/game-core/city-overview.js';
 import { cityTransportQuote, stableJSON, transportFuel, startCityTransport, requireGeneralLocation, incomingDeliveries, isCityTransport } from '../../packages/game-core/city-logistics.js';
@@ -83,6 +84,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ruleset: RULESET,
       cityId, cities: player.cities.map(c => ({ id: c.id, name: c.name, ...(() => { const e = storage.world.map.entities.find(e => e.id === c.id); return { x: e?.x, y: e?.y }; })(), resources: c.resources, constructionQueue: c.constructionQueue, inShortage: c.supply?.inShortage ?? false })),
       tasks: { ...taskSnapshot(player), showIntroduction: !!player.tasks.showIntroduction }, cityOverview: cityOverview(player,storage.world.map.entities,current.city.updatedAt),
+      activities: activityView(player),
       migrationNotices: player.migrationNotices ?? [],
       transports: player.military.missions.filter(isCityTransport).map(({commandFingerprint, ...m}) => ({...m,operatingFuel:transportFuel(m,now)})),
       incomingTransports: storage.incomingTransports?.get(player.playerId) ?? [],

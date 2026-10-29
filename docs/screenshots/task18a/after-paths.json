@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "Aufgaben: sichtbare Zielstadt, ein Abholklick, einmalige volle Belohnung.",
+    "General: Umbenennen, Bürgermeister ernennen/abberufen, Forschungsleitung ernennen/freigeben.",
+    "Rekrutierung: Kandidat, automatischer Preis, ausdrücklicher Kauf, freiwilliger Generaldetail-Link.",
+    "Abriss: Mehr → serverseitige Vorschau → eine endgültige Bestätigung.",
+    "NPC-Aufklärung: Feld → planen → automatisch geprüft starten, drei Aktivierungen.",
+    "NPC-Farmzug: automatische Öl-/Kapazitätsvorschau, bewusster verlustträchtiger Start, Rückkehrbericht.",
+    "Feldaufklärung → Rückkehr → Eroberung → Anspruch → Gründung, jeweils automatische Vorschau.",
+    "Bericht → aktuelles Ziel auf Karte, Koordinaten übernommen."
+  ],
+  "errors": []
+}

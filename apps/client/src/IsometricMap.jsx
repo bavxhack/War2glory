@@ -3,7 +3,7 @@ import { cameraAnchor, clampCamera, mergeMapCache, missingChunks, moveCamera, pr
 import { IsometricScene } from './IsometricScene.jsx';
 import { MapCompass } from './MapCompass.jsx';
 
-export function IsometricMap({ map, cityId, transport, selection }) {
+export function IsometricMap({ map, cityId, transport, selection, focusCoordinates }) {
   const [cache,setCache]=useState(()=>mergeMapCache({revision:null,terrain:new Map(),entities:new Map()},map));
   const bounds=map?.bounds??{width:24,height:24};
   const [camera,setCamera]=useState(()=>clampCamera(map?.ownCity??{x:12,y:12},bounds)),[tileWidth,setTileWidth]=useState(() => window.innerWidth <= 560 ? 208 : 240),[coordinate,setCoordinate]=useState(''),[toolsOpen,setToolsOpen]=useState(false),[frame,setFrame]=useState({width:700,height:500}),[loading,setLoading]=useState(false),[error,setError]=useState('');
@@ -34,7 +34,10 @@ export function IsometricMap({ map, cityId, transport, selection }) {
     },110);
     return()=>{clearInterval(interval);flight.current=null;};
   },[transport,cityId]);
+  useEffect(()=>{if(focusCoordinates&&Number.isFinite(focusCoordinates.x)&&Number.isFinite(focusCoordinates.y))position(focusCoordinates);},[focusCoordinates,position]);
   const select=useCallback((entity,terrain)=>{transport.setMapDetails({entity,terrain});if(entity)transport.details(entity.id);},[transport]);
+  const focused=useRef(null);
+  useEffect(()=>{if(!focusCoordinates||focused.current===focusCoordinates.key)return;const terrain=cache.terrain.get(`${focusCoordinates.x}:${focusCoordinates.y}`);if(terrain){focused.current=focusCoordinates.key;select(cache.entities.get(`${terrain.x}:${terrain.y}`),terrain);}},[cache,focusCoordinates,select]);
   const selected=selection?.terrain?`${selection.terrain.x}:${selection.terrain.y}`:null;
   const scene=useMemo(()=><IsometricScene cache={cache} bounds={bounds} tileWidth={tileWidth} selected={selected} onSelect={select}/>,[cache,bounds.width,bounds.height,tileWidth,selected,select]);
   const center=project(camera,tileWidth);

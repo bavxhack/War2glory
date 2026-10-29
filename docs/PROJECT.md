@@ -4,34 +4,21 @@
 
 Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spielcode im Browser und auf dem Server wird in JavaScript geschrieben. HTML und CSS übernehmen Struktur und Darstellung. Jeder soll später eine eigene Instanz betreiben können. Die Teilnahme an einer Föderation bleibt optional. Blockchain und eine zentrale Pflichtregistrierung sind nicht vorgesehen.
 
-## Aktueller Stand: Auftrag 18
+## Aktueller Stand: Auftrag 18 mit UX-Refactoring 18a
 
 Spielerschema 18 und Weltschema 4. Zwölf einmalige Aufgaben im unabhängigen Katalog `tasks-1-provisional`; neun davon bilden die Einführung. Fortschritt und eingefrorene Ansprüche sind spielerweit, Abholbelege dauerhaft. Serverseitige Ausbildungsabschlüsse und bestätigte Berichte/Lieferannahmen zählen in ihrer bestehenden Transaktion. Bestandsmigration errät keine historischen Ausbildungen. Belohnungen passen vollständig in eine ausdrücklich gewählte eigene Stadt oder bleiben offen; kein automatischer Versand, keine zusätzlichen Punkte/XP.
 
 Unter Stadt bleiben Stadtansicht, Alle Städte und Aufgaben erreichbar. Versorgung nutzt dieselben Kernraten mit lokalem Bürgermeister und globaler Forschung. Aktueller Stadtunterhalt erfasst stationierte Truppen; historische gespeicherte Versorgungsregeln bleiben verbindlich. Die bestehende isometrische Karte mit Windrose, alle sieben Hauptnavigationseinträge, Forschung und Logistik bleiben erhalten. Die untenstehenden Etappen und alten Schemaangaben sind Entwicklungshistorie.
 
-## Nächster Schritt: Zwischenauftrag 18a vor Auftrag 19
+## Implementierter Zwischenauftrag 18a
 
-Am 28.10.2026 hat der Nutzer Auftrag 18 als fertig bestätigt und ein umfassendes UI-/UX-Refactoring vor Auftrag 19 beauftragt. **18a ist spezifiziert, noch nicht implementiert.** Der Planungschat hat die Clientansichten, Transport, Styles und relevante Serverbefehle statisch geprüft; keine neuen Laufzeittests ausgeführt.
+Die sieben Hauptbereiche und die drei Stadtansichten bleiben erhalten. Bau, Ausbau, Forschung und Ausbildung sind direkt vom Objekt erreichbar. Bestehende Vorschauverträge werden gebündelt automatisch abgefragt; der bewusste Start bleibt getrennt. Veraltete Antworten, Stadt-/Spielerwechsel und Reconnect geben keinen anderen Entwurf frei. XP-Kauf und irreversible Verteilung bleiben eigenständige Aktionen.
 
-Arbeitsanweisung: [CODEX_PROMPT.md](../CODEX_PROMPT.md). Audit, vollständige Aktionszuordnung und neues Bedienkonzept: [UX_REFACTOR_18A.md](UX_REFACTOR_18A.md).
+Das frühere Sidebar-Portal und der verpflichtende mobile Aktionen-Dialog sind entfernt. Eine optionale vollständige Aktivitätenansicht zeigt Bau, Ausbildung, Forschung und alle bekannten Reisen, mit Stadt-/Gebäudefiltern. Dafür ergänzt der Server ausschließlich eine autorisierte Projektion eigener Queues und reduzierter Reisemetadaten. Fachlogik und Schema 18/4 ändern sich nicht.
 
-Die sieben Hauptbereiche bleiben erhalten. Primäre Aktionen wandern direkt an ihre Objekte und in die zugehörigen Formulare. Das rechte Panel dient optional dem Status; ein zusätzlicher mobiler Aktionen-Dialog entfällt als Pflichtschritt. Diese Entscheidung ersetzt die entsprechende Panel-Vorgabe des historischen UI-Konzepts aus Auftrag 16.
+Versorgungshilfe setzt Lieferziel bzw. Verlegequelle richtig. Generaldetails, Rekrutierung, Belohnungszielstadt und Berichts-Kartenlinks liegen im Hauptbereich. Echte Formularentwürfe sind geschützt; Suche/Filter bleiben normale Navigation. Die Kartenkamera wird nur durch bestehende Steuerung oder einen ausdrücklichen Berichtslink bewegt, nicht durch die Feldkarte.
 
-Umfang:
-- Gebäudekacheln mit direktem Ausbau, Baukatalog am freien Platz, Forschung an Universität und Ausbildung an Kaserne/Fabrik; Abriss unter „Mehr“ mit Folgenbestätigung.
-- Direkte Forschungsaktionen und automatische bestehende Servervorschauen in Planungsformularen; Startbutton bei Eingaben und Kosten statt in anderer Sidebar.
-- Generalverwaltung und Rekrutierung im Hauptbereich; klare Bereiche für Rolle, Entwicklung und Namen. XP-Kauf und Verteilung bleiben getrennte Serveraktionen.
-- Sofort sichtbare kontextgerechte Kartenaktionen bei Auswahl; Windrose, Maßstab, Projektion und Regeln bleiben erhalten.
-- Zusammenhängende Liefer-/Verlegungsformulare mit expliziter Richtung. Versorgungshilfe: Nahrung in die betroffene Stadt liefern, Truppen aus ihr verlegen.
-- Aufgaben führen zur konkreten Aktion. Sichtbar gewählte Zielstadt und Belohnung ermöglichen direkte Einzelabholung; Einmaligkeit und Lagerprüfung bleiben.
-- „Alle anzeigen“ öffnet vollständige Aktivitäten, einschließlich Farmzügen/Aufklärung/Eroberung. Berichte bieten aktuelle Folgeplanung, ohne historische Werte als aktuelle Verfügbarkeit zu übernehmen.
-- Fachlicher Entwurfsschutz statt pauschalem onInput; lokale Fehler-/Erfolgsmeldungen, sichere veraltete Vorschauen und Reconnect.
-- Einheitliche Touch-/Tastaturbedienung, keine Modalstapel, lesbare Dauern, keine Hauptaktion ausschließlich bei Hover.
-
-Eigene UX-Abnahmeziele, keine bereits gemessenen Verbesserungen: sichtbares Gebäude mit einem Klick ausbauen; Baukatalog in zwei Klicks bis Neubau; Forschungskarte in zwei Klicks bis Start bei gültigem Ort; gültig ausgefüllten Transport nach automatischer Vorschau mit einem Klick starten. Preise und Folgen bleiben vorher sichtbar. Klicks, Texteingaben, Scrollwechsel und Wartezeiten getrennt dokumentieren.
-
-Codex muss vor/nach Umsetzung alle Aktionswege im Browser prüfen, npm test und npm run build ausführen und tatsächliche Nachweise in docs/UX_REFACTOR_18A_VALIDATION.md festhalten. Forschung, Nahrung, Öl, Fracht, Punkte, Generäle, Schema 18/4, Aufgabenansprüche und Spielstände erhalten. Keine neue Spielmechanik. Auftrag 19 bleibt bis Abschluss von 18a zurückgestellt.
+Die Abnahme ist in [UX_REFACTOR_18A_VALIDATION.md](UX_REFACTOR_18A_VALIDATION.md) dokumentiert. Dort sind ausgeführte Browserprüfungen und statisch abgeleitete Wege ausdrücklich getrennt. [UX_REFACTOR_18A.md](UX_REFACTOR_18A.md) bleibt die ursprüngliche Spezifikation; [UI_CONCEPT_16.md](UI_CONCEPT_16.md) Entwicklungshistorie. **Auftrag 19 bleibt zurückgestellt und wurde nicht begonnen.**
 
 ## Etappen
 

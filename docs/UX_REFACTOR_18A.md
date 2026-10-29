@@ -1,5 +1,7 @@
 # UX-Audit und Konzept: Zwischenauftrag 18a
 
+Dies ist die ursprüngliche Spezifikation. Umsetzung und tatsächlich ausgeführte Prüfungen vom 28.10.2026: [UX_REFACTOR_18A_VALIDATION.md](UX_REFACTOR_18A_VALIDATION.md).
+
 Stand: 28.10.2026. Ausgangspunkt: [main af290a5](https://github.com/bavxhack/War2glory/tree/af290a51bd27486ca436aa01bd878f1f85713cfe). Auftrag 18 ist integriert und vom Nutzer als abgeschlossen bestätigt. **18a ist eine Spezifikation, noch keine implementierte Oberfläche.** Auftrag 19 wird erst nach diesem Zwischenauftrag fortgesetzt.
 
 ## Prüfgrundlage und Grenzen

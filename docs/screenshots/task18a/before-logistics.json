@@ -1,0 +1,21 @@
+{
+  "checks": [
+    "1366×768: seven visible navigation entries, compact head, primary actions before activity",
+    "Foreign resource delivery without general, truck return, cargo report",
+    "Permanent infantry plus general transfer, no return",
+    "Global general locations, XP purchase, Escape focus restoration",
+    "Research preview and paid start",
+    "Transfer report has stationing instead of return",
+    "Draft confirmation on city switch; old quote discarded",
+    "Real field scout → report → conquest → claim → paid founding",
+    "390×844: all seven pages, no horizontal document overflow, menu/actions, Escape focus (683 CSS px simulates 200% of 1366 px)",
+    "320×844: all seven pages, no horizontal document overflow, menu/actions, Escape focus (683 CSS px simulates 200% of 1366 px)",
+    "683×384: all seven pages, no horizontal document overflow, menu/actions, Escape focus (683 CSS px simulates 200% of 1366 px)",
+    "Mobile long city name; keyboard Enter navigation, Tab in action dialog, Escape focus restoration",
+    "390px: real own delivery without general through action dialog",
+    "390px: real pure scout transfer through action dialog",
+    "320px: real general-only transfer, no forced truck",
+    "Independent tab city selection and reload/session resume"
+  ],
+  "errors": []
+}
