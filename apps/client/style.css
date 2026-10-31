@@ -625,3 +625,10 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 
 .game-shell select { max-width:100%; padding:9px; border:1px solid #65755d; border-radius:6px; background:#111a10; color:#f7f2df; font:inherit; }
 .game-shell .main-navigation nav button[aria-current="page"] { background:#d5e59b; color:#172017; }
+
+.alliance-view { max-width: 65rem; overflow-wrap: anywhere; }
+.alliance-view label { display: grid; gap: .4rem; margin-block: .75rem; }
+.alliance-view input, .alliance-view textarea, .alliance-view select { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.alliance-view button { min-height: 44px; margin: .25rem; max-width: 100%; white-space: normal; }
+.alliance-view article { padding-block: .75rem; border-bottom: 1px solid #64748b; }
+.alliance-text { white-space: pre-wrap; }

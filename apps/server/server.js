@@ -1,3 +1,5 @@
+import { allianceRequest } from './alliances.js';
+import { allianceSummary } from '../../packages/game-core/alliances.js';
 import { activityView } from './activity-view.js';
 import { claimTask, taskSnapshot } from '../../packages/game-core/tasks.js';
 import { cityOverview } from '../../packages/game-core/city-overview.js';
@@ -82,6 +84,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     const military = current.military;
     return {
       world: { name: storage.world.worldName, instanceId: storage.world.instanceId }, ruleset: RULESET,
+      alliance: allianceSummary(storage.world, player.playerId, clock()),
       cityId, cities: player.cities.map(c => ({ id: c.id, name: c.name, ...(() => { const e = storage.world.map.entities.find(e => e.id === c.id); return { x: e?.x, y: e?.y }; })(), resources: c.resources, constructionQueue: c.constructionQueue, inShortage: c.supply?.inShortage ?? false })),
       tasks: { ...taskSnapshot(player), showIntroduction: !!player.tasks.showIntroduction }, cityOverview: cityOverview(player,storage.world.map.entities,current.city.updatedAt),
       activities: activityView(player),
@@ -166,6 +169,21 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         return response(peer, 'map.snapshot', message.requestId, mapSnapshot(result.player.playerId, {cityId:peer.cityId}));
       }
       if (!peer.playerId) return response(peer, 'auth.required', message.requestId, { message: 'Bitte zuerst anmelden.' });
+      if (message.type.startsWith('alliance.')) return await storage.exclusive(async () => {
+        const mapRevision = storage.world.map.revision;
+        const payload = await allianceRequest(storage, peer, message, clock());
+        response(peer, message.type.endsWith('.preview') ? message.type : ['alliance.list','alliance.get','alliance.invitations','alliance.chat.list','alliance.events.list'].includes(message.type) ? message.type : 'command.ok', message.requestId, payload);
+        if (payload.accepted) {
+          for (const connection of connections) if (connection.playerId) {
+            const summary = allianceSummary(storage.world, connection.playerId, clock());
+            // No subscriptions to retain: each follow-up read checks current membership.
+            connection.send({ version: 1, type: 'alliance.changed', payload: summary });
+            if (storage.world.map.revision !== mapRevision) connection.send({ version: 1, type: 'map.changed', payload: { revision: storage.world.map.revision, reason: 'alliance' } });
+          }
+          const player = await storage.loadPlayer(peer.playerId);
+          broadcast(peer.playerId, 'city.updated', c => snapshot(player, c.account, c.cityId));
+        }
+      });
       if (message.type === 'auth.logout') {
         await storage.logout(peer.sessionToken);
         playerConnections.get(peer.playerId)?.delete(peer);

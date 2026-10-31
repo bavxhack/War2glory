@@ -257,3 +257,36 @@ Persistiert wird `tasks {schemaVersion:1,catalogVersion,activatedAt,training,evi
 Migration **17 → 18** aktiviert den Stand einmalig. Vorhandene fertige Gebäude, Forschung, gültige Bürgermeister und Städte liefern Zustandsnachweise. Eindeutige zurückgekehrte NPC-Berichte und tatsächlich angenommene eigene Lieferungen liefern historische Ereignisnachweise; reine Truppenbestände liefern keine Ausbildungsnachweise. Ältere Migrationen, Legacy-Import und neue Konten laufen weiter. Unbekannte Aufgaben-/Spielerschemata und beschädigte Ansprüche werden abgewiesen. Welt bleibt Schema 4, Karte und Weltpositionen werden nicht verändert.
 
 Die neue Einstiegskarte erscheint nur für neu registrierte Konten; Ausblenden wird getrennt vom Spielstand als `intro.hidden.<playerId>` im lokalen Browser gespeichert. Aufgaben bleiben immer erreichbar. Der lokale UI-Schalter löscht oder erzeugt keinen fachlichen Fortschritt. Bei Verbindungsabbruch zeigt die Oberfläche den veralteten Stand mit Zeitstempel und deaktiviert Abholungen; nach Resume gilt der Serverstand.
+
+
+## Auftrag 19: lokale Bündnisse
+
+Authentifizierte Ereignisse auf demselben WebSocket (Welt 5, Spieler 18):
+
+| Anfrage | Antwort / Wirkung |
+| --- | --- |
+| `alliance.list` `{query?,cursor?}` | `alliance.list`: öffentliche Kurzprofile, `items`, `nextCursor` |
+| `alliance.get` `{allianceId?,memberCursor?}` | `alliance.get`: öffentliches Profil; intern nur bei aktueller Mitgliedschaft, Mitgliederseite/`nextMemberCursor` |
+| `alliance.invitations` `{cursor?}` | `alliance.invitations`: nur eigene empfangene oder aktuell verwaltbare offene Einladungen |
+| `alliance.create.preview` `{cityId,name,tag,description?}` | gleicher Typ: normalisierte Daten, Kosten, Limit, `rulesVersion` |
+| `alliance.create` | dieselben Eingaben plus bestätigte `rulesVersion`; atomare Zahlung/Gründung |
+| `alliance.invite` | Verwaltungskontext und `recipientName`; ID wird serverseitig aufgelöst |
+| `alliance.invitation.respond` | `invitationId`, `response: accept/decline`; nur Empfänger |
+| `alliance.invitation.revoke` | Verwaltungskontext, `invitationId` |
+| `alliance.role.change` | Verwaltungskontext, `targetMembershipId`, `role: officer/member` |
+| `alliance.leadership.transfer`, `alliance.member.remove` | Verwaltungskontext, `targetMembershipId` |
+| `alliance.leave`, `alliance.dissolve` | Verwaltungskontext |
+| `alliance.description.update` | Verwaltungskontext, `text` |
+| `alliance.notice.update` | Mitgliedschaftskontext, `noticeVersion`, `text` |
+| `alliance.chat.list`, `alliance.events.list` | Mitgliedschaftskontext, `cursor?`; `items`, `nextCursor`, `membershipId`, `allianceId`, `retainedFrom` |
+| `alliance.chat.send` | Mitgliedschaftskontext, `text` |
+| `alliance.chat.remove` | Mitgliedschaftskontext, `messageId` |
+| `alliance.chat.read` | Mitgliedschaftskontext, tatsächlich an diesen Tab ausgelieferte `sequence` |
+
+Mitgliedschaftskontext: `allianceId`, aktuelle `membershipId`. Verwaltungskontext zusätzlich `adminVersion`. Bei Konflikten neu lesen; keine stillen Rollen-/Mitteilungsüberschreibungen. Mutationen antworten nach Commit mit `command.ok` `{accepted:true}` oder minimal `{duplicate:true}`, Fehler mit `command.error`. Stabile Request-ID und SHA-256-Inhaltsfingerprint; normale Deduplizierung 30 Tage, Gründung dauerhaft. Replay liefert niemals damalige private Inhalte.
+
+`city.snapshot` enthält nur `alliance: {allianceId,membershipId,tag,unread,invitations}`. `alliance.changed` pusht dieselbe kleine eigene Zusammenfassung; der Client liest benötigte Seiten erneut mit aktueller Autorisierung. Keine privaten Chattexte in öffentlichen Pushes und kein Polling. Membershipwechsel verwirft private Ansichten/Entwürfe; alte Leseeffekte dürfen sie nicht wiederherstellen.
+
+Öffentliche Kartenentitäten ergänzen `alliance: {id,tag,name}|null` und `allied`. Zugehörigkeit ist aus der Welt abgeleitet, kein neuer Eigentumstyp. Mitgliedschaftsänderung erhöht die Kartenrevision; `map.changed` mit `reason: alliance` wird clientseitig gebündelt aktualisiert, einschließlich ausgewählter Stadtdetails, ohne Kamerafahrt. Chat/Lesemarken ändern die Kartenrevision nicht.
+
+Seiten: höchstens 20 Einträge sowie 12000 UTF-8-Bytes; Mitgliederprofile kleiner (3000 Bytes Mitgliederanteil) wegen Beschreibung und interner Mitteilung. Chat neueste Sequenzen zuerst, Cursor lädt ältere; Protokoll gespeicherte Reihenfolge. Gelöschte Chattexte werden nicht ausgeliefert. Ungültig gewordener Retentionscursor verlangt Neuladen. Rechte, Limits, Tests und Betriebsgrenzen: [ALLIANCES_VALIDATION.md](ALLIANCES_VALIDATION.md).

@@ -43,7 +43,7 @@ class TestSocket extends EventEmitter {
     while (this.buffer.length >= 2) {
       let length = this.buffer[1] & 127; let offset = 2;
       if (length === 126) { if (this.buffer.length < 4) return; length = this.buffer.readUInt16BE(2); offset = 4; }
-      if (length === 127) { if (this.buffer.length < 10) return; length = Number(this.buffer.readBigUInt64BE(2)); offset = 10; }
+      else if (length === 127) { if (this.buffer.length < 10) return; length = Number(this.buffer.readBigUInt64BE(2)); offset = 10; }
       if (this.buffer.length < offset + length) return;
       const opcode = this.buffer[0] & 15; const body = this.buffer.subarray(offset, offset + length); this.buffer = this.buffer.subarray(offset + length);
       if (opcode === 1) { const event = JSON.parse(body.toString()); if (event.type === 'city.snapshot') this.cityId = event.payload.cityId; this.emit('event', event); }

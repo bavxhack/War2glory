@@ -1,4 +1,5 @@
-export const WORLD_SCHEMA_VERSION = 4;
+import { membership } from './alliances.js';
+export const WORLD_SCHEMA_VERSION = 5;
 export const WORLD_CONFIG = Object.freeze({ width: 24, height: 24, npcCount: 18, maxViewport: 15 });
 export const NPC_RULES = Object.freeze({ version: 'npc-pve-1-provisional', infantryPerDifficulty: 5, rebuildMs: 300_000 });
 
@@ -65,10 +66,15 @@ export function publicMap(world, ownPlayerId, viewport, cityId) {
   const own = world.map.entities.find(entity => entity.kind === 'player' && entity.playerId === ownPlayerId && (!cityId || entity.id === cityId));
   const entities = world.map.entities.filter(entity => entity.x >= x && entity.x < x + width && entity.y >= y && entity.y < y + height)
     .map(entity => ({ id: entity.id, type: entity.kind === 'claim' ? 'claim' : entity.kind === 'npc' ? 'npc' : entity.playerId === ownPlayerId ? 'own-city' : 'player-city', name: entity.name,
-      ...(entity.kind === 'player' ? { commanderName: entity.commanderName } : entity.kind === 'npc' ? { difficulty: entity.difficulty } : { reserved: true }), x: entity.x, y: entity.y,
+      ...(entity.kind === 'player' ? { commanderName: entity.commanderName, ...publicAlliance(world, entity.playerId, ownPlayerId) } : entity.kind === 'npc' ? { difficulty: entity.difficulty } : { reserved: true }), x: entity.x, y: entity.y,
       distance: own ? mapDistance(own, entity) : null }));
   const terrain = [];
   for (let row = y; row < y + height; row += 1) for (let column = x; column < x + width; column += 1) terrain.push({ x: column, y: row, type: terrainAt(column, row, world.map.seed) });
   return { revision: world.map.revision, bounds: { width: config.width, height: config.height }, viewport: { x, y, width, height }, terrain, entities,
     ownCity: own ? { id: own.id, x: own.x, y: own.y } : null, distanceModel: 'euclidean-air-line' };
+}
+
+export function publicAlliance(world, playerId, viewerId) {
+  const own = world.alliances && membership(world, playerId), viewer = world.alliances && membership(world, viewerId);
+  return { alliance: own ? { id: own.alliance.id, tag: own.alliance.tag, name: own.alliance.name } : null, allied: !!own && own.alliance.id === viewer?.alliance.id };
 }
