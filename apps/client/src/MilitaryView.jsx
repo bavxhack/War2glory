@@ -1,16 +1,222 @@
-import { GeneralPortrait } from './GeneralPortrait.jsx';
-import { useState } from 'react';
-import { SidebarActions } from './SidebarActions.jsx';
-import { ActionButton, BuildingArt, GameArt, canAfford, formatDuration, quoteText } from './ui.jsx';
+import { useDraft } from "./Drafts.jsx";
+import { useRef, useState } from "react";
+import { BuildingCard } from "./BuildingCard.jsx";
+import { usePreview, previewVersion } from "./usePreview.js";
+import { Dialog, GameArt, formatDuration } from "./ui.jsx";
+import { forceSummary } from "../force-summary.js";
 
-import { forceSummary } from '../force-summary.js';
-const count = value => value.toLocaleString('de-DE');
-
-function TrainingForm({ state, unit, definition, barracks, transport }) { const [amount, setAmount] = useState(1); const [preview, setPreview] = useState(null); const [error, setError] = useState(''); const valid = Number.isInteger(amount) && amount >= 1 && amount <= state.militaryRules.maxTrainingAmount; const costs = Object.fromEntries(Object.entries(definition.cost).map(([resource, cost]) => [resource, cost * amount])); const affordable = valid && Object.entries(costs).every(([resource, cost]) => state.city.resources[resource] >= cost); const duration = valid ? Math.ceil(Math.ceil(definition.baseDurationMs * amount / barracks.level) * 10000 / (10000 + state.researchEffects.trainingBonusBps * state.city.research.levels.trainingTechniques)) : 0; const queueLength = state.military.trainingQueue.filter(job => (job.trainingSlotId ?? job.barracksSlotId) === barracks.id).length; return <form className="training-form" onSubmit={event => { event.preventDefault(); (async () => { try { if (!preview) setPreview(await transport.request('training.preview', { barracksSlotId: barracks.id, unit, amount })); else { await transport.request('training.enqueue', { barracksSlotId: barracks.id, unit, amount, researchEffect: preview.researchEffect }); setPreview(null); } } catch (e) { setPreview(null); setError(e.message); } })(); }}><GameArt type={unit} label={definition.label} className="training-art"/><label>Anzahl {definition.label}<input type="number" min="1" max={state.militaryRules.maxTrainingAmount} value={amount} required inputMode="numeric" onInput={event => (setAmount(Number(event.currentTarget.value)), setPreview(null))}/></label><small className="training-summary">{valid ? `${costs.wood} Holz · ${costs.stone} Stein · ${costs.food ?? 0} Nahrung · ${formatDuration(duration)}` : `Bitte 1–${state.militaryRules.maxTrainingAmount} eingeben.`}</small>{preview && <p role="status">Verbindliches Angebot: {formatDuration(preview.durationMs)} · Ausbildung Stufe {preview.researchEffect.level} · +{preview.researchEffect.bonusBps * preview.researchEffect.level / 100} % Geschwindigkeit. Werte bei Auftragserteilung.</p>}{error && <p role="alert">{error}</p>}<button disabled={!valid || !affordable || queueLength >= state.militaryRules.trainingQueueLength || state.supply.inShortage || state.city.constructionQueue.some(job => job.slotId === barracks.id)}>{state.supply.inShortage ? 'Wegen Nahrungsmangel pausiert' : preview ? 'Kosten bezahlen und starten' : `${definition.label} prüfen`}</button></form>; }
-
-export function MilitaryView({ state, transport, onPreview }) { const [selectedId, setSelectedId] = useState(null); const selected = state.city.militarySlots.find(slot => slot.id === selectedId); const military = state.military; const forces = forceSummary(military, Object.keys(state.units)); const deployed = Object.values(forces).reduce((sum, item) => sum + item.deployed, 0); const total = Object.values(forces).reduce((sum, item) => sum + item.total, 0); const construct = (slotId, building) => transport.mutate('construction.enqueue', { slotId, building, researchEffect: (state.offers.upgrade[slotId] ?? state.offers.build[building]).researchEffect }); return <div className="game-layout"><section className="map-panel"><div className="heading"><div><span className="kicker">MILITÄRBEREICH</span><h2>Kasernen, Fabriken &amp; Truppen</h2></div><span>Eigene Bauplätze</span></div><div className="city-grid compact">{state.city.militarySlots.map((slot, index) => { const queue = military.trainingQueue.filter(item => (item.trainingSlotId ?? item.barracksSlotId) === slot.id); const job = state.city.constructionQueue.find(item => item.slotId === slot.id); return <button type="button" key={slot.id} className={`plot ${slot.building ?? 'empty'}${selectedId === slot.id ? ' selected' : ''}`} onClick={() => setSelectedId(slot.id)}><span className="plot-number">{index + 1}</span>{slot.building && <BuildingArt type={slot.building} level={slot.level}/>}<strong>{slot.building ? `${state.buildings[slot.building].label} · Stufe ${slot.level}` : 'Freier Militärbauplatz'}</strong>{job && <span className="queued-badge">Eingeplant</span>}{['barracks', 'vehicleFactory'].includes(slot.building) && <><span className="plot-training-queue">{Array.from({ length: state.militaryRules.trainingQueueLength }, (_, position) => <i key={position} className={queue[position] ? position ? 'waiting' : 'active' : 'free'}>{queue[position]?.amount ?? '–'}</i>)}</span><small>{queue.length ? `${queue.length}/3 Ausbildungsslots` : 'Ausbildung frei'}</small></>}</button>; })}</div></section><SidebarActions><section className="card selection">{!selected ? <p>Wähle einen der getrennten Militärbauplätze.</p> : !selected.building ? <><BuildingArt type="barracks"/><h2>Freier Militärbauplatz</h2>{['barracks', 'vehicleFactory'].map(key => <ActionButton key={key} label={`${state.buildings[key].label} bauen`} detail={state.offers.build[key].reason ?? quoteText(state.offers.build[key])} disabled={Boolean(state.offers.build[key].reason) || !canAfford(state, state.offers.build[key])} onClick={() => construct(selected.id, key)}/>)}</> : <Barracks state={state} slot={selected} transport={transport} construct={construct} onPreview={onPreview}/>}</section><section className="card"><h2>Streitkräfte</h2><p className="force-total"><strong>{count(total)}</strong> Einheiten im Bestand</p><div className="unit-visuals">{Object.entries(state.units).map(([unit, definition]) => <article className="unit-card" key={unit}><GameArt type={unit} label={definition.label}/><strong>{definition.label}</strong><span className="unit-total">{count(forces[unit].total)} gesamt</span><dl className="force-breakdown"><div><dt>Stationiert</dt><dd>{count(forces[unit].stationed)}</dd></div><div><dt>Unterwegs</dt><dd>{count(forces[unit].deployed)}</dd></div><div><dt>In Ausbildung</dt><dd>{count(forces[unit].training)}</dd></div></dl></article>)}</div><p className="deployed-forces">Unterwegs: {count(deployed)} lebende Einheiten</p><small>Bestand = stationiert + unterwegs. Ausbildung zählt erst nach Abschluss.</small><h3>In Ausbildung: {count(military.trainingQueue.reduce((sum, job) => sum + job.amount, 0))}</h3></section></SidebarActions></div>; }
-
-export function GeneralList({ generals, onSelect, cities = [], transports = [] }) { return <section className="general-section" aria-labelledby="generals-heading"><div className="heading"><div><span className="kicker">GENERALSTAB</span><h2 id="generals-heading">Generäle</h2></div><span>{generals.length} im Besitz</span></div><div className="general-grid">{generals.map(general => <button type="button" className="general-card" key={general.id} onClick={() => onSelect(general.id)}><GeneralPortrait portraitId={general.portraitId} name={general.name}/><strong>{general.name}</strong><span>Standort: {cities.find(c => c.id === general.cityId)?.name ?? general.cityId ?? "Historisch"}{general.transitMissionId && ` · ${transports.find(m=>m.id===general.transitMissionId)?.status==='returning'?'Rückfahrt':'Hinreise'} nach ${transports.find(m=>m.id===general.transitMissionId)?.status==='returning'?cities.find(c=>c.id===general.cityId)?.name:transports.find(m=>m.id===general.transitMissionId)?.targetName ?? 'Zielstadt'}`}</span><span>Level {general.level} · {general.experience - general.skills.experienceSpent} verfügbare XP · {general.skills.totalPoints - Object.values(general.skills.allocations).reduce((a, b) => a + b, 0)} freie Skills</span><span>Führung {(general.attributes?.leadership ?? general.leadership) + (general.skills?.allocations?.leadership ?? 0)} · {general.status === 'idle' ? 'verfügbar' : general.status === 'mayor' ? 'Bürgermeister' : general.status === 'researcher' ? 'Forschungsleitung' : 'im Einsatz'}</span></button>)}</div></section>; }
-
-
-function Barracks({ state, slot, transport, construct, onPreview }) { const queue = state.military.trainingQueue.filter(job => (job.trainingSlotId ?? job.barracksSlotId) === slot.id); const quote = state.offers.upgrade[slot.id]; return <><BuildingArt type={slot.building} level={slot.level}/><h2>{state.buildings[slot.building].label} · Stufe {slot.level}</h2><p className="barracks-capacity">Ausbildungswarteschlange dieser Kaserne: {queue.length} / {state.militaryRules.trainingQueueLength}</p>{quote && <ActionButton label={`${state.buildings[slot.building].label} ausbauen`} detail={queue.length ? 'Während der Ausbildung gesperrt' : quoteText(quote)} disabled={queue.length > 0 || !canAfford(state, quote)} onClick={() => construct(slot.id, slot.building)}/>}<ActionButton label={`${state.buildings[slot.building].label} abreißen`} detail={queue.length ? 'Während der Ausbildung gesperrt' : 'Vorschau öffnen; Truppen und Generäle bleiben erhalten'} disabled={queue.length > 0} onClick={() => onPreview(slot)}/><p className="notice">Gib eine Truppenmenge ein. Die gesamte Gruppe wird am Ende des Auftrags fertig.</p>{Object.entries(state.units).filter(([, definition]) => definition.building === slot.building).map(([unit, definition]) => <TrainingForm key={unit} state={state} unit={unit} definition={definition} barracks={slot} transport={transport}/>)}</>; }
+function TrainingForm({ state, transport, slot, onClose, initialUnit }) {
+  const [slotId, setSlot] = useState(slot.id),
+    [unit, setUnit] = useState(
+      initialUnit ??
+        Object.keys(state.units).find(
+          (k) => state.units[k].building === slot.building,
+        ),
+    ),
+    [amount, setAmount] = useState(1),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  const sending = useRef(false),
+    barracks = state.city.militarySlots.find((s) => s.id === slotId);
+  const command = { barracksSlotId: slotId, unit, amount };
+  const { preview, status, invalidate } = usePreview(
+    transport,
+    "training.preview",
+    command,
+    previewVersion(state),
+    Number.isSafeInteger(amount) &&
+      amount > 0 &&
+      amount <= state.militaryRules.maxTrainingAmount,
+  );
+  const initial = useRef({ unit, slotId });
+  const dirty =
+    amount !== 1 ||
+    unit !== initial.current.unit ||
+    slotId !== initial.current.slotId;
+  useDraft(dirty);
+  const start = async () => {
+    if (sending.current || !preview) return;
+    sending.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await transport.request("training.enqueue", {
+        ...command,
+        researchEffect: preview.researchEffect,
+      });
+      onClose();
+    } catch (e) {
+      setError(e.message);
+      invalidate();
+    } finally {
+      sending.current = false;
+      setBusy(false);
+    }
+  };
+  return (
+    <Dialog
+      dirty={dirty}
+      open
+      title={`Ausbildung · ${state.city.name}`}
+      kicker="AUSBILDUNG"
+      onClose={() => !busy && onClose()}
+      actions={
+        <button disabled={busy || !preview} onClick={start}>
+          Ausbilden
+        </button>
+      }
+    >
+      <label>
+        Ausbildungsgebäude
+        <select
+          aria-label="Ausbildungsgebäude"
+          value={slotId}
+          onChange={(e) => {
+            const next = state.city.militarySlots.find(
+              (s) => s.id === e.target.value,
+            );
+            setSlot(next.id);
+            setUnit(
+              Object.keys(state.units).find(
+                (k) => state.units[k].building === next.building,
+              ),
+            );
+          }}
+        >
+          {state.city.militarySlots
+            .filter((s) => ["barracks", "vehicleFactory"].includes(s.building))
+            .map((s) => (
+              <option key={s.id} value={s.id}>
+                {state.buildings[s.building].label} · {s.id} · Stufe {s.level}
+              </option>
+            ))}
+        </select>
+      </label>
+      <label>
+        Einheit
+        <select
+          aria-label="Einheit"
+          value={unit}
+          onChange={(e) => setUnit(e.target.value)}
+        >
+          {Object.entries(state.units)
+            .filter(([, d]) => d.building === barracks.building)
+            .map(([k, d]) => (
+              <option key={k} value={k}>
+                {d.label}
+              </option>
+            ))}
+        </select>
+      </label>
+      <label>
+        Anzahl
+        <input
+          type="number"
+          min="1"
+          max={state.militaryRules.maxTrainingAmount}
+          value={amount}
+          onChange={(e) => setAmount(Number(e.target.value))}
+        />
+      </label>
+      <button onClick={() => setAmount(10)}>10</button>
+      <button onClick={() => setAmount(50)}>50</button>
+      <p role="status">{status}</p>
+      {preview && (
+        <p>
+          {Object.entries(preview.cost)
+            .map(
+              ([k, n]) =>
+                `${n} ${{ wood: "Holz", stone: "Stein", food: "Nahrung" }[k]}`,
+            )
+            .join(" · ")}{" "}
+          · {formatDuration(preview.durationMs)} ·{" "}
+          {
+            state.military.trainingQueue.filter(
+              (j) => (j.trainingSlotId ?? j.barracksSlotId) === slotId,
+            ).length
+          }
+          /{state.militaryRules.trainingQueueLength} Plätze belegt.
+          Forschungsbonus +
+          {(preview.researchEffect.bonusBps * preview.researchEffect.level) /
+            100}{" "}
+          % Geschwindigkeit. Stationierte fertige Einheiten verbrauchen Nahrung.
+        </p>
+      )}
+      {state.supply.inShortage && (
+        <p>Hungerpause: Ausbildung kann derzeit nicht starten.</p>
+      )}
+      {error && <p role="alert">{error}</p>}
+    </Dialog>
+  );
+}
+export function MilitaryView({
+  state,
+  transport,
+  onPreview,
+  initialUnit,
+  onActivities,
+}) {
+  const [training, setTraining] = useState(() => {
+      const slot =
+        initialUnit &&
+        state.city.militarySlots.find(
+          (s) => s.building === state.units[initialUnit].building,
+        );
+      return slot ? { slot, unit: initialUnit } : null;
+    }),
+    forces = forceSummary(state.military, Object.keys(state.units));
+  return (
+    <section>
+      <h2>Kasernen, Fabriken &amp; Truppen · {state.city.name}</h2>
+      <div className="city-grid compact">
+        {state.city.militarySlots.map((slot) => (
+          <BuildingCard
+            key={slot.id}
+            slot={slot}
+            state={state}
+            transport={transport}
+            onPreview={onPreview}
+            onActivities={onActivities}
+            onTrain={slot.building ? () => setTraining({ slot }) : null}
+          />
+        ))}
+      </div>
+      <section className="card">
+        <h2>Streitkräfte</h2>
+        <div className="unit-visuals">
+          {Object.entries(state.units).map(([unit, d]) => {
+            const slot = state.city.militarySlots.find(
+              (s) => s.building === d.building,
+            );
+            return (
+              <article className="unit-card" key={unit}>
+                <GameArt type={unit} label={d.label} />
+                <h3>{d.label}</h3>
+                <p>
+                  {forces[unit].stationed} stationiert · {forces[unit].deployed}{" "}
+                  unterwegs · {forces[unit].training} in Ausbildung
+                </p>
+                <button
+                  disabled={!slot}
+                  onClick={() => setTraining({ slot, unit })}
+                >
+                  Ausbilden · {d.label}
+                </button>
+                {!slot && <p>Benötigt {state.buildings[d.building].label}</p>}
+              </article>
+            );
+          })}
+        </div>
+      </section>
+      {training && (
+        <TrainingForm
+          state={state}
+          transport={transport}
+          slot={training.slot}
+          initialUnit={training.unit}
+          onClose={() => setTraining(null)}
+        />
+      )}
+    </section>
+  );
+}

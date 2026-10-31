@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "Desktop: Bauernhof über vorhandene UI ausgebaut, Aufgabe durch Serverabschluss erfüllt; volle Zielstadt lehnt vollständig ab, andere eigene Stadt erhält Belohnung; zweiter Tab übernimmt Abholung.",
+    "Bauernhofhilfe öffnet die vorhandene Ausbauaktion in der richtigen Stadt, ohne einen Bauauftrag abzusenden.",
+    "Gefährdete Stadt bleibt trotz Überschuss der Quelle im Mangel; Lieferhilfe verlangt ausdrückliche andere Quelle, setzt nur Ziel und wählt keine Güter/Truppen oder Sendung.",
+    "390 und 320 px: lesbare Versorgungskarten ohne horizontalen Überlauf; Aufgaben-Abholdialog startet in aktuell gewählter Stadt; Escape und Fokusrückgabe geprüft. Ungesendete Eingaben werden beim Stadtwechsel verworfen.",
+    "Verbindungsabbruch zeigt Zeitstempel und sperrt Auszahlung; Resume/Reload übernimmt gespeicherten Aufgabenstand, ohne neue Auszahlung.",
+    "Weltkarte und Windrose bleiben unabhängig von Stadt-Unteransichten bedienbar."
+  ],
+  "errors": []
+}

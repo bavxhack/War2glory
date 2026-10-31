@@ -104,3 +104,40 @@ test('an empty field stays empty when its public map chunk refreshes',()=>{
  socket.emit('message',{data:JSON.stringify({type:'map.snapshot',payload:{revision:1,viewport:{x:0,y:0,width:12,height:12},entities:[]}})});
  assert.equal(transport.state.mapDetails.entity,undefined);assert.equal(transport.state.mapDetails.terrain.x,2);transport.stop();
 });
+
+test('late map details cannot replace a newer entity or empty-field selection', () => {
+  FakeSocket.instances=[];
+  const transport=new GameTransport({WebSocketImpl:FakeSocket,storage:storage(),location:{protocol:'http:',host:'localhost'}});
+  transport.start();const socket=FakeSocket.instances[0];socket.readyState=FakeSocket.OPEN;socket.emit('open');
+  transport.setMapDetails({entity:{id:'old'},terrain:{x:1,y:1}});const old=transport.details('old');
+  transport.setMapDetails({entity:{id:'new'},terrain:{x:2,y:2}});const recent=transport.details('new');
+  const receive=(id,entity)=>socket.emit('message',{data:JSON.stringify({type:'map.details',requestId:id,payload:{entity,terrain:{x:2,y:2}}})});
+  receive(recent,{id:'new',name:'Current'});receive(old,{id:'old'});
+  assert.equal(transport.state.mapDetails.entity.id,'new');
+  transport.setMapDetails({entity:null,terrain:{x:3,y:3}});receive(recent,{id:'new'});
+  assert.equal(transport.state.mapDetails.entity,null);
+  transport.stop();
+});
+
+test('failed sends do not create phantom pending mutations', () => {
+  const transport=new GameTransport({WebSocketImpl:FakeSocket,storage:storage(),location:{protocol:'http:',host:'localhost'}});
+  assert.throws(()=>transport.mutate('construction.enqueue',{slotId:'plot-1'}),/Keine Verbindung/);
+  assert.equal(transport.hasPending(),false);
+});
+
+test('promise-based starts remain uncertain on disconnect and are never replayed before or after reconciliation', async () => {
+  FakeSocket.instances=[];const scheduled=[];
+  const transport=new GameTransport({WebSocketImpl:FakeSocket,storage:storage(),location:{protocol:'http:',host:'localhost'},timers:{setTimeout:fn=>{scheduled.push(fn);return 1;},clearTimeout(){}}});
+  transport.start();const first=FakeSocket.instances[0];first.readyState=FakeSocket.OPEN;first.emit('open');
+  const snapshot=(socket,time)=>socket.emit('message',{data:JSON.stringify({type:'city.snapshot',payload:{cityId:'c',cities:[{id:'c'}],serverTime:time,player:{id:'p'}}})});
+  snapshot(first,1);const start=transport.request('delivery.start',{targetCityId:'target',preview:{}});first.close();
+  await assert.rejects(start,/Ergebnis noch unklar/);scheduled[0]();const resumed=FakeSocket.instances[1];resumed.readyState=FakeSocket.OPEN;resumed.emit('open');
+  assert.equal(transport.state.reconciling,true);assert.equal(resumed.sent.filter(m=>m.type==='delivery.start').length,0);
+  snapshot(resumed,2);assert.equal(transport.state.reconciling,false);assert.equal(resumed.sent.filter(m=>m.type==='delivery.start').length,0);transport.stop();
+});
+
+test('closed demolition preview cannot be reopened by a late response',()=>{
+ FakeSocket.instances=[];const transport=new GameTransport({WebSocketImpl:FakeSocket,storage:storage(),location:{protocol:'http:',host:'localhost'}});transport.start();const socket=FakeSocket.instances[0];socket.readyState=FakeSocket.OPEN;socket.emit('open');
+ const old=transport.previewBuilding('plot-1');transport.clearDemolition();socket.emit('message',{data:JSON.stringify({type:'building.preview',requestId:old,payload:{slotId:'plot-1'}})});assert.equal(transport.state.demolition,null);
+ const current=transport.previewBuilding('plot-2');socket.emit('message',{data:JSON.stringify({type:'building.preview',requestId:current,payload:{slotId:'plot-2'}})});assert.equal(transport.state.demolition.slotId,'plot-2');transport.stop();
+});

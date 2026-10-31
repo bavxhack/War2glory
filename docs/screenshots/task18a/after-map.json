@@ -1,0 +1,16 @@
+{
+  "checks": [
+    "Alle acht kurzen Windrosenklicks verschieben die Kamera sofort in Bildschirmrichtung; Maßstab, Blickwinkel und Seitenscroll bleiben unverändert.",
+    "Längeres Halten bewegt kontinuierlich; Loslassen außerhalb der Schaltfläche beendet die Bewegung ohne Feldwahl oder Seitenscroll.",
+    "Enter/Leertaste-Halten, Pointer-Abbruch, Fenster- und Tastaturfokusverlust stoppen zuverlässig; keine Bewegung bleibt aktiv.",
+    "Kamera bewegt sich auch vor verspäteten WebSocket-Antworten; alte Antworten setzen sie nicht zurück, die bisherige Stadtauswahl bleibt erhalten.",
+    "Alle vier Weltecken sind ohne Seitenbewegung erreichbar und auswählbar; Weltgrenzen begrenzen die Kamera und bleiben als Kartenkante sichtbar.",
+    "Größere 240-px-Felder und Stadtbreite höchstens 80 %; freie vordere Feldränder aller drei Stadttypen bleiben korrekt zugeordnet.",
+    "Projizierter Feldklick und Stadtwahl nach Kamerafahrten stimmen mit den Koordinaten überein; Objekte werden nach Tiefe gezeichnet, Beschriftungen bleiben aufrecht.",
+    "390×844: vollständiges Kartenfenster und Windrose sichtbar; echte Touch-Klicks und Touch-Halten funktionieren ohne Zoom-/Seitenscrolländerung, auch bei reduzierter Bewegung.",
+    "320×844: vollständiges Kartenfenster und Windrose sichtbar; echte Touch-Klicks und Touch-Halten funktionieren ohne Zoom-/Seitenscrolländerung, auch bei reduzierter Bewegung.",
+    "Mobile Sitzung nach Reload wiederaufgenommen; eigener Standort, kleiner initialer Maßstab und Kartenfenster bleiben funktionsfähig."
+  ],
+  "errors": [],
+  "mapRequests": 14
+}

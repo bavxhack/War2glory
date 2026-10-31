@@ -4,7 +4,7 @@ const initialState = Object.freeze({ status: 'connecting', authenticated: false,
 
 export class GameTransport {
   #listeners = new Set(); #pending = new Map(); #socket = null; #timer = null; #attempt = 0; #generation = 0; #stopped = true;
-  #requests = new Map();
+  #requests = new Map(); #detailsRequestId = null; #demolitionRequestId = null;
   state = initialState;
 
   constructor({ WebSocketImpl = globalThis.WebSocket, storage = globalThis.localStorage, tabStorage = globalThis.sessionStorage, location = globalThis.location, timers = globalThis } = {}) {
@@ -25,14 +25,14 @@ export class GameTransport {
     const socket = new this.WebSocketImpl(`${protocol}://${this.location.host}/game`); this.#socket = socket;
     socket.addEventListener('open', () => {
       if (generation !== this.#generation) return;
-      this.#attempt = 0; this.#set({ status: 'connected', error: '' });
+      this.#attempt = 0; this.#set({ status: 'connected', error: '', reconciling: Boolean(this.state.game) });
       const token = this.storage?.getItem('strategy.session'); if (token) this.send('auth.resume', { sessionToken: token });
     });
     socket.addEventListener('message', event => { if (generation === this.#generation) this.#receive(event.data); });
     socket.addEventListener('close', () => {
       if (generation !== this.#generation || this.#stopped) return;
-      this.#rejectRequests('Verbindung unterbrochen. Bitte den gespeicherten Stand prüfen.');
-      this.#set({ status: 'disconnected' }); this.#attempt += 1;
+      this.#rejectRequests('Verbindung unterbrochen. Ergebnis noch unklar; nach Wiederverbindung den gespeicherten Stand abgleichen.');
+      this.#set({ status: 'disconnected', reconciling: true, message: 'Verbindung unterbrochen. Gesendete Aufträge können gespeichert sein. Ergebnis erst nach Abgleich beurteilen.' }); this.#attempt += 1;
       this.#timer = this.timers.setTimeout(() => this.#connect(), Math.min(15_000, 500 * 2 ** this.#attempt));
     });
   }
@@ -64,7 +64,7 @@ export class GameTransport {
         if (event.payload.cityId !== this.selectedCityId) { this.sync(); return; }
       }
       if (this.state.game?.cityId === event.payload.cityId && this.state.game?.serverTime > event.payload.serverTime) return;
-      this.#set({ game: event.payload, switching: false });
+      const reconciled=this.state.reconciling;if(reconciled)this.#pending.clear();this.#set({ game: event.payload, switching: false, reconciling: false, ...(reconciled?{message:'Verbindung wiederhergestellt. Gespeicherter Stadtstand abgeglichen.'}:{}) });
     }
     else if (event.type === 'map.snapshot' && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) {
       const old=this.state.map;
@@ -76,8 +76,8 @@ export class GameTransport {
       this.#set({map:event.payload,...(covered?{mapDetails:{...selection,entity}}:{})});
     }
     else if (event.type === 'map.changed' && this.state.map && event.payload.revision > this.state.map.revision) this.requestMap(this.state.map.viewport);
-    else if (event.type === 'map.details' && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ mapDetails: event.payload });
-    else if (event.type === 'building.preview' && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ demolition: event.payload });
+    else if (event.type === 'map.details' && (!this.#detailsRequestId || event.requestId === this.#detailsRequestId) && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ mapDetails: event.payload });
+    else if (event.type === 'building.preview' && (!this.#demolitionRequestId || event.requestId === this.#demolitionRequestId) && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ demolition: event.payload });
     else if (event.type === 'command.error') { this.#pending.delete(event.requestId); this.#set({ error: event.payload.message }); }
     else if (event.type === 'command.ok') {
       this.#pending.delete(event.requestId);
@@ -90,7 +90,7 @@ export class GameTransport {
     if (this.selectedCityId && !['auth.register', 'auth.login', 'auth.resume', 'auth.logout', 'mail.send', 'mail.read'].includes(type)) payload = { cityId: this.selectedCityId, ...payload };
     this.#socket.send(JSON.stringify({ version: 1, type, requestId, payload })); return requestId;
   }
-  mutate(type, payload) { const id = createRequestId(); this.#pending.set(id, { type, payload }); this.send(type, payload, id); return id; }
+  mutate(type, payload) { const id=createRequestId();this.send(type,payload,id);this.#pending.set(id,{type,payload});return id; }
   request(type, payload) {
     const id = createRequestId();
     return new Promise((resolve, reject) => {
@@ -102,15 +102,17 @@ export class GameTransport {
   login(payload, register = false) { return this.send(register ? 'auth.register' : 'auth.login', payload); }
   logout() { return this.send('auth.logout'); }
   selectCity(id) {
+    if(this.state.status!=='connected')throw new Error('Keine Verbindung: Stadtstand kann nicht geladen werden.');
     this.selectedCityId = id; this.tabStorage?.setItem('strategy.city', id);
     this.#rejectRequests('Stadt wurde gewechselt.');
     this.#set({ switching: true, demolition: null, mapDetails: null, map: null }); this.sync();
   }
   sync() { return this.send('city.sync'); }
   requestMap(viewport) { return this.send('map.viewport', viewport); }
-  details(id) { return this.send('map.details', { id }); }
-  clearDemolition() { this.#set({ demolition: null }); }
-  setMapDetails(details) { this.#set({ mapDetails: details }); }
+  details(id) { const requestId=createRequestId();this.#detailsRequestId=requestId;return this.send('map.details',{id},requestId); }
+  previewBuilding(slotId) {const id=createRequestId();this.#demolitionRequestId=id;return this.send('building.preview',{slotId},id);}
+  clearDemolition() { this.#demolitionRequestId=createRequestId();this.#set({ demolition: null }); }
+  setMapDetails(details) { this.#detailsRequestId=createRequestId();this.#set({ mapDetails: details }); }
   setMessage(message) { this.#set({ message, error: '' }); }
   hasPending() { return this.#pending.size > 0; }
 }
