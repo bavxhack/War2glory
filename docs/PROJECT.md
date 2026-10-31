@@ -18,7 +18,61 @@ Das frühere Sidebar-Portal und der verpflichtende mobile Aktionen-Dialog sind e
 
 Versorgungshilfe setzt Lieferziel bzw. Verlegequelle richtig. Generaldetails, Rekrutierung, Belohnungszielstadt und Berichts-Kartenlinks liegen im Hauptbereich. Echte Formularentwürfe sind geschützt; Suche/Filter bleiben normale Navigation. Die Kartenkamera wird nur durch bestehende Steuerung oder einen ausdrücklichen Berichtslink bewegt, nicht durch die Feldkarte.
 
-Die Abnahme ist in [UX_REFACTOR_18A_VALIDATION.md](UX_REFACTOR_18A_VALIDATION.md) dokumentiert. Dort sind ausgeführte Browserprüfungen und statisch abgeleitete Wege ausdrücklich getrennt. [UX_REFACTOR_18A.md](UX_REFACTOR_18A.md) bleibt die ursprüngliche Spezifikation; [UI_CONCEPT_16.md](UI_CONCEPT_16.md) Entwicklungshistorie. **Auftrag 19 bleibt zurückgestellt und wurde nicht begonnen.**
+Die Abnahme ist in [UX_REFACTOR_18A_VALIDATION.md](UX_REFACTOR_18A_VALIDATION.md) dokumentiert. Dort sind ausgeführte Browserprüfungen und statisch abgeleitete Wege ausdrücklich getrennt. [UX_REFACTOR_18A.md](UX_REFACTOR_18A.md) bleibt die ursprüngliche Spezifikation; [UI_CONCEPT_16.md](UI_CONCEPT_16.md) Entwicklungshistorie. **Auftrag 19 wurde am 31.10.2026 als nächster Implementierungsauftrag für lokale Bündnisse spezifiziert; noch nicht umgesetzt.**
+
+## Nächster Auftrag 19: Bündnisse innerhalb einer Welt
+
+Am 31.10.2026 nach integriertem UX-Refactoring 18a spezifiziert. **Noch nicht implementiert.** Vollständige Arbeitsanweisung: [CODEX_PROMPT.md](../CODEX_PROMPT.md). Geprüfter Ausgangspunkt ist main cf360426ebf9b38060dcab74faac0b5b2c12e287; der Planungschat hat Quellcode und Dokumentation gelesen, keine Laufzeittests wiederholt.
+
+### Spielbarer Ablauf
+
+Aus einer ausdrücklich gewählten eigenen Stadt ein Bündnis gründen → anderen Kommandanten einladen → Einladung annehmen → intern kommunizieren → Mitgliedsstadt auswählen → über die vorhandene Logistik ausdrücklich Ressourcen liefern.
+
+Mitgliedschaft gilt pro Kommandant einschließlich aller seiner Städte, nicht pro Stadt. Höchstens ein Bündnis gleichzeitig. Bündniszugehörigkeit erzeugt keine Boni, Punkte, gemeinsamen Lager oder Eigentumsrechte.
+
+### Funktionen
+
+- Öffentliche Bündnisprofile mit eindeutigen Namen/Kürzeln, Beschreibung, Mitgliederliste und Rollen.
+- Private Einladungen mit Annahme/Ablehnung, Widerruf und Ablauf; kein offener Sofortbeitritt.
+- Rollen Anführer, Offizier, Mitglied. Anführer verwaltet Rollen/Führung; Offiziere dürfen einladen und normale Mitglieder entfernen, nicht andere Offiziere oder den Anführer.
+- Genau ein Anführer. Führung atomar an aktuelles Mitglied übertragen; bisheriger Anführer wird Offizier. Anführer kann erst nach Übergabe austreten, als letztes Mitglied auflösen.
+- Persistenter interner Textchat, angeheftete Mitteilung, Ungelesen-Zustand und begrenztes Verwaltungsprotokoll.
+- Öffentliche Kürzel an Städten und eindeutige Markierung von Bündnispartnern, ohne private Aufklärung oder Stadtbestände offenzulegen.
+- Direkte Karten-/Nachrichten-/Lieferaktionen aus Mitgliederliste. Ressourcenlieferung bleibt bestehender Transport mit LKWs, Öl, Kapazität und optionalem General.
+- Neuer Hauptbereich „Bündnis“ als gezielte Erweiterung auf acht Bereiche. Direkte Bedienung aus 18a und Windrose bleiben erhalten.
+
+### Eigene vorläufige Standardwerte
+
+Keine belegten Originalspielwerte:
+
+| Parameter | Standard | Grenze |
+| --- | --- | --- |
+| ALLIANCE_CREATE_WOOD | 1000 Holz | Ganzzahl 0–1000000 |
+| ALLIANCE_CREATE_STONE | 1000 Stein | Ganzzahl 0–1000000 |
+| ALLIANCE_MAX_MEMBERS | 20 einschließlich Anführer | Ganzzahl 2–100 |
+| ALLIANCE_INVITE_TTL_HOURS | 168 Stunden (7 × 24) | Ganzzahl 1–8760 |
+
+Keine Nahrung-/Ölgründungskosten, kein Pflichtgebäude und keine laufenden Kosten. Zahlung einmalig aus eigener gewählter Stadt, keine Rückzahlung bei Austritt/Auflösung. Mitgliederlimit wird bei Gründung gespeichert; spätere ENV-Änderungen gelten für neue Bündnisse. Einladungen behalten ihren gespeicherten Ablaufzeitpunkt.
+
+Zentrale weitere Grenzen: eine erfolgreiche Gründung je Kommandant/24 Stunden; 20 offene Einladungen je Bündnis und 10 je Empfänger; 10 neue Einladungen je Aussteller/rollierender Stunde; 5 Chatbeiträge je Spieler/rollierender Minute. Chat speichert letzte 200 Beiträge einschließlich Löschplatzhaltern, Verwaltungsprotokoll letzte 100 Ereignisse. Neue Chatnachricht höchstens 2000 Unicode-Codepunkte. Details zu Validierung, Retention und Replay stehen im Arbeitsauftrag.
+
+### Rechte und dauerhafte Daten
+
+Eine autoritative Bündnis-/Mitgliederquelle bevorzugt im world.json, daraus abgeleitete Indizes und autorisierte Projektionen. Keine unabhängige Mitgliedschaft je Stadt. Weltmigration vom gelesenen Stand 4 → 5; Spielerschema 18 nur erhöhen, falls tatsächlich neue persistente Spielerfelder eingeführt werden.
+
+Gründungszahlung, Bündnisanlage und dauerhafter Befehlsbeleg gemeinsam im bestehenden Recovery-Journal. Serienqueue und Versionsprüfung sichern konkurrierende Namen, den letzten Mitgliederplatz, Annahmen mehrerer Bündnisse und Führungswechsel. Offline, zwei Tabs, Ratelimits, Speicherfehler und Neustart berücksichtigen. Historische Spielstände und laufende Reisen bleiben erhalten.
+
+Öffentliche Profile, interne Mitgliederdaten und persönliche Einladungen strikt trennen. Interne Inhalte nur für aktuelle Mitglieder; Rechte bei jedem Befehl und Push prüfen. Nach Austritt/Kick/Auflösung keine neuen privaten Inhalte, private aktive UI-Zustände und Abonnements bereinigen. Frühere gelesene Informationen können nicht rückwirkend entzogen werden.
+
+Neue Mitglieder dürfen den noch gespeicherten Chatverlauf lesen. Keine private Nachricht pro Chatbeitrag kopieren, keine kompletten Chatlisten in jedem Wirtschaftssnapshot. Bestehenden einzelnen WebSocket, begrenzte Paginierung und gezielte Updates verwenden.
+
+### Abgrenzung und nächster Folgeschritt
+
+Stationierte Bündnisunterstützung bleibt ausdrücklich separat: fremdes Truppeneigentum, Zustimmung des Empfängers, Nahrungsunterhalt, Hungerfolgen, Rückwegöl, Rückruf und Verhalten bei Austritt/Ausschluss sind vorher gemeinsam zu definieren. Die vorhandene eigene-Stadt-Verlegung wird in Auftrag 19 nicht auf Verbündete erweitert.
+
+Ebenso keine gemeinsamen Angriffe, PvP, Bündniskasse, automatische Abgaben, Tauschhandel, Bündnisforschung oder Matrix-Verbindung. Bereits laufende normale Lieferungen werden durch Bündniswechsel nicht verändert. Föderation bleibt ein eigener Strang; eindeutige IDs mit instanceId und transportunabhängige Regeln vorbereiten, federationEnabled unverändert false.
+
+Codex erstellt nach Umsetzung docs/ALLIANCES_VALIDATION.md mit tatsächlichen Rechte-, Konkurrenz-, Replay-, Migrations-/Recovery- und Browsernachweisen. npm test, npm run build, mindestens drei Testkonten, zwei Tabs und Desktop/Mobil prüfen. Die Planung selbst behauptet keine bestandenen Tests.
 
 ## Etappen
 
@@ -42,10 +96,11 @@ Die Abnahme ist in [UX_REFACTOR_18A_VALIDATION.md](UX_REFACTOR_18A_VALIDATION.md
 | 4e | Bis fünf eigene Städte, Stadtwechsel, Aufklärung/Eroberung freier Felder und Gründungsgebühr | Als getesteter Prototyp implementiert; vorläufige Balance |
 | 5a | Generalfreie Ressourcenlieferungen und dauerhafte Truppen-/Generalverlegung zwischen eigenen Städten | Als Prototyp implementiert; Nachweise in LOGISTICS_UI_VALIDATION.md |
 | UI 16 | Erkennbare Hauptnavigation, kompakter Stadtkopf, Aktionen vor Statuslisten, mobile Drawer | Implementiert mit Auftrag 16; Konzept und Browsernachweise |
-| 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Geplant |
+| 5b | Bündnisse, stationierte Unterstützung und geregelter Tauschhandel innerhalb einer Welt | Bündnisgrundlage in Auftrag 19 spezifiziert; stationierte Unterstützung und Handel folgen separat |
 | Forschung+ / 17 | Versionierter Forschungskatalog, Bau-, Ausbildungs- und Ladetechnik mit verständlicher Forschungsansicht | Implementiert; vom Nutzer am 19.10.2026 als abgeschlossen bestätigt, Prüfbelege in RESEARCH_EXPANSION_VALIDATION.md |
 | Einstieg / 18 | Einmalige Aufgabenbelohnungen und stadtübergreifende Versorgungsübersicht | Implementiert als Prototyp; Prüfbelege in TASKS_SUPPLY_VALIDATION.md |
-| UI/UX / 18a | Direkte Objektaktionen, zusammenhängende Formulare, automatische Vorschauen und vollständige Aktionswege | Zwischenauftrag vor 19 am 28.10.2026 spezifiziert; Umsetzung/Browserprüfung ausstehend |
+| UI/UX / 18a | Direkte Objektaktionen, zusammenhängende Formulare, automatische Vorschauen und vollständige Aktionswege | Auf main mit PR #25 integriert; tatsächliche Prüfbelege in UX_REFACTOR_18A_VALIDATION.md |
+| Bündnisse / 19 | Lokale Bündnisse, Einladungen, Rollen, interner Chat und bestehende Lieferwege | Am 31.10.2026 spezifiziert; Umsetzung/Prüfung ausstehend |
 | Ausbau+ | Aufgaben, Stadtwirtschaft, Radar/Verteidigung, taktischer Kampf und weitere Einheiten | Recherchierte Kandidaten, kein unmittelbarer Implementierungsauftrag |
 | 6 | Matrix-Anbindung, Identitätszuordnung, Vertrauensregeln und Spielereignisse zwischen zwei Instanzen | Geplant |
 | 7 | Serverübergreifende Bündnisse und abgegrenzte gemeinsame Gefechte | Geplant |
@@ -645,7 +700,7 @@ Vorgeschlagene Reihenfolge: Auftrag 17 → Einführung/Aufgaben und Versorgungs�
 
 ## Historische Spezifikation Auftrag 17: Forschungsbaum und drei wirksame Erweiterungen
 
-Am 17.10.2026 spezifiziert, inzwischen implementiert und am 19.10.2026 vom Nutzer als abgeschlossen bestätigt. Der nachfolgende Abschnitt bewahrt die Spezifikation; den Implementierungsstand beschreibt „Implementierter Auftrag 17“ weiter unten. [CODEX_PROMPT.md](../CODEX_PROMPT.md) enthält nun Auftrag 18. Der Planungschat hat keine eigenen Laufzeittests ausgeführt.
+Am 17.10.2026 spezifiziert, inzwischen implementiert und am 19.10.2026 vom Nutzer als abgeschlossen bestätigt. Der nachfolgende Abschnitt bewahrt die Spezifikation; den Implementierungsstand beschreibt „Implementierter Auftrag 17“ weiter unten. [CODEX_PROMPT.md](../CODEX_PROMPT.md) enthält den jeweils aktuellen Folgeauftrag. Der Planungschat hat keine eigenen Laufzeittests ausgeführt.
 
 Auftrag 17 baut den vorhandenen Forschungskatalog aus und ergänzt:
 - **Bautechnik** (constructionEngineering): kürzere Arbeitsdauer neuer Bau-/Ausbauaufträge, zivil und militärisch.
@@ -1051,7 +1106,7 @@ Implementiert: Navigation ausschließlich durch ausdrückliche Bedienelemente (a
 
 ## Auftrag 18: Einführung, Aufgaben und Versorgung aller Städte
 
-Am 19.10.2026 spezifiziert und anschließend implementiert. **Der Planungschat führte keine Tests aus; tatsächlich ausgeführte Implementierungsprüfungen stehen in [TASKS_SUPPLY_VALIDATION.md](TASKS_SUPPLY_VALIDATION.md).** Die vollständige Arbeitsanweisung steht in [CODEX_PROMPT.md](../CODEX_PROMPT.md). Ausgangspunkt ist der gelesene main-Stand 7cad05dba65a6c52d570331f1b0cddc40f253204 mit abgeschlossener Forschungserweiterung und räumlicher Karte/Windrose.
+Am 19.10.2026 spezifiziert und anschließend implementiert. **Der Planungschat führte keine Tests aus; tatsächlich ausgeführte Implementierungsprüfungen stehen in [TASKS_SUPPLY_VALIDATION.md](TASKS_SUPPLY_VALIDATION.md).** Die historische Arbeitsanweisung zu Auftrag 18 steht im [Git-Verlauf](https://github.com/bavxhack/War2glory/blob/af290a51bd27486ca436aa01bd878f1f85713cfe/CODEX_PROMPT.md). Ausgangspunkt ist der gelesene main-Stand 7cad05dba65a6c52d570331f1b0cddc40f253204 mit abgeschlossener Forschungserweiterung und räumlicher Karte/Windrose.
 
 ### Spielbarer Ablauf und Umfang
 
