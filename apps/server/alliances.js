@@ -1,11 +1,12 @@
+import { allianceImage } from '../../packages/game-core/alliance-images.js';
 import { randomUUID, createHash } from 'node:crypto';
 import { allianceQuote, applyAlliance, membership, alliancePublic, alliancePage, validateAlliances } from '../../packages/game-core/alliances.js';
 import { stableJSON } from '../../packages/game-core/city-logistics.js';
 import { exposeCity, ownedCity, refreshCities } from '../../packages/game-core/multicity.js';
 
 const reads = new Set(['alliance.list', 'alliance.get', 'alliance.invitations', 'alliance.chat.list', 'alliance.events.list', 'alliance.create.preview']);
-const mutations = new Set(['alliance.create', 'alliance.invite', 'alliance.invitation.respond', 'alliance.invitation.revoke', 'alliance.description.update', 'alliance.notice.update', 'alliance.role.change', 'alliance.leadership.transfer', 'alliance.member.remove', 'alliance.leave', 'alliance.dissolve', 'alliance.chat.send', 'alliance.chat.remove', 'alliance.chat.read']);
-export async function allianceRequest(storage, peer, message, now) {
+const mutations = new Set(['alliance.create', 'alliance.invite', 'alliance.invitation.respond', 'alliance.invitation.revoke', 'alliance.description.update', 'alliance.notice.update', 'alliance.role.change', 'alliance.leadership.transfer', 'alliance.member.remove', 'alliance.leave', 'alliance.dissolve', 'alliance.chat.send', 'alliance.chat.remove', 'alliance.chat.read', 'alliance.image.finish', 'alliance.image.remove']);
+export async function allianceRequest(storage, peer, message, now, preparedImage) {
   // Always in the world's exclusive queue. Recovery precedes reads too.
   await storage.advanceWorld(now);
   const { type, payload: p, requestId } = message, actor = { id: peer.playerId, name: peer.account.displayName, deliveredSequence: 0 };
@@ -14,9 +15,9 @@ export async function allianceRequest(storage, peer, message, now) {
   if (!reads.has(type) && !mutations.has(type)) throw new Error('Unbekannter Bündnisbefehl.');
   if (type === 'alliance.list') {
     const query = typeof p.query === 'string' ? p.query.normalize('NFKC').trim().toLocaleLowerCase('de-DE').slice(0,40) : '';
-    return alliancePage(world.alliances.items.filter(a => `${a.name} ${a.tag}`.toLocaleLowerCase('de-DE').includes(query)).map(a => ({ id: a.id, name: a.name, tag: a.tag, memberCount: a.members.length, maxMembers: a.maxMembers })), p.cursor);
+    return alliancePage(world.alliances.items.filter(a => `${a.name} ${a.tag}`.toLocaleLowerCase('de-DE').includes(query)).map(a => ({ id: a.id, name: a.name, tag: a.tag, image: allianceImage(a), memberCount: a.members.length, maxMembers: a.maxMembers })), p.cursor);
   }
-  if (type === 'alliance.invitations') return alliancePage(world.alliances.items.flatMap(a => a.invitations.filter(i => i.status === 'open' && i.expiresAt > now && (i.recipientId === actor.id || (own?.alliance.id === a.id && own.member.role !== 'member'))).map(i => ({ ...i, allianceName: a.name, tag: a.tag }))).sort((a,b) => a.id.localeCompare(b.id)), p.cursor);
+  if (type === 'alliance.invitations') return alliancePage(world.alliances.items.flatMap(a => a.invitations.filter(i => i.status === 'open' && i.expiresAt > now && (i.recipientId === actor.id || (own?.alliance.id === a.id && own.member.role !== 'member'))).map(i => ({ ...i, allianceName: a.name, tag: a.tag, image: allianceImage(a) }))).sort((a,b) => a.id.localeCompare(b.id)), p.cursor);
   if (type === 'alliance.get') {
     const a = world.alliances.items.find(a => a.id === (p.allianceId ?? own?.alliance.id));
     if (!a) throw new Error('Bündnis nicht gefunden.');
@@ -48,7 +49,8 @@ export async function allianceRequest(storage, peer, message, now) {
     if (existing.fingerprint !== fingerprint) throw new Error('Diese Befehls-ID wurde bereits mit anderem Inhalt verwendet.');
     return { duplicate: true }; // Never replay former private content after expulsion.
   }
-  const next = structuredClone(world), command = { ...p };
+  if (type === 'alliance.image.finish' && !preparedImage) throw new Error('Ein geprüfter Bild-Upload ist erforderlich.');
+  const next = structuredClone(world), command = type === 'alliance.image.finish' ? { ...p, ...preparedImage.context, image: preparedImage.image } : { ...p };
   if (type === 'alliance.invite') {
     if (typeof p.recipientName !== 'string') throw new Error('Empfängername erforderlich.');
     const account = storage.accounts.accounts.find(a => a.normalized === p.recipientName.trim().normalize('NFKC').toLocaleLowerCase('de-DE'));
@@ -75,6 +77,6 @@ export async function allianceRequest(storage, peer, message, now) {
   validateAlliances(next);
   storage.world = next;
   try { await storage.commitPlayers(players, true); }
-  catch (error) { storage.world = world; throw error; } // needsRecovery forces journal synchronization before the next action.
+  catch (error) { storage.world = world; if (type.startsWith('alliance.image.') && error.code) throw new Error('Bild konnte nicht gespeichert werden. Gespeicherten Stand vor erneutem Versuch prüfen.'); throw error; } // needsRecovery forces journal synchronization before the next action.
   return { accepted: true };
 }

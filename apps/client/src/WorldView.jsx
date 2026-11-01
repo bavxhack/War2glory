@@ -1,3 +1,4 @@
+import { AllianceEmblem } from './AllianceEmblem.jsx';
 import { useDraft } from "./Drafts.jsx";
 import { usePreview, previewVersion } from "./usePreview.js";
 import { useRef } from "react";
@@ -113,7 +114,7 @@ function MapDetails({
         KOORDINATE {terrain.x}, {terrain.y}
       </span>
       {entity && <GameArt type="town" label={entity.name} />}
-      {entity?.alliance && <p>[{entity.alliance.tag}] {entity.alliance.name} · {entity.type === "own-city" ? "Eigene Stadt" : entity.allied ? "Bündnispartner" : "Anderes Bündnis"}</p>}
+      {entity?.alliance && <p className="alliance-map-identity"><AllianceEmblem image={entity.alliance.image} tag={entity.alliance.tag}/> [{entity.alliance.tag}] {entity.alliance.name} · {entity.type === "own-city" ? "Eigene Stadt" : entity.allied ? "Bündnispartner" : "Anderes Bündnis"}</p>}
       <h2>{entity?.name ?? "Unbebautes Feld"}</h2>
       <p>Gelände: {terrainLabels[terrain.type]}</p>
       {entity && (

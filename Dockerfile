@@ -2,10 +2,14 @@ FROM node:24-alpine AS frontend-builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca npm ci; else npm ci; fi
 COPY apps ./apps
 COPY packages ./packages
 RUN npm run build
+
+FROM frontend-builder AS production-dependencies
+RUN npm prune --omit=dev --ignore-scripts --no-audit --no-fund
 
 FROM node:24-alpine AS runtime
 
@@ -16,6 +20,7 @@ COPY --chown=node:node package.json ./
 COPY --chown=node:node apps ./apps
 COPY --chown=node:node packages ./packages
 COPY --from=frontend-builder --chown=node:node /app/apps/client/dist ./apps/client/dist
+COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
 RUN mkdir -p /app/data && chown node:node /app/data
 
 USER node

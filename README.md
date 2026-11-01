@@ -20,6 +20,8 @@ Generäle besitzen sichtbare Reiter für Verwaltung/Rekrutierung und getrennte D
 
 Welt **5**, Spieler weiterhin **18**. Autoritativer Bündnisbestand im Weltspielstand, gemeinsame Journaltransaktion für Gründung und einmalige Stadtzahlung. Eigene vorläufige Standards: 1000 Holz/1000 Stein, 20 Mitglieder, Einladungen 168 Stunden. `ALLIANCE_CREATE_WOOD`, `ALLIANCE_CREATE_STONE`, `ALLIANCE_MAX_MEMBERS`, `ALLIANCE_INVITE_TTL_HOURS` sind zentral validiert und über Compose konfigurierbar. Bestehende Mitgliederlimits/Einladungstermine bleiben unverändert. Chat letzte 200 Beiträge, Verwaltungsprotokoll letzte 100; normale Wiederholungsbelege 30 Tage, Gründungsbelege dauerhaft. Keine Unterstützungstruppen oder Föderation.
 
+Anführer und Offiziere können in der Bündnisverwaltung ein Bild hochladen oder entfernen. Es erscheint im Profil, Verzeichnis, an Einladungen, in der Navigation und bei Bündnisstädten auf der Karte. Erlaubt sind statische PNG/JPEG/WebP bis 2 MiB und 2048×2048 Pixel; der Server prüft und erzeugt ein 256×256-WebP ohne Originalmetadaten. Rechte, Versionen, dauerhafte Versuchsgrenzen sowie begrenzte Upload- und Decoderressourcen schützen die Verarbeitung. Details und tatsächliche Tests: [ALLIANCE_IMAGES_VALIDATION.md](docs/ALLIANCE_IMAGES_VALIDATION.md).
+
 Tatsächliche Tests, Rechte, Migration, Recovery und Grenzen: [ALLIANCES_VALIDATION.md](docs/ALLIANCES_VALIDATION.md).
 
 ## Einführung, Aufgaben und Versorgung (Auftrag 18)

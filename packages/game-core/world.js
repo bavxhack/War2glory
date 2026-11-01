@@ -1,3 +1,4 @@
+import { allianceImage } from './alliance-images.js';
 import { membership } from './alliances.js';
 export const WORLD_SCHEMA_VERSION = 5;
 export const WORLD_CONFIG = Object.freeze({ width: 24, height: 24, npcCount: 18, maxViewport: 15 });
@@ -76,5 +77,5 @@ export function publicMap(world, ownPlayerId, viewport, cityId) {
 
 export function publicAlliance(world, playerId, viewerId) {
   const own = world.alliances && membership(world, playerId), viewer = world.alliances && membership(world, viewerId);
-  return { alliance: own ? { id: own.alliance.id, tag: own.alliance.tag, name: own.alliance.name } : null, allied: !!own && own.alliance.id === viewer?.alliance.id };
+  return { alliance: own ? { id: own.alliance.id, tag: own.alliance.tag, name: own.alliance.name, image: allianceImage(own.alliance) } : null, allied: !!own && own.alliance.id === viewer?.alliance.id };
 }

@@ -1,3 +1,4 @@
+import { AllianceImageUploads } from './alliance-image-upload.js';
 import { allianceRequest } from './alliances.js';
 import { allianceSummary } from '../../packages/game-core/alliances.js';
 import { activityView } from './activity-view.js';
@@ -70,6 +71,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
   const directory = resolve(worldDir ?? dirname(dataFile));
   const storage = new WorldStorage(directory, worldName, clock, config);
   const ready = storage.initialize();
+  const imageUploads = new AllianceImageUploads(storage, clock);
   const connections = new Set();
   const playerConnections = new Map();
   const mapRequestTimes = new WeakMap();
@@ -111,6 +113,7 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     for (const peer of playerConnections.get(playerId) ?? []) peer.send({ version: 1, type, payload: payloadFactory(peer) });
   };
   const setIdentity = (peer, result) => {
+    imageUploads.forget(peer);
     peer.cityId = result.player.cities[0].id;
     peer.playerId = result.player.playerId;
     peer.account = result.account;
@@ -153,6 +156,16 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     }
   }
 
+  const notifyAllianceChange = async (peer, mapRevision) => {
+    for (const connection of connections) if (connection.playerId) {
+      const summary = allianceSummary(storage.world, connection.playerId, clock());
+      connection.send({ version: 1, type: 'alliance.changed', payload: summary });
+      if (storage.world.map.revision !== mapRevision) connection.send({ version: 1, type: 'map.changed', payload: { revision: storage.world.map.revision, reason: 'alliance' } });
+    }
+    const player = await storage.loadPlayer(peer.playerId);
+    broadcast(peer.playerId, 'city.updated', c => snapshot(player, c.account, c.cityId));
+  };
+
   async function onMessage(peer, raw) {
     let message;
     try { message = JSON.parse(raw); } catch { return errorResponse(peer, 'unknown', new Error('Ungültiges JSON.')); }
@@ -169,22 +182,23 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
         return response(peer, 'map.snapshot', message.requestId, mapSnapshot(result.player.playerId, {cityId:peer.cityId}));
       }
       if (!peer.playerId) return response(peer, 'auth.required', message.requestId, { message: 'Bitte zuerst anmelden.' });
+      if (imageUploads.types.has(message.type)) {
+        const mapRevision = storage.world.map.revision;
+        let payload;
+        try { payload = await imageUploads.handle(peer, message); }
+        catch (error) { if (error.code) throw new Error('Upload konnte nicht gespeichert werden. Gespeicherten Bildstand vor einem erneuten Versuch prüfen.'); throw error; }
+        response(peer, 'command.ok', message.requestId, payload);
+        if (payload.accepted) await storage.exclusive(() => notifyAllianceChange(peer, mapRevision));
+        return;
+      }
       if (message.type.startsWith('alliance.')) return await storage.exclusive(async () => {
         const mapRevision = storage.world.map.revision;
         const payload = await allianceRequest(storage, peer, message, clock());
         response(peer, message.type.endsWith('.preview') ? message.type : ['alliance.list','alliance.get','alliance.invitations','alliance.chat.list','alliance.events.list'].includes(message.type) ? message.type : 'command.ok', message.requestId, payload);
-        if (payload.accepted) {
-          for (const connection of connections) if (connection.playerId) {
-            const summary = allianceSummary(storage.world, connection.playerId, clock());
-            // No subscriptions to retain: each follow-up read checks current membership.
-            connection.send({ version: 1, type: 'alliance.changed', payload: summary });
-            if (storage.world.map.revision !== mapRevision) connection.send({ version: 1, type: 'map.changed', payload: { revision: storage.world.map.revision, reason: 'alliance' } });
-          }
-          const player = await storage.loadPlayer(peer.playerId);
-          broadcast(peer.playerId, 'city.updated', c => snapshot(player, c.account, c.cityId));
-        }
+        if (payload.accepted) await notifyAllianceChange(peer, mapRevision);
       });
       if (message.type === 'auth.logout') {
+        imageUploads.forget(peer);
         await storage.logout(peer.sessionToken);
         playerConnections.get(peer.playerId)?.delete(peer);
         peer.playerId = null;
@@ -445,6 +459,17 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
     try {
       await ready;
       const path = new URL(req.url, 'http://localhost').pathname;
+      if (req.method === 'GET' && path.startsWith('/alliance-images/')) {
+        const match = /^\/alliance-images\/([a-f0-9-]{36})\/([a-f0-9]{64})\.webp$/.exec(path);
+        const body = await storage.exclusive(async () => {
+          if (storage.needsRecovery) await storage.advanceWorld(clock());
+          const image = match && storage.world.alliances.items.find(a => a.id === match[1])?.image;
+          return image && image.hash === match[2] ? Buffer.from(image.data, 'base64') : null;
+        });
+        if (!body) return json(404, { error: 'Bild nicht gefunden.' });
+        res.writeHead(200, { 'Content-Type': 'image/webp', 'Content-Length': body.length, 'Cache-Control': 'no-store', 'Content-Disposition': 'inline; filename="alliance.webp"', 'Cross-Origin-Resource-Policy': 'same-origin', 'Content-Security-Policy': "default-src 'none'; sandbox" });
+        return res.end(body);
+      }
       if (req.method === 'GET' && staticFiles.has(path)) {
         const [name, type] = staticFiles.get(path);
         res.writeHead(200, { 'Content-Type': type });
@@ -488,11 +513,14 @@ export function createGameServer({ dataFile, worldDir, worldName = 'alpha', cloc
       response(peer, 'auth.required', 'connection', { message: 'Sitzung wiederaufnehmen oder anmelden.' });
       peer.on('message', raw => void onMessage(peer, raw));
       peer.on('close', () => {
+        imageUploads.forget(peer);
         connections.delete(peer);
         if (peer.playerId) playerConnections.get(peer.playerId)?.delete(peer);
       });
     } catch { socket.destroy(); }
   });
+
+  server.on('close', () => imageUploads.close());
 
   const timer = setInterval(async () => {
     try {

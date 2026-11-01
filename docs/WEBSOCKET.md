@@ -290,3 +290,16 @@ Mitgliedschaftskontext: `allianceId`, aktuelle `membershipId`. Verwaltungskontex
 Öffentliche Kartenentitäten ergänzen `alliance: {id,tag,name}|null` und `allied`. Zugehörigkeit ist aus der Welt abgeleitet, kein neuer Eigentumstyp. Mitgliedschaftsänderung erhöht die Kartenrevision; `map.changed` mit `reason: alliance` wird clientseitig gebündelt aktualisiert, einschließlich ausgewählter Stadtdetails, ohne Kamerafahrt. Chat/Lesemarken ändern die Kartenrevision nicht.
 
 Seiten: höchstens 20 Einträge sowie 12000 UTF-8-Bytes; Mitgliederprofile kleiner (3000 Bytes Mitgliederanteil) wegen Beschreibung und interner Mitteilung. Chat neueste Sequenzen zuerst, Cursor lädt ältere; Protokoll gespeicherte Reihenfolge. Gelöschte Chattexte werden nicht ausgeliefert. Ungültig gewordener Retentionscursor verlangt Neuladen. Rechte, Limits, Tests und Betriebsgrenzen: [ALLIANCES_VALIDATION.md](ALLIANCES_VALIDATION.md).
+
+
+### Bündnisbilder
+
+`alliance.image.begin`: Mitgliedschaftskontext (`allianceId`, `membershipId`) plus erwartete `imageVersion`, `size` und `mime` (`image/png`, `image/jpeg`, `image/webp`). Antwort `command.ok` mit `uploadId`, `chunkBytes:8192` und `received`. Maximal 2 MiB, ein Upload je Kommandant, zwei Minuten Laufzeit. Beginn reserviert einen dauerhaft gespeicherten Versuch.
+
+`alliance.image.chunk`: `uploadId`, exakter Byte-`offset`, kanonisches `data` in Base64; höchstens 8192 dekodierte Bytes. Antwort `received`, bei exakter Wiederholung zusätzlich `duplicate`. Upload-ID ist an die eröffnende Verbindung gebunden; sie ist kein Berechtigungsnachweis.
+
+`alliance.image.finish`: ursprünglicher Mitgliedschafts-/Bildversionskontext plus `uploadId`. Außerhalb der Weltqueue wird im kurzlebigen Worker geprüft/neu kodiert; innerhalb der Queue werden Rechte und Bildversion nochmals geprüft und Bild/Befehlsbeleg gemeinsam committet. Antwort `command.ok` erst danach. Ein zweiter Finish mit gleicher Request-ID ist auch nach Neustart dedupliziert; kein Replay von Bilddaten. Unbekannter Ausgang nach Verbindungsverlust muss zuerst anhand des aktuellen Profils abgeglichen werden.
+
+`alliance.image.cancel`: eigene `uploadId`; gibt Reservierung frei. `alliance.image.remove`: Mitgliedschaftskontext plus erwartete `imageVersion`; nur aktuelle Anführer/Offiziere. Veröffentlichung/Entfernung erhöht die unabhängige Bildversion und Kartenrevision, löst die bestehenden Zusammenfassungs-/Kartenpushes aus. Chat oder Beschreibungsänderungen erhöhen die Bildversion nicht.
+
+Öffentliche Profile/Verzeichnis/Einladungen/Kartenzugehörigkeit und die eigene Bündniszusammenfassung ergänzen `image: {url,width:256,height:256}|null`. Profile liefern außerdem `imageVersion`. Keine Binärdaten in WebSocket-Projektionen. Der einzig neue HTTP-Pfad ist der rein lesende, aktuelle WebP-Bildabruf; es gibt keinen HTTP-Upload. Rechte, Limits und Header: [ALLIANCE_IMAGES_VALIDATION.md](ALLIANCE_IMAGES_VALIDATION.md).

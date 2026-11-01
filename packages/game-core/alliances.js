@@ -1,3 +1,4 @@
+import { allianceImage, requireAllianceImageAdmin, reserveAllianceImageAttempt, validateAllianceImage } from './alliance-images.js';
 // Local prototype rules. No transport, clock, randomness or filesystem dependencies.
 export const ALLIANCE_RULES = Object.freeze({ version: 'alliance-1-provisional', wood: 1000, stone: 1000, maxMembers: 20, inviteTtlMs: 604800000,
   createCooldownMs: 86400000, openPerAlliance: 20, openPerRecipient: 10, invitesPerHour: 10, chatPerMinute: 5, chatRetention: 200, eventRetention: 100, replayMs: 30 * 86400000 });
@@ -24,6 +25,7 @@ export function validateAlliances(world) {
   const players = new Set(), names = new Set(), tags = new Set(), ids = new Set();
   for (const a of data.items) {
     if (!Array.isArray(a.members) || !Array.isArray(a.invitations) || !Array.isArray(a.chat) || !Array.isArray(a.events) || a.chat.length > 200 || a.events.length > 100 || !Number.isInteger(a.maxMembers) || a.maxMembers < 2 || a.maxMembers > 100 || !a.id || ids.has(a.id) || names.has(allianceNameKey(a.name)) || tags.has(a.tag) || a.members.length < 1 || a.members.length > a.maxMembers || a.members.filter(m => m.role === 'leader').length !== 1 || !Number.isInteger(a.adminVersion) || !Number.isInteger(a.sequence)) fail('Widersprüchlicher Bündnisbestand.');
+    validateAllianceImage(a);
     ids.add(a.id); names.add(allianceNameKey(a.name)); tags.add(a.tag);
     for (const m of a.members) {
       if (players.has(m.playerId) || memberships.has(m.membershipId) || !m.membershipId || !['leader', 'officer', 'member'].includes(m.role) || m.lastReadSequence > a.sequence) fail('Widersprüchliche Mitgliedschaft/Rolle.');
@@ -100,6 +102,12 @@ export function applyAlliance(world, actor, type, p, now, rules, uuid) {
   } else if (type === 'alliance.description.update') {
     if (!admin) fail('Keine Verwaltungsrechte.');
     a.description = allianceText(p.text, 0, 500); a.adminVersion++;
+  } else if (type === 'alliance.image.finish' || type === 'alliance.image.remove') {
+    requireAllianceImageAdmin(world, actor.id, p);
+    if (type === 'alliance.image.remove') reserveAllianceImageAttempt(world, actor.id, p, now);
+    a.imageVersion = (a.imageVersion ?? 0) + 1;
+    a.image = type === 'alliance.image.remove' ? null : p.image;
+    validateAllianceImage(a); world.map.revision++; event(a, actor, type, now);
   } else if (type === 'alliance.notice.update') {
     if (!admin) fail('Keine Verwaltungsrechte.');
     if (p.noticeVersion !== a.notice.version) fail('Mitteilung inzwischen geändert.');
@@ -135,14 +143,14 @@ export function applyAlliance(world, actor, type, p, now, rules, uuid) {
 }
 export function allianceSummary(world, playerId, now) {
   const own = membership(world, playerId);
-  return { allianceId: own?.alliance.id ?? null, membershipId: own?.member.membershipId ?? null, tag: own?.alliance.tag ?? null,
+  return { allianceId: own?.alliance.id ?? null, membershipId: own?.member.membershipId ?? null, tag: own?.alliance.tag ?? null, image: allianceImage(own?.alliance),
     unread: own ? own.alliance.chat.filter(c => c.sequence > own.member.lastReadSequence).length : 0,
     invitations: world.alliances.items.reduce((n, a) => n + a.invitations.filter(i => i.recipientId === playerId && open(i, now)).length, 0) };
 }
 export function alliancePublic(world, a, cursor) {
   const members = a.members.map(m => ({ playerId: m.playerId, name: m.name, role: m.role, cities: world.map.entities.filter(e => e.kind === 'player' && e.playerId === m.playerId).map(({ id, name, x, y }) => ({ id, name, x, y })) }));
   const page = alliancePage(members, cursor, 'playerId', 20, 3000);
-  return { id: a.id, instanceId: a.instanceId, name: a.name, tag: a.tag, description: a.description, createdAt: a.createdAt, memberCount: a.members.length, maxMembers: a.maxMembers,
+  return { id: a.id, image: allianceImage(a), imageVersion: a.imageVersion ?? 0, instanceId: a.instanceId, name: a.name, tag: a.tag, description: a.description, createdAt: a.createdAt, memberCount: a.members.length, maxMembers: a.maxMembers,
     members: page.items, nextMemberCursor: page.nextCursor };
 }
 // Count and encoded-byte bounded pages, stable ID/sequence cursors. No executable content.

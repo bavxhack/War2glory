@@ -1,3 +1,4 @@
+import { validateStoredAllianceImages } from './alliance-image-storage.js';
 import { emptyAlliances, validateAlliances } from '../../packages/game-core/alliances.js';
 import { newTasks, validateTasks, observeTaskCity, observeTaskRecords } from '../../packages/game-core/tasks.js';
 import { migrateGeneralLocations, validateCityTransport, isCityTransport, finishCityTransport, incomingDeliveries } from '../../packages/game-core/city-logistics.js';
@@ -95,7 +96,7 @@ export class WorldStorage {
       throw new Error(`Unbekannte Welt-Schemaversion: ${this.world.schemaVersion}.`);
     }
     if (this.world.schemaVersion === 4) { this.world.alliances = emptyAlliances(); this.world.schemaVersion = 5; await this.saveWorld(); }
-    validateAlliances(this.world);
+    validateAlliances(this.world); validateStoredAllianceImages(this.world);
     this.world.fields ??= {};
     if (!Number.isFinite(this.world.supplyActivatedAt)) {
       this.world.supplyActivatedAt = this.clock();
@@ -355,7 +356,7 @@ export class WorldStorage {
   nextEventSequence() { return this.world.nextEventSequence++; }
 
   async advanceWorld(now) {
-    if (this.needsRecovery) { await this.#recoverTransaction(); this.world = await readJson(this.worldFile); this.needsRecovery = false; }
+    if (this.needsRecovery) { await this.#recoverTransaction(); this.world = await readJson(this.worldFile); validateAlliances(this.world); validateStoredAllianceImages(this.world); this.needsRecovery = false; }
     const files = (await readdir(this.playersDirectory)).filter(file => file.endsWith('.json')).sort();
     const players = new Map();
     for (const file of files) {

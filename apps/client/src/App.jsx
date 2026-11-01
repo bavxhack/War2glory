@@ -1,3 +1,4 @@
+import { AllianceEmblem } from './AllianceEmblem.jsx';
 import { AllianceView } from "./AllianceView.jsx";
 import { Drafts } from "./Drafts.jsx";
 import { Activities } from "./Activities.jsx";
@@ -455,7 +456,7 @@ function GameScreen({ transport, snapshot }) {
           className={view === key ? "active" : ""}
           onClick={() => navigate(key)}
         >
-          <span aria-hidden="true">{icon}</span>
+          <span aria-hidden="true">{key === "alliance" && state.alliance?.image ? <AllianceEmblem image={state.alliance.image}/> : icon}</span>
           {name}
           {key === "city" && state.tasks?.claimable > 0 && (
             <span className="mail-badge">{state.tasks.claimable}</span>

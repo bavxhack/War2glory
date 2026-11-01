@@ -1,7 +1,9 @@
+import { AllianceEmblem } from './AllianceEmblem.jsx';
+import { AllianceImageUpload } from './AllianceImageUpload.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { usePreview } from './usePreview.js';
 import { useDraft } from './Drafts.jsx';
-const eventNames = { created:'Gründung', joined:'Beitritt', 'alliance.leave':'Austritt', 'alliance.member.remove':'Ausschluss', 'alliance.role.change':'Rollenänderung', 'alliance.leadership.transfer':'Führungsübergabe', notice:'Mitteilung geändert', moderation:'Chatbeitrag entfernt' };
+const eventNames = { created:'Gründung', joined:'Beitritt', 'alliance.leave':'Austritt', 'alliance.member.remove':'Ausschluss', 'alliance.role.change':'Rollenänderung', 'alliance.leadership.transfer':'Führungsübergabe', notice:'Mitteilung geändert', moderation:'Chatbeitrag entfernt', 'alliance.image.finish':'Bündnisbild geändert', 'alliance.image.remove':'Bündnisbild entfernt' };
 const roles = { leader: 'Anführer', officer: 'Offizier', member: 'Mitglied' };
 
 export function AllianceView({ state, transport, connected, revision, onDelivery, onMessage, onMap }) {
@@ -13,12 +15,12 @@ function AllianceContent({ state, transport, connected, revision, onDelivery, on
   const [directory,setDirectory] = useState({items:[]}), [invitations,setInvitations] = useState({items:[]}), [profile,setProfile] = useState(null),
     [chat,setChat] = useState({items:[]}), [events,setEvents] = useState({items:[]}), [query,setQuery] = useState(''), [selected,setSelected] = useState(state.alliance?.allianceId),
     [form,setForm] = useState({name:'',tag:'',description:'',cityId:state.cityId}), [text,setText] = useState(''), [recipient,setRecipient] = useState(''),
-    [notice,setNotice] = useState(null), [description,setDescription] = useState(null), [error,setError] = useState(''), [success,setSuccess] = useState(''), [busy,setBusy] = useState(false), [refresh,setRefresh] = useState(0), [confirmation,setConfirmation] = useState(null);
+    [imageDirty,setImageDirty] = useState(false), [notice,setNotice] = useState(null), [description,setDescription] = useState(null), [error,setError] = useState(''), [success,setSuccess] = useState(''), [busy,setBusy] = useState(false), [refresh,setRefresh] = useState(0), [confirmation,setConfirmation] = useState(null);
   const pending = useRef(false), generation = useRef(0), visibleChat = useRef(null);
   const member = profile?.membershipId === state.alliance?.membershipId && !!profile?.membershipId;
   const admin = member && profile.role !== 'member', leader = member && profile.role === 'leader';
-  const dirty = !!(text || recipient || notice !== null || description !== null || form.name || form.tag || form.description);
-  useDraft(dirty);
+  const dirty = !!(imageDirty || text || recipient || notice !== null || description !== null || form.name || form.tag || form.description);
+  const leave = useDraft(dirty);
   useEffect(() => { const before = e => { if (dirty) {e.preventDefault();e.returnValue='';} }; window.addEventListener('beforeunload',before); return () => window.removeEventListener('beforeunload',before); },[dirty]);
   const {preview,status,invalidate} = usePreview(transport,'alliance.create.preview',form,state.alliance?.allianceId,!state.alliance?.allianceId && !!form.name && !!form.tag);
   const context = () => ({allianceId:profile?.id,membershipId:profile?.membershipId,adminVersion:profile?.adminVersion});
@@ -59,7 +61,7 @@ function AllianceContent({ state, transport, connected, revision, onDelivery, on
   return <section className="alliance-view">
     <header className="alliance-heading">
       <div><span className="alliance-eyebrow">GEMEINSAM STÄRKER</span><h2>Bündnis</h2><p>Deine Gemeinschaft. Eure nächsten Schritte.</p></div>
-      {state.alliance?.tag && <span className="alliance-tag">[{state.alliance.tag}]</span>}
+      {state.alliance?.tag && <span className="alliance-tag"><AllianceEmblem image={state.alliance.image} tag={state.alliance.tag}/> [{state.alliance.tag}]</span>}
     </header>
     {!connected && <p className="alliance-feedback alliance-feedback--warning" role="status">Offline · Stand veraltet. Nach Wiederverbindung gespeicherten Stand prüfen.</p>}
     {error && <p className="alliance-feedback alliance-feedback--error" role="alert">{error}</p>}
@@ -70,7 +72,7 @@ function AllianceContent({ state, transport, connected, revision, onDelivery, on
       <div className="alliance-section-heading"><div><span className="alliance-eyebrow">DEIN EINGANG</span><h3>Einladungen ({state.alliance?.invitations ?? 0})</h3></div><span className="alliance-count">{invitations.items.length}</span></div>
       {!invitations.items.length && <p className="alliance-empty">Noch keine offenen Einladungen. Entdecke ein Bündnis oder gründe deine eigene Gemeinschaft.</p>}
       <div className="alliance-invitation-list">{invitations.items.map(i=><article className="alliance-invitation" key={i.id}>
-        <div><strong>[{i.tag}] {i.allianceName}</strong><p>Für {i.recipientName}</p><small>Gültig bis {new Date(i.expiresAt).toLocaleString('de-DE')}</small></div>
+        <div className="alliance-invitation-identity"><AllianceEmblem image={i.image} tag={i.tag}/><strong>[{i.tag}] {i.allianceName}</strong><p>Für {i.recipientName}</p><small>Gültig bis {new Date(i.expiresAt).toLocaleString('de-DE')}</small></div>
         <div className="alliance-actions">{i.recipientId===state.player.id ? <><button className="alliance-primary" disabled={busy||!connected} onClick={()=>mutate('alliance.invitation.respond',{invitationId:i.id,response:'accept'})}>Annehmen</button><button disabled={busy||!connected} onClick={()=>mutate('alliance.invitation.respond',{invitationId:i.id,response:'decline'})}>Ablehnen</button></> : admin && <button disabled={busy||!connected} onClick={()=>action('alliance.invitation.revoke',{invitationId:i.id})}>Widerrufen</button>}</div>
       </article>)}</div>
       {invitations.nextCursor && <button onClick={()=>more('alliance.invitations',invitations,setInvitations,{})}>Weitere Einladungen</button>}
@@ -78,7 +80,7 @@ function AllianceContent({ state, transport, connected, revision, onDelivery, on
 
     {profile && <section className="alliance-profile">
       <header className="alliance-banner">
-        <div className="alliance-crest" aria-hidden="true"><span>⚑</span><strong>{profile.tag}</strong></div>
+        <AllianceEmblem className="alliance-crest" image={profile.image} tag={profile.tag} label={`Bild von Bündnis ${profile.name}`}/>
         <div className="alliance-identity"><span className="alliance-eyebrow">{member?'DEIN BÜNDNIS':'ÖFFENTLICHES PROFIL'}</span><h3>[{profile.tag}] {profile.name}</h3><p>{profile.description||'Eine Gemeinschaft von Kommandanten dieser Welt.'}</p><small>Gegründet am {new Date(profile.createdAt).toLocaleDateString('de-DE')}</small></div>
         <dl className="alliance-facts"><div><dt>Mitglieder</dt><dd>{profile.memberCount}<span> / {profile.maxMembers}</span></dd></div>{member && <div><dt>Deine Rolle</dt><dd className="alliance-role">{roles[profile.role]}</dd></div>}</dl>
       </header>
@@ -117,6 +119,7 @@ function AllianceContent({ state, transport, connected, revision, onDelivery, on
       {admin && <section className="alliance-administration" aria-labelledby="alliance-admin-title">
         <div className="alliance-section-heading"><div><span className="alliance-eyebrow">GEMEINSCHAFT GESTALTEN</span><h4 id="alliance-admin-title">Verwaltung</h4></div></div>
         <div className="alliance-admin-grid">
+          <AllianceImageUpload profile={profile} transport={transport} connected={connected} onDirty={setImageDirty} onSaved={()=>setRefresh(n=>n+1)}/>
           <form className="alliance-card" onSubmit={e=>{e.preventDefault();action('alliance.invite',{recipientName:recipient},null,()=>setRecipient(''));}}><h5>Neue Mitstreiter</h5><p className="alliance-help">Lade einen Kommandanten aus dieser Welt in euer Bündnis ein.</p><label>Kommandant einladen<input placeholder="Kommandantenname" value={recipient} onChange={e=>setRecipient(e.target.value)}/></label><button className="alliance-primary" disabled={!recipient||busy||!connected}>Einladen</button></form>
           <section className="alliance-card"><h5>Eure interne Mitteilung</h5><p className="alliance-help">Gemeinsame Ziele und Absprachen, oben für alle Mitglieder angeheftet.</p><label>Interne Mitteilung<textarea aria-label="Interne Mitteilung" rows={5} placeholder="Ziele, Absprachen und Neuigkeiten …" value={notice?.text??profile.notice.text} onChange={e=>setNotice({text:e.target.value,version:notice?.version??profile.notice.version})}/></label><div className="alliance-actions"><button className="alliance-primary" disabled={notice===null||busy||!connected} onClick={()=>action('alliance.notice.update',{text:notice?.text,noticeVersion:notice?.version},null,()=>setNotice(null))}>Mitteilung speichern</button>{notice!==null && <button className="alliance-quiet" disabled={busy} onClick={()=>setNotice(null)}>Mitteilungsentwurf verwerfen</button>}</div></section>
           <section className="alliance-card"><h5>Euer öffentlicher Auftritt</h5><p className="alliance-help">Diese Beschreibung können alle Kommandanten der Welt lesen.</p><label>Öffentliche Beschreibung<textarea aria-label="Öffentliche Beschreibung" rows={5} placeholder="Wofür steht euer Bündnis?" value={description?.text??profile.description} onChange={e=>setDescription({text:e.target.value,version:description?.version??profile.adminVersion})}/></label><div className="alliance-actions"><button className="alliance-primary" disabled={description===null||busy||!connected} onClick={()=>action('alliance.description.update',{text:description?.text,adminVersion:description?.version},null,()=>setDescription(null))}>Beschreibung speichern</button>{description!==null && <button className="alliance-quiet" disabled={busy} onClick={()=>setDescription(null)}>Beschreibungsentwurf verwerfen</button>}</div></section>
@@ -136,9 +139,9 @@ function AllianceContent({ state, transport, connected, revision, onDelivery, on
         <div className="alliance-quote"><span className="alliance-eyebrow">GRÜNDUNGSKOSTEN</span><p className="alliance-help">{status}</p>{preview && <><div className="alliance-prices"><span><strong>{preview.cost.wood.toLocaleString('de-DE')}</strong> Holz</span><span><strong>{preview.cost.stone.toLocaleString('de-DE')}</strong> Stein</span><span><strong>{preview.maxMembers}</strong> Mitglieder</span></div><small>0 Nahrung / Öl · Keine Rückzahlung · Eine Gründung je 24 Stunden.</small></>}</div>
         <button className="alliance-primary" disabled={!preview||busy||!connected} onClick={()=>action('alliance.create',{...form,rulesVersion:preview.rulesVersion},`„${preview.name}“ aus ${state.cities.find(c=>c.id===form.cityId)?.name} für ${preview.cost.wood} Holz und ${preview.cost.stone} Stein gründen?`)}>Kostenpflichtig gründen</button>
       </section>}
-      <section className="alliance-card alliance-directory"><div className="alliance-section-heading"><div><span className="alliance-eyebrow">GEMEINSCHAFTEN DIESER WELT</span><h3>Verzeichnis</h3></div>{state.alliance?.allianceId && <button className="alliance-quiet" onClick={()=>setSelected(state.alliance.allianceId)}>Mein Bündnis</button>}</div>
+      <section className="alliance-card alliance-directory"><div className="alliance-section-heading"><div><span className="alliance-eyebrow">GEMEINSCHAFTEN DIESER WELT</span><h3>Verzeichnis</h3></div>{state.alliance?.allianceId && <button className="alliance-quiet" onClick={()=>{if(selected!==state.alliance.allianceId)leave(()=>setSelected(state.alliance.allianceId));}}>Mein Bündnis</button>}</div>
         <label>Bündnis suchen<input type="search" placeholder="Nach Name oder Kürzel suchen …" value={query} onChange={e=>setQuery(e.target.value)}/></label>
-        <div className="alliance-directory-list">{directory.items.map(a=><button className="alliance-directory-entry" key={a.id} aria-pressed={profile?.id===a.id} onClick={()=>setSelected(a.id)}><span className="alliance-directory-tag">{a.tag}</span><span><strong>{a.name}</strong><small>{a.memberCount} / {a.maxMembers} Mitglieder</small></span><span className="alliance-directory-arrow" aria-hidden="true">↗</span></button>)}</div>
+        <div className="alliance-directory-list">{directory.items.map(a=><button className="alliance-directory-entry" key={a.id} aria-pressed={profile?.id===a.id} onClick={()=>{if(selected!==a.id)leave(()=>setSelected(a.id));}}><AllianceEmblem className="alliance-directory-tag" image={a.image}/><span><strong>[{a.tag}] {a.name}</strong><small>{a.memberCount} / {a.maxMembers} Mitglieder</small></span><span className="alliance-directory-arrow" aria-hidden="true">↗</span></button>)}</div>
         {!directory.items.length && <p className="alliance-empty">{query?'Kein Bündnis zu dieser Suche gefunden.':'Noch keine Bündnisse in dieser Welt.'}</p>}
         {directory.nextCursor && <button onClick={()=>more('alliance.list',directory,setDirectory,{query})}>Weitere Bündnisse</button>}
       </section>

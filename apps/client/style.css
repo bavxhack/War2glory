@@ -750,3 +750,20 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 @media(prefers-reduced-motion:reduce) { .game-shell .alliance-view :is(input,textarea,select) { transition:none; } }
 .alliance-tag { white-space:nowrap; flex-shrink:0; }
 @media(max-width:650px) { .alliance-name-fields { grid-template-columns:minmax(0,1fr) 90px; } .game-shell .alliance-view :is(input,textarea,select) { font-size:16px; } }
+
+.alliance-emblem { display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; width:32px; height:32px; overflow:hidden; border:1px solid #7a905b; border-radius:8px; background:#2f4329; color:#e2eac2; vertical-align:middle; }
+.alliance-emblem img { display:block; width:100%; height:100%; object-fit:cover; }
+.alliance-emblem-fallback { display:flex; align-items:center; justify-content:center; flex-direction:column; font-size:18px; line-height:1; gap:4px; }
+.alliance-emblem-fallback small { font-size:8px; letter-spacing:.04em; }
+.alliance-emblem.alliance-crest { width:84px; height:100px; min-height:100px; border-radius:15px 15px 30px 30px; padding:0; }
+.alliance-crest .alliance-emblem-fallback { font-size:30px; }.alliance-crest .alliance-emblem-fallback small { font-size:13px; }
+.alliance-emblem.alliance-directory-tag { width:56px; height:56px; padding:0; }
+.alliance-tag { display:inline-flex; align-items:center; gap:8px; }.alliance-tag .alliance-emblem { width:26px; height:26px; }
+.alliance-invitation-identity { display:grid; grid-template-columns:auto minmax(0,1fr); gap:5px 12px; align-items:center; }.alliance-invitation-identity .alliance-emblem { grid-row:span 3; width:48px; height:48px; }.alliance-invitation-identity p { margin:0; }
+.alliance-map-identity { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.alliance-emblem.alliance-emblem--map { width:18px; height:18px; border-radius:4px; float:left; margin-right:3px; }
+.alliance-image-current { display:flex; gap:14px; align-items:center; margin-top:18px; }.alliance-image-current .alliance-emblem { width:64px; height:64px; }.alliance-image-current p { font-size:12px; line-height:1.6; }
+.game-shell .alliance-image-upload input[type=file] { padding:10px; font-size:12px; }.alliance-image-upload input::file-selector-button { background:#d5e59b; color:#172017; border:0; border-radius:6px; padding:8px 10px; margin-right:8px; cursor:pointer; font:inherit; }
+.alliance-image-upload .alliance-actions { margin-top:16px; }.alliance-image-upload progress { width:100%; accent-color:#d5e59b; margin-top:12px; }
+.alliance-admin-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.alliance-admin-grid > :first-child { grid-column:auto; }
+@media(max-width:650px) { .alliance-emblem.alliance-crest { width:64px; height:80px; min-height:80px; }.alliance-admin-grid { grid-template-columns:minmax(0,1fr); } }
