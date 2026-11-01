@@ -67,3 +67,18 @@ Regressionen tatsächlich erneut ausgeführt:
 ## Grenzen
 
 JSON-Speicherung bleibt auf einen Serverprozess je Welt ausgelegt. Kein Last-/Mehrprozess-, Docker-, Safari-/Firefox-, Screenreader- oder physischer Mobilgerätetest. Keine neue Unterstützung, fremde Truppenverlegung, Diplomatie, PvP, Boni oder aktive Föderation; `federationEnabled` bleibt false. Frühere empfangene Inhalte können nicht rückwirkend ungelesen werden. Die 200-/100-Grenzen sind kein unbegrenztes Archiv. Kompakte Gründungsbelege bleiben absichtlich dauerhaft; normale Befehlsbelege werden bei Mutationen nach 30 Tagen bereinigt. Backup/Wiederherstellung umfasst weiterhin das vollständige gestoppte Weltverzeichnis einschließlich eventuell vorhandenen Recovery-Journals.
+
+## Gestaltungsüberarbeitung vom 01.11.2026
+
+Die Bündnisseite besitzt jetzt einen eigenen Profilkopf mit Kürzel, Mitgliederzahl und Rolle, eine abgesetzte angeheftete Mitteilung sowie getrennte Karten für Mitglieder/Städte und Chat. Auf breiten Bildschirmen liegen Mitglieder und Chat nebeneinander; die Verwaltung besteht aus drei Formularkarten für Einladungen, interne Mitteilung und öffentliche Beschreibung. Gründung und Verzeichnis haben getrennte Bereiche. Protokoll und Austritt/Auflösung stehen unterhalb der laufenden Zusammenarbeit.
+
+Textfelder, Auswahlfelder und Textareas verwenden die dunkle Spielpalette mit einheitlichen Innenabständen, abgerundeten Rahmen, gut sichtbarem Tastaturfokus und hilfreichen Platzhaltern. Mobile Eingaben erhalten 16-px-Schrift, Karten werden untereinander angeordnet. Nachrichten sind als einzelne Beiträge mit Autor, Zeit und eigenen Moderations-/Lesebuttons gestaltet. Sämtliche bestehenden Aktionen, Vorschauen, Versionen, Bestätigungen und Entwurfsschutz bleiben erhalten; kein Server-/Regel-/Schemawechsel.
+
+Erneut tatsächlich ausgeführt:
+- `npm test`: **270 bestanden, 0 fehlgeschlagen**.
+- `npm run build`: erfolgreich, 74 Module.
+- `ALLIANCE_UI_ARTIFACTS=/workspace/War2glory/docs/screenshots/alliance-redesign node scripts/validate-alliances-ui.mjs`: erfolgreicher vollständiger Bündnisablauf mit drei Konten/zwei Tabs, Serverneustart, Rechteentzug, Chatmoderation, Mitteilungskonflikt, Lieferung, Führung/Austritt/Auflösung und Entwurfsschutz.
+- Gründungs- und Verwaltungsformulare zusätzlich bei 1440, 390 und 320 Pixeln durchlaufen und ohne horizontalen Seitenüberlauf geprüft; Profil-/Chatansichten bei 390/320 Pixeln, tatsächlicher Tastaturfokus im Textfeld. Keine JavaScript-Seitenfehler.
+- `git diff --check`: ohne Befund.
+
+Neue Screenshotnachweise in `docs/screenshots/alliance-redesign/`: `desktop.png`, `administration-desktop.png`, `founding-desktop.png` sowie `administration-390.png`, `administration-320.png`, `founding-390.png`, `founding-320.png`, `profile-390.png`, `profile-320.png`, `mobile-390.png`, `mobile-320.png`. `checks.json` enthält die ausgeführten Browserprüfschritte. Die Bilder wurden mit normalen Viewportaufnahmen innerhalb des tatsächlich scrollbaren Spielrahmens erstellt; repräsentative Desktop-, Formular- und Mobilaufnahmen wurden visuell geprüft. Der erste Versuch, das vollständige Element trotz innerem Scrollcontainer aufzunehmen, erzeugte abgeschnittene Bilder; diese wurden durch die korrekten Viewportaufnahmen ersetzt.
