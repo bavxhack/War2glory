@@ -4,6 +4,7 @@ const initialState = Object.freeze({ status: 'connecting', authenticated: false,
 
 export class GameTransport {
   #listeners = new Set(); #pending = new Map(); #socket = null; #timer = null; #attempt = 0; #generation = 0; #stopped = true;
+  #allianceMapTimer = null;
   #requests = new Map(); #detailsRequestId = null; #demolitionRequestId = null;
   state = initialState;
 
@@ -16,7 +17,7 @@ export class GameTransport {
   #set(patch) { this.state = { ...this.state, ...patch }; for (const listener of this.#listeners) listener(); }
   start() { if (!this.#stopped) return; this.#stopped = false; this.#connect(); }
   #rejectRequests(message) { for (const request of this.#requests.values()) request.reject(new Error(message)); this.#requests.clear(); }
-  stop() { this.#rejectRequests('Verbindung beendet.'); this.#stopped = true; this.#generation += 1; this.timers.clearTimeout(this.#timer); this.#socket?.close(); this.#socket = null; }
+  stop() { this.timers.clearTimeout(this.#allianceMapTimer); this.#rejectRequests('Verbindung beendet.'); this.#stopped = true; this.#generation += 1; this.timers.clearTimeout(this.#timer); this.#socket?.close(); this.#socket = null; }
   #connect() {
     if (this.#stopped) return;
     const generation = ++this.#generation;
@@ -44,11 +45,14 @@ export class GameTransport {
       return;
     }
     const request = this.#requests.get(event.requestId);
-    if (request && ['training.preview', 'delivery.preview', 'transfer.preview', 'field.scout.preview', 'field.conquest.preview', 'city.found.preview', 'raid.preview', 'scouting.preview', 'general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type)) {
+    if (request && (event.type.startsWith('alliance.') || ['training.preview', 'delivery.preview', 'transfer.preview', 'field.scout.preview', 'field.conquest.preview', 'city.found.preview', 'raid.preview', 'scouting.preview', 'general.recruit.preview', 'general.preview', 'research.preview', 'command.ok', 'command.error'].includes(event.type))) {
       this.#requests.delete(event.requestId);
       if (event.type === 'command.error') request.reject(new Error(event.payload.message));
       else if (request.cityId && request.cityId !== this.selectedCityId) request.reject(new Error('Stadt wurde gewechselt. Bitte erneut prüfen.'));
       else request.resolve(event.payload);
+    }
+    if (event.type === 'alliance.changed') {
+      this.#set({ allianceRevision: (this.state.allianceRevision ?? 0) + 1, game: this.state.game ? { ...this.state.game, alliance: event.payload } : null });
     }
     if (event.type === 'auth.success') {
       if (event.payload.sessionToken) this.storage?.setItem('strategy.session', event.payload.sessionToken);
@@ -75,7 +79,18 @@ export class GameTransport {
       const entity=covered?(found&&found.id===selection.entity?.id?{...selection.entity,...found}:found):selection?.entity;
       this.#set({map:event.payload,...(covered?{mapDetails:{...selection,entity}}:{})});
     }
-    else if (event.type === 'map.changed' && this.state.map && event.payload.revision > this.state.map.revision) this.requestMap(this.state.map.viewport);
+    else if (event.type === 'map.changed' && this.state.map && event.payload.revision > this.state.map.revision) {
+      const refresh = () => {
+        if (this.state.status !== 'connected' || !this.state.map) return;
+        this.requestMap(this.state.map.viewport);
+        const entity = this.state.mapDetails?.entity;
+        if (entity && ['own-city','player-city'].includes(entity.type)) this.details(entity.id);
+      };
+      if (event.payload.reason === 'alliance') {
+        this.timers.clearTimeout(this.#allianceMapTimer);
+        this.#allianceMapTimer = this.timers.setTimeout(refresh, 100);
+      } else refresh();
+    }
     else if (event.type === 'map.details' && (!this.#detailsRequestId || event.requestId === this.#detailsRequestId) && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ mapDetails: event.payload });
     else if (event.type === 'building.preview' && (!this.#demolitionRequestId || event.requestId === this.#demolitionRequestId) && (!this.selectedCityId || event.payload.cityId === this.selectedCityId)) this.#set({ demolition: event.payload });
     else if (event.type === 'command.error') { this.#pending.delete(event.requestId); this.#set({ error: event.payload.message }); }

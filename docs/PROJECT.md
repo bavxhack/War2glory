@@ -4,6 +4,16 @@
 
 Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spielcode im Browser und auf dem Server wird in JavaScript geschrieben. HTML und CSS übernehmen Struktur und Darstellung. Jeder soll später eine eigene Instanz betreiben können. Die Teilnahme an einer Föderation bleibt optional. Blockchain und eine zentrale Pflichtregistrierung sind nicht vorgesehen.
 
+## Aktueller Stand: Auftrag 19
+
+Lokale Bündnisse sind implementiert: Gründung mit automatischem Angebot und einmaliger Zahlung aus eigener Stadt, Einladungen/Annahme, eine Mitgliedschaft pro Kommandant, Anführer/Offizier/Mitglied, Führungsübergabe, Austritt/Ausschluss/Auflösung, persistenter interner Chat, Mitteilung und Verwaltungsprotokoll. Acht direkte Hauptbereiche einschließlich mobilem Mehr-Einstieg; die Bedienung aus 18a bleibt erhalten. Mitgliedsstädte verwenden vorhandene Karte/Nachrichten/gewöhnliche Lieferungen. Keine fremden Stadt-/Truppenrechte, Spielboni oder Föderation.
+
+Weltschema 5 enthält den einzigen Bündnisbestand; Spielerschema bleibt 18. Alle älteren Weltmigrationspfade erreichen 5. Gründung/Zahlung/Cooldown/dauerhafter Requestbeleg nutzen gemeinsam das vorhandene Recovery-Journal. Rechte und aktuelle Mitgliedschaften werden bei jeder Aktion erneut geprüft; Verwaltung und Mitteilung haben getrennte Versionen. Vorläufige ENV-Regeln und Nachweise: [ALLIANCES_VALIDATION.md](ALLIANCES_VALIDATION.md). Unterstützung mit fremder Stationierung bleibt separat zu spezifizieren.
+
+Bündnisbilder sind als optionale Erweiterung implementiert: aktuelle Anführer/Offiziere laden begrenzte statische Rasterbilder hoch; getrennte Verarbeitung prüft Typ, Größe, Pixel und Metadaten und erzeugt ein 256×256-WebP. Nur aktuelle geprüfte Bilder liegen im autoritativen Weltbestand. Bildversion, Ratelimits, Recovery und Bildkennzeichnung in Profil/Verzeichnis/Einladungen/Navigation/Karte sind integriert. Schema bleibt 5/18. Nachweise und Grenzen: [ALLIANCE_IMAGES_VALIDATION.md](ALLIANCE_IMAGES_VALIDATION.md).
+
+Die folgenden Abschnitte dokumentieren den historischen Auftrag 18 und die damalige 18a-Planung; der aktuelle Stand hat Vorrang.
+
 ## Aktueller Stand: Auftrag 18 mit UX-Refactoring 18a
 
 Spielerschema 18 und Weltschema 4. Zwölf einmalige Aufgaben im unabhängigen Katalog `tasks-1-provisional`; neun davon bilden die Einführung. Fortschritt und eingefrorene Ansprüche sind spielerweit, Abholbelege dauerhaft. Serverseitige Ausbildungsabschlüsse und bestätigte Berichte/Lieferannahmen zählen in ihrer bestehenden Transaktion. Bestandsmigration errät keine historischen Ausbildungen. Belohnungen passen vollständig in eine ausdrücklich gewählte eigene Stadt oder bleiben offen; kein automatischer Versand, keine zusätzlichen Punkte/XP.
