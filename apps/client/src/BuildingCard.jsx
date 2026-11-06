@@ -192,6 +192,7 @@ export function BuildingCard({
           open
           title={`Bauen · ${state.city.name} · ${slot.id}`}
           kicker="BAUKATALOG"
+          className="build-catalog"
           onClose={() => !busy && setCatalog(false)}
         >
           {message && <p role="status">{message}</p>}
@@ -208,9 +209,11 @@ export function BuildingCard({
               return (
                 <section className="building-option" key={key}>
                   <BuildingArt type={key} />
-                  <h3>{d.label}</h3>
-                  <p>{quoteText(q)}</p>
-                  {reason(q) && <p>{reason(q)}</p>}
+                  <div className="building-option-content">
+                    <h3>{d.label}</h3>
+                    <p>{quoteText(q)}</p>
+                    {reason(q) && <p className="building-option-reason">{reason(q)}</p>}
+                  </div>
                   <button
                     disabled={busy || Boolean(reason(q))}
                     onClick={() => build(key, q)}

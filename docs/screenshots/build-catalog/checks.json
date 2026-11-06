@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "Zivilkatalog mit Forschung Stufe 1 bei 1440/768/390/320/640 CSS-Pixeln: keine Überlappung, kein horizontaler Überlauf, begrenzte Bild-/Buttonmaße; Escape schließt.",
+    "Mobiler Bau aus Stadt 2: Sägewerk auf plot-7, einmalig 40 Holz/30 Stein; erste Stadt unverändert.",
+    "Militärkatalog verwendet dieselbe korrekte Anordnung und ausschließlich militärische Angebote.",
+    "Fehlende Ressourcen: Sperrgründe bleiben lesbar, Bau gesperrt, kein Layoutüberlauf. Letzte Angebote per Scrollen/Tastatur erreichbar und nicht vom Dialogfuß verdeckt."
+  ],
+  "errors": []
+}

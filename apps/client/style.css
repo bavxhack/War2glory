@@ -133,8 +133,6 @@ aside { padding-top:59px;display:grid;align-content:start;gap:12px; }.card { pad
 .general-card { padding:10px; overflow:hidden; }
 .general-card .game-art { aspect-ratio:1.35; margin-bottom:6px; }
 .general-card strong,.general-card span:not(.game-art) { padding-inline:5px; }
-.building-option { display:grid; grid-template-columns:74px minmax(0,1fr); align-items:stretch; gap:8px; }
-.building-option .building-art { margin:0; aspect-ratio:1; height:auto; align-self:center; }
 .selection>.building-art { max-width:300px; max-height:none; margin-inline:auto; }
 .mission-dialog .game-art { aspect-ratio:1.7; }
 .world-tile .game-art { position:absolute; inset:0; height:100%; border-radius:0; opacity:.75; }
@@ -767,3 +765,18 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 .alliance-image-upload .alliance-actions { margin-top:16px; }.alliance-image-upload progress { width:100%; accent-color:#d5e59b; margin-top:12px; }
 .alliance-admin-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.alliance-admin-grid > :first-child { grid-column:auto; }
 @media(max-width:650px) { .alliance-emblem.alliance-crest { width:64px; height:80px; min-height:80px; }.alliance-admin-grid { grid-template-columns:minmax(0,1fr); } }
+
+/* Catalog entries must not inherit the city-card image size or auto-place actions. */
+.mission-dialog.build-catalog { width:min(640px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow-y:auto; }
+.build-catalog .dialog-heading { align-items:flex-start; gap:12px; }
+.build-catalog .dialog-heading > div { min-width:0; }
+.build-catalog .dialog-heading h2 { overflow-wrap:anywhere; }
+.build-catalog .dialog-close { flex-shrink:0; }
+.build-catalog .building-option { display:grid; grid-template-columns:88px minmax(0,1fr); align-items:start; gap:14px; min-width:0; padding:16px; border:1px solid #52674b; border-radius:12px; background:#213020; text-align:left; box-sizing:border-box; }
+.mission-dialog.build-catalog .building-option > .building-art { width:88px; height:66px; aspect-ratio:4/3; margin:0; align-self:start; border-radius:8px; transform:none; }
+.build-catalog .building-option-content { min-width:0; }
+.build-catalog .building-option h3 { margin:0 0 8px; font-size:17px; line-height:1.35; }
+.build-catalog .building-option p { margin:0; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+.build-catalog .building-option .building-option-reason { margin-top:8px; color:#efd09e; }
+.mission-dialog.build-catalog .building-option > button { grid-column:1 / -1; align-self:start; justify-self:stretch; width:100%; min-width:0; min-height:44px; height:auto; margin:0; padding:11px 12px; white-space:normal; overflow-wrap:anywhere; line-height:1.5; box-sizing:border-box; }
+@media(max-width:560px) { .build-catalog .building-option { grid-template-columns:64px minmax(0,1fr); padding:14px; gap:12px; } .mission-dialog.build-catalog .building-option > .building-art { width:64px; height:48px; } }

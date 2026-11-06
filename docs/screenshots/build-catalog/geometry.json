@@ -1,0 +1,1107 @@
+[
+  {
+    "width": 1440,
+    "items": [
+      {
+        "label": "Sägewerk",
+        "image": {
+          "x": 438,
+          "y": 124.1875,
+          "right": 526,
+          "bottom": 190.1875,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 540,
+          "y": 124.1875,
+          "right": 1002,
+          "bottom": 147.125,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 438,
+          "y": 210.71875,
+          "right": 1002,
+          "bottom": 258.71875,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 421,
+          "y": 107.1875,
+          "right": 1019,
+          "bottom": 275.71875,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Steinbruch",
+        "image": {
+          "x": 438,
+          "y": 308.71875,
+          "right": 526,
+          "bottom": 374.71875,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 540,
+          "y": 308.71875,
+          "right": 1002,
+          "bottom": 331.65625,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 438,
+          "y": 395.25,
+          "right": 1002,
+          "bottom": 443.25,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 421,
+          "y": 291.71875,
+          "right": 1019,
+          "bottom": 460.25,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Bauernhof",
+        "image": {
+          "x": 438,
+          "y": 493.25,
+          "right": 526,
+          "bottom": 559.25,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 540,
+          "y": 493.25,
+          "right": 1002,
+          "bottom": 516.1875,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 438,
+          "y": 579.78125,
+          "right": 1002,
+          "bottom": 627.78125,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 421,
+          "y": 476.25,
+          "right": 1019,
+          "bottom": 644.78125,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Ölraffinerie",
+        "image": {
+          "x": 438,
+          "y": 677.78125,
+          "right": 526,
+          "bottom": 743.78125,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 540,
+          "y": 677.78125,
+          "right": 1002,
+          "bottom": 700.71875,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 438,
+          "y": 793.109375,
+          "right": 1002,
+          "bottom": 841.109375,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 421,
+          "y": 660.78125,
+          "right": 1019,
+          "bottom": 858.109375,
+          "width": 598,
+          "height": 197.328125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Lagerhaus",
+        "image": {
+          "x": 438,
+          "y": 891.109375,
+          "right": 526,
+          "bottom": 957.109375,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 540,
+          "y": 891.109375,
+          "right": 1002,
+          "bottom": 914.046875,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 438,
+          "y": 977.640625,
+          "right": 1002,
+          "bottom": 1025.640625,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 421,
+          "y": 874.109375,
+          "right": 1019,
+          "bottom": 1042.640625,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Universität",
+        "image": {
+          "x": 438,
+          "y": 1075.640625,
+          "right": 526,
+          "bottom": 1141.640625,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 540,
+          "y": 1075.640625,
+          "right": 1002,
+          "bottom": 1098.578125,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 438,
+          "y": 1162.171875,
+          "right": 1002,
+          "bottom": 1210.171875,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 421,
+          "y": 1058.640625,
+          "right": 1019,
+          "bottom": 1227.171875,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "items": [
+      {
+        "label": "Sägewerk",
+        "image": {
+          "x": 102,
+          "y": 124.1875,
+          "right": 190,
+          "bottom": 190.1875,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 204,
+          "y": 124.1875,
+          "right": 666,
+          "bottom": 147.125,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 102,
+          "y": 210.71875,
+          "right": 666,
+          "bottom": 258.71875,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 85,
+          "y": 107.1875,
+          "right": 683,
+          "bottom": 275.71875,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Steinbruch",
+        "image": {
+          "x": 102,
+          "y": 308.71875,
+          "right": 190,
+          "bottom": 374.71875,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 204,
+          "y": 308.71875,
+          "right": 666,
+          "bottom": 331.65625,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 102,
+          "y": 395.25,
+          "right": 666,
+          "bottom": 443.25,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 85,
+          "y": 291.71875,
+          "right": 683,
+          "bottom": 460.25,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Bauernhof",
+        "image": {
+          "x": 102,
+          "y": 493.25,
+          "right": 190,
+          "bottom": 559.25,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 204,
+          "y": 493.25,
+          "right": 666,
+          "bottom": 516.1875,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 102,
+          "y": 579.78125,
+          "right": 666,
+          "bottom": 627.78125,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 85,
+          "y": 476.25,
+          "right": 683,
+          "bottom": 644.78125,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Ölraffinerie",
+        "image": {
+          "x": 102,
+          "y": 677.78125,
+          "right": 190,
+          "bottom": 743.78125,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 204,
+          "y": 677.78125,
+          "right": 666,
+          "bottom": 700.71875,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 102,
+          "y": 793.109375,
+          "right": 666,
+          "bottom": 841.109375,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 85,
+          "y": 660.78125,
+          "right": 683,
+          "bottom": 858.109375,
+          "width": 598,
+          "height": 197.328125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Lagerhaus",
+        "image": {
+          "x": 102,
+          "y": 891.109375,
+          "right": 190,
+          "bottom": 957.109375,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 204,
+          "y": 891.109375,
+          "right": 666,
+          "bottom": 914.046875,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 102,
+          "y": 977.640625,
+          "right": 666,
+          "bottom": 1025.640625,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 85,
+          "y": 874.109375,
+          "right": 683,
+          "bottom": 1042.640625,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Universität",
+        "image": {
+          "x": 102,
+          "y": 1075.640625,
+          "right": 190,
+          "bottom": 1141.640625,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 204,
+          "y": 1075.640625,
+          "right": 666,
+          "bottom": 1098.578125,
+          "width": 462,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 102,
+          "y": 1162.171875,
+          "right": 666,
+          "bottom": 1210.171875,
+          "width": 564,
+          "height": 48
+        },
+        "option": {
+          "x": 85,
+          "y": 1058.640625,
+          "right": 683,
+          "bottom": 1227.171875,
+          "width": 598,
+          "height": 168.53125
+        },
+        "overflow": false
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "items": [
+      {
+        "label": "Sägewerk",
+        "image": {
+          "x": 48,
+          "y": 116,
+          "right": 112,
+          "bottom": 164,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 116,
+          "right": 342,
+          "bottom": 138.9375,
+          "width": 218,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 242.125,
+          "right": 342,
+          "bottom": 286.125,
+          "width": 294,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 101,
+          "right": 357,
+          "bottom": 301.125,
+          "width": 324,
+          "height": 200.125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Steinbruch",
+        "image": {
+          "x": 48,
+          "y": 332.125,
+          "right": 112,
+          "bottom": 380.125,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 332.125,
+          "right": 342,
+          "bottom": 355.0625,
+          "width": 218,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 458.25,
+          "right": 342,
+          "bottom": 502.25,
+          "width": 294,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 317.125,
+          "right": 357,
+          "bottom": 517.25,
+          "width": 324,
+          "height": 200.125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Bauernhof",
+        "image": {
+          "x": 48,
+          "y": 548.25,
+          "right": 112,
+          "bottom": 596.25,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 548.25,
+          "right": 342,
+          "bottom": 571.1875,
+          "width": 218,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 674.375,
+          "right": 342,
+          "bottom": 718.375,
+          "width": 294,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 533.25,
+          "right": 357,
+          "bottom": 733.375,
+          "width": 324,
+          "height": 200.125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Ölraffinerie",
+        "image": {
+          "x": 48,
+          "y": 764.375,
+          "right": 112,
+          "bottom": 812.375,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 764.375,
+          "right": 342,
+          "bottom": 787.3125,
+          "width": 218,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 940.09375,
+          "right": 342,
+          "bottom": 984.09375,
+          "width": 294,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 749.375,
+          "right": 357,
+          "bottom": 999.09375,
+          "width": 324,
+          "height": 249.71875
+        },
+        "overflow": false
+      },
+      {
+        "label": "Lagerhaus",
+        "image": {
+          "x": 48,
+          "y": 1030.09375,
+          "right": 112,
+          "bottom": 1078.09375,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 1030.09375,
+          "right": 342,
+          "bottom": 1053.03125,
+          "width": 218,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 1156.21875,
+          "right": 342,
+          "bottom": 1200.21875,
+          "width": 294,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 1015.09375,
+          "right": 357,
+          "bottom": 1215.21875,
+          "width": 324,
+          "height": 200.125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Universität",
+        "image": {
+          "x": 48,
+          "y": 1246.21875,
+          "right": 112,
+          "bottom": 1294.21875,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 1246.21875,
+          "right": 342,
+          "bottom": 1269.15625,
+          "width": 218,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 1372.34375,
+          "right": 342,
+          "bottom": 1416.34375,
+          "width": 294,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 1231.21875,
+          "right": 357,
+          "bottom": 1431.34375,
+          "width": 324,
+          "height": 200.125
+        },
+        "overflow": false
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "items": [
+      {
+        "label": "Sägewerk",
+        "image": {
+          "x": 48,
+          "y": 116,
+          "right": 112,
+          "bottom": 164,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 116,
+          "right": 272,
+          "bottom": 138.9375,
+          "width": 148,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 242.125,
+          "right": 272,
+          "bottom": 286.125,
+          "width": 224,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 101,
+          "right": 287,
+          "bottom": 301.125,
+          "width": 254,
+          "height": 200.125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Steinbruch",
+        "image": {
+          "x": 48,
+          "y": 332.125,
+          "right": 112,
+          "bottom": 380.125,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 332.125,
+          "right": 272,
+          "bottom": 355.0625,
+          "width": 148,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 458.25,
+          "right": 272,
+          "bottom": 502.25,
+          "width": 224,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 317.125,
+          "right": 287,
+          "bottom": 517.25,
+          "width": 254,
+          "height": 200.125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Bauernhof",
+        "image": {
+          "x": 48,
+          "y": 548.25,
+          "right": 112,
+          "bottom": 596.25,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 548.25,
+          "right": 272,
+          "bottom": 571.1875,
+          "width": 148,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 674.375,
+          "right": 272,
+          "bottom": 718.375,
+          "width": 224,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 533.25,
+          "right": 287,
+          "bottom": 733.375,
+          "width": 254,
+          "height": 200.125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Ölraffinerie",
+        "image": {
+          "x": 48,
+          "y": 764.375,
+          "right": 112,
+          "bottom": 812.375,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 764.375,
+          "right": 272,
+          "bottom": 787.3125,
+          "width": 148,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 960.890625,
+          "right": 272,
+          "bottom": 1017.890625,
+          "width": 224,
+          "height": 57
+        },
+        "option": {
+          "x": 33,
+          "y": 749.375,
+          "right": 287,
+          "bottom": 1032.890625,
+          "width": 254,
+          "height": 283.515625
+        },
+        "overflow": false
+      },
+      {
+        "label": "Lagerhaus",
+        "image": {
+          "x": 48,
+          "y": 1063.890625,
+          "right": 112,
+          "bottom": 1111.890625,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 1063.890625,
+          "right": 272,
+          "bottom": 1086.828125,
+          "width": 148,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 1190.015625,
+          "right": 272,
+          "bottom": 1234.015625,
+          "width": 224,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 1048.890625,
+          "right": 287,
+          "bottom": 1249.015625,
+          "width": 254,
+          "height": 200.125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Universität",
+        "image": {
+          "x": 48,
+          "y": 1280.015625,
+          "right": 112,
+          "bottom": 1328.015625,
+          "width": 64,
+          "height": 48
+        },
+        "title": {
+          "x": 124,
+          "y": 1280.015625,
+          "right": 272,
+          "bottom": 1302.953125,
+          "width": 148,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 48,
+          "y": 1406.140625,
+          "right": 272,
+          "bottom": 1450.140625,
+          "width": 224,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 1265.015625,
+          "right": 287,
+          "bottom": 1465.140625,
+          "width": 254,
+          "height": 200.125
+        },
+        "overflow": false
+      }
+    ]
+  },
+  {
+    "width": 640,
+    "items": [
+      {
+        "label": "Sägewerk",
+        "image": {
+          "x": 50,
+          "y": 118,
+          "right": 138,
+          "bottom": 184,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 152,
+          "y": 118,
+          "right": 590,
+          "bottom": 140.9375,
+          "width": 438,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 50,
+          "y": 204.53125,
+          "right": 590,
+          "bottom": 248.53125,
+          "width": 540,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 101,
+          "right": 607,
+          "bottom": 265.53125,
+          "width": 574,
+          "height": 164.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Steinbruch",
+        "image": {
+          "x": 50,
+          "y": 298.53125,
+          "right": 138,
+          "bottom": 364.53125,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 152,
+          "y": 298.53125,
+          "right": 590,
+          "bottom": 321.46875,
+          "width": 438,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 50,
+          "y": 385.0625,
+          "right": 590,
+          "bottom": 429.0625,
+          "width": 540,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 281.53125,
+          "right": 607,
+          "bottom": 446.0625,
+          "width": 574,
+          "height": 164.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Bauernhof",
+        "image": {
+          "x": 50,
+          "y": 479.0625,
+          "right": 138,
+          "bottom": 545.0625,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 152,
+          "y": 479.0625,
+          "right": 590,
+          "bottom": 502,
+          "width": 438,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 50,
+          "y": 565.59375,
+          "right": 590,
+          "bottom": 609.59375,
+          "width": 540,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 462.0625,
+          "right": 607,
+          "bottom": 626.59375,
+          "width": 574,
+          "height": 164.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Ölraffinerie",
+        "image": {
+          "x": 50,
+          "y": 659.59375,
+          "right": 138,
+          "bottom": 725.59375,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 152,
+          "y": 659.59375,
+          "right": 590,
+          "bottom": 682.53125,
+          "width": 438,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 50,
+          "y": 774.921875,
+          "right": 590,
+          "bottom": 818.921875,
+          "width": 540,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 642.59375,
+          "right": 607,
+          "bottom": 835.921875,
+          "width": 574,
+          "height": 193.328125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Lagerhaus",
+        "image": {
+          "x": 50,
+          "y": 868.921875,
+          "right": 138,
+          "bottom": 934.921875,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 152,
+          "y": 868.921875,
+          "right": 590,
+          "bottom": 891.859375,
+          "width": 438,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 50,
+          "y": 955.453125,
+          "right": 590,
+          "bottom": 999.453125,
+          "width": 540,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 851.921875,
+          "right": 607,
+          "bottom": 1016.453125,
+          "width": 574,
+          "height": 164.53125
+        },
+        "overflow": false
+      },
+      {
+        "label": "Universität",
+        "image": {
+          "x": 50,
+          "y": 1049.453125,
+          "right": 138,
+          "bottom": 1115.453125,
+          "width": 88,
+          "height": 66
+        },
+        "title": {
+          "x": 152,
+          "y": 1049.453125,
+          "right": 590,
+          "bottom": 1072.390625,
+          "width": 438,
+          "height": 22.9375
+        },
+        "button": {
+          "x": 50,
+          "y": 1135.984375,
+          "right": 590,
+          "bottom": 1179.984375,
+          "width": 540,
+          "height": 44
+        },
+        "option": {
+          "x": 33,
+          "y": 1032.453125,
+          "right": 607,
+          "bottom": 1196.984375,
+          "width": 574,
+          "height": 164.53125
+        },
+        "overflow": false
+      }
+    ]
+  }
+]
