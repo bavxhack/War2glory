@@ -7,6 +7,6 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: { '/game': { target: 'ws://127.0.0.1:3000', ws: true } },
+    proxy: { '/alliance-images': { target: 'http://127.0.0.1:3000' }, '/game': { target: 'ws://127.0.0.1:3000', ws: true } },
   },
 });

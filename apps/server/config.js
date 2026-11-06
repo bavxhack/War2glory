@@ -1,3 +1,4 @@
+import { ALLIANCE_RULES } from '../../packages/game-core/alliances.js';
 import { RESEARCH_EFFECT_RULES } from '../../packages/game-core/research.js';
 import { CITY_LOGISTICS_RULES } from '../../packages/game-core/city-logistics.js';
 import { SETTLEMENT_RULES } from '../../packages/game-core/settlement.js';
@@ -9,6 +10,8 @@ import { SUPPLY_RULES } from '../../packages/game-core/supply.js';
 import { OFFICER_RULES } from '../../packages/game-core/officers.js';
 
 const definitions = {
+  ALLIANCE_CREATE_WOOD: [1000, 0, 1000000, true], ALLIANCE_CREATE_STONE: [1000, 0, 1000000, true],
+  ALLIANCE_MAX_MEMBERS: [20, 2, 100, true], ALLIANCE_INVITE_TTL_HOURS: [168, 1, 8760, true],
   RESEARCH_CONSTRUCTION_BONUS_BPS: [500, 0, 2000, true], RESEARCH_TRAINING_BONUS_BPS: [500, 0, 2000, true], RESEARCH_LOADING_BONUS_BPS: [500, 0, 2000, true],
   GENERAL_TRANSFER_OIL_PER_FIELD: [0.1, 0.001, 100000], GENERAL_TRANSFER_FUEL_CAPACITY: [20, 1, 1000000, true],
   FIELD_DEFENDER_MIN: [5, 1, 100000, true], FIELD_DEFENDER_MAX: [30, 1, 100000, true], CITY_CLAIM_TTL_HOURS: [24, 1 / 60, 8760],
@@ -58,7 +61,9 @@ export function parseConfiguration(env = {}) {
   const cityLogistics = { ...CITY_LOGISTICS_RULES, generalOilMilliPerField: Math.round(numbers.GENERAL_TRANSFER_OIL_PER_FIELD * 1000), generalFuelCapacity: numbers.GENERAL_TRANSFER_FUEL_CAPACITY };
   cityLogistics.version = `city-logistics-1-${createHash('sha256').update(JSON.stringify(cityLogistics)).digest('hex').slice(0, 16)}`;
   logistics.researchEffects = research;
-  return { research, cityLogistics, settlement, logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
+  const alliances = { ...ALLIANCE_RULES, wood: numbers.ALLIANCE_CREATE_WOOD, stone: numbers.ALLIANCE_CREATE_STONE, maxMembers: numbers.ALLIANCE_MAX_MEMBERS, inviteTtlMs: numbers.ALLIANCE_INVITE_TTL_HOURS * 3600000 };
+  alliances.version = `alliance-1-${createHash("sha256").update(JSON.stringify(alliances)).digest("hex").slice(0,16)}`;
+  return { alliances, research, cityLogistics, settlement, logistics, map: { width: numbers.WORLD_WIDTH, height: numbers.WORLD_HEIGHT, npcCount: numbers.WORLD_NPC_COUNT, maxViewport: 15 }, supply, officers };
 }
 
 export async function loadConfiguration({ env = {}, file = '.env', cli = {} } = {}) {
