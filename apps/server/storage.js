@@ -1,3 +1,5 @@
+import { validateStoredAllianceImages } from './alliance-image-storage.js';
+import { emptyAlliances, validateAlliances } from '../../packages/game-core/alliances.js';
 import { newTasks, validateTasks, observeTaskCity, observeTaskRecords } from '../../packages/game-core/tasks.js';
 import { migrateGeneralLocations, validateCityTransport, isCityTransport, finishCityTransport, incomingDeliveries } from '../../packages/game-core/city-logistics.js';
 import { validateCities, migrateCities, canonicalJSON, cityView, exposeCity, commitCity, advanceCities, refreshCities, settleCities } from '../../packages/game-core/multicity.js';
@@ -75,12 +77,12 @@ export class WorldStorage {
       await atomicWrite(this.worldFile, this.world);
     } else if (this.world.schemaVersion === 1) {
       await copyFile(this.worldFile, `${this.worldFile}.schema-1.backup`);
-      this.world = { ...this.world, schemaVersion: WORLD_SCHEMA_VERSION, nextEventSequence: 1, map: createMap(this.world.instanceId, this.clock()) };
+      this.world = { ...this.world, schemaVersion: 4, nextEventSequence: 1, map: createMap(this.world.instanceId, this.clock()) };
       await this.#assignMissingLocations();
       await atomicWrite(this.worldFile, this.world);
     } else if (this.world.schemaVersion === 2) {
       const activatedAt = this.clock();
-      this.world.schemaVersion = WORLD_SCHEMA_VERSION;
+      this.world.schemaVersion = 4;
       this.world.nextEventSequence = 1;
       for (const npc of this.world.map.entities.filter(entity => entity.kind === 'npc')) {
         const capacity = NPC_RULES.infantryPerDifficulty * npc.difficulty;
@@ -90,9 +92,11 @@ export class WorldStorage {
       await atomicWrite(this.worldFile, this.world);
     } else if (this.world.schemaVersion === 3) {
       this.world.schemaVersion = 4; this.world.fields = {}; await this.saveWorld();
-    } else if (this.world.schemaVersion !== WORLD_SCHEMA_VERSION || !this.world.map) {
+    } else if (![4, WORLD_SCHEMA_VERSION].includes(this.world.schemaVersion) || !this.world.map) {
       throw new Error(`Unbekannte Welt-Schemaversion: ${this.world.schemaVersion}.`);
     }
+    if (this.world.schemaVersion === 4) { this.world.alliances = emptyAlliances(); this.world.schemaVersion = 5; await this.saveWorld(); }
+    validateAlliances(this.world); validateStoredAllianceImages(this.world);
     this.world.fields ??= {};
     if (!Number.isFinite(this.world.supplyActivatedAt)) {
       this.world.supplyActivatedAt = this.clock();
@@ -352,7 +356,7 @@ export class WorldStorage {
   nextEventSequence() { return this.world.nextEventSequence++; }
 
   async advanceWorld(now) {
-    if (this.needsRecovery) { await this.#recoverTransaction(); this.world = await readJson(this.worldFile); this.needsRecovery = false; }
+    if (this.needsRecovery) { await this.#recoverTransaction(); this.world = await readJson(this.worldFile); validateAlliances(this.world); validateStoredAllianceImages(this.world); this.needsRecovery = false; }
     const files = (await readdir(this.playersDirectory)).filter(file => file.endsWith('.json')).sort();
     const players = new Map();
     for (const file of files) {
@@ -571,6 +575,6 @@ function createMap(instanceId, activatedAt = Date.now(), requested = WORLD_CONFI
   return { seed, revision: 1, config, entities };
 }
 
-function createWorld(worldName, activatedAt, config) { const instanceId = randomUUID(); return { schemaVersion: WORLD_SCHEMA_VERSION, instanceId, worldName, nextEventSequence: 1, map: createMap(instanceId, activatedAt, config) }; }
+function createWorld(worldName, activatedAt, config) { const instanceId = randomUUID(); return { schemaVersion: WORLD_SCHEMA_VERSION, alliances: emptyAlliances(), instanceId, worldName, nextEventSequence: 1, map: createMap(instanceId, activatedAt, config) }; }
 
 function eventOrder(event) { return event.mission.type === 'conquest' || event.mission.type === 'field-scout' ? `field:${event.mission.id}` : `npc:${String(event.sequence).padStart(18, '0')}:${event.mission.id}`; }

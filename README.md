@@ -12,7 +12,17 @@ Gebäudekarten bieten Ausbau und Baukatalog direkt an; Universität und Ausbildu
 
 Generäle besitzen sichtbare Reiter für Verwaltung/Rekrutierung und getrennte Detailbereiche. Die Feldkarte erscheint sofort bei Auswahl; Projektion, Maßstab und Windrose bleiben erhalten. Versorgungshilfe richtet Lieferungen **hierher**, Verlegungen **von hier**. Aufgaben zeigen die Belohnungszielstadt vor der direkten Einzelabholung. Aktivitäten sind vollständig nach Stadt, Gebäude und Typ filterbar. Echte Entwürfe erhalten gezielten Schutz; Suchfilter zählen nicht als Spielauftrag.
 
-Spielerschema **18**, Weltschema **4** und alle Spielregeln bleiben erhalten. Die zusätzliche private Aktivitätenprojektion enthält ausschließlich eigene Queues/Reisemetadaten. Tatsächlich ausgeführte Vorher-/Nachher-Prüfungen, Browsernachweise und Grenzen: [UX_REFACTOR_18A_VALIDATION.md](docs/UX_REFACTOR_18A_VALIDATION.md). Frühere Beschreibungen des rechten Aktionenpanels dokumentieren den historischen Stand. Auftrag 19 wurde nicht begonnen.
+18a behielt Spielerschema **18**, Weltschema **4** und alle damaligen Spielregeln bei; Auftrag 19 ergänzt Welt 5. Die zusätzliche private Aktivitätenprojektion enthält ausschließlich eigene Queues/Reisemetadaten. Tatsächlich ausgeführte Vorher-/Nachher-Prüfungen, Browsernachweise und Grenzen: [UX_REFACTOR_18A_VALIDATION.md](docs/UX_REFACTOR_18A_VALIDATION.md). Frühere Beschreibungen des rechten Aktionenpanels dokumentieren den historischen Stand. Auftrag 19 ist im folgenden Abschnitt dokumentiert.
+
+## Lokale Bündnisse (Auftrag 19)
+
+**Bündnis** ist der achte Hauptbereich (mobil unter „Mehr“). Aus einer ausdrücklich gewählten eigenen Stadt gründen, Kommandanten einladen, Einladung annehmen, intern chatten und Mitgliedsstädte im bestehenden Lieferformular versorgen. Anführer/Offiziere verwalten Einladungen, Beschreibung und interne Mitteilung; nur der Anführer ändert Rollen und überträgt die Führung. Auflösung nur durch den letzten Anführer. Mitgliedschaft gilt für den Kommandanten und alle seine Städte, ohne fremde Eigentumsrechte oder Spielboni.
+
+Welt **5**, Spieler weiterhin **18**. Autoritativer Bündnisbestand im Weltspielstand, gemeinsame Journaltransaktion für Gründung und einmalige Stadtzahlung. Eigene vorläufige Standards: 1000 Holz/1000 Stein, 20 Mitglieder, Einladungen 168 Stunden. `ALLIANCE_CREATE_WOOD`, `ALLIANCE_CREATE_STONE`, `ALLIANCE_MAX_MEMBERS`, `ALLIANCE_INVITE_TTL_HOURS` sind zentral validiert und über Compose konfigurierbar. Bestehende Mitgliederlimits/Einladungstermine bleiben unverändert. Chat letzte 200 Beiträge, Verwaltungsprotokoll letzte 100; normale Wiederholungsbelege 30 Tage, Gründungsbelege dauerhaft. Keine Unterstützungstruppen oder Föderation.
+
+Anführer und Offiziere können in der Bündnisverwaltung ein Bild hochladen oder entfernen. Es erscheint im Profil, Verzeichnis, an Einladungen, in der Navigation und bei Bündnisstädten auf der Karte. Erlaubt sind statische PNG/JPEG/WebP bis 2 MiB und 2048×2048 Pixel; der Server prüft und erzeugt ein 256×256-WebP ohne Originalmetadaten. Rechte, Versionen, dauerhafte Versuchsgrenzen sowie begrenzte Upload- und Decoderressourcen schützen die Verarbeitung. Details und tatsächliche Tests: [ALLIANCE_IMAGES_VALIDATION.md](docs/ALLIANCE_IMAGES_VALIDATION.md).
+
+Tatsächliche Tests, Rechte, Migration, Recovery und Grenzen: [ALLIANCES_VALIDATION.md](docs/ALLIANCES_VALIDATION.md).
 
 ## Einführung, Aufgaben und Versorgung (Auftrag 18)
 
@@ -20,7 +30,7 @@ Unter **Stadt → Aufgaben** stehen neun einmalige Einführungsaufgaben und drei
 
 **Stadt → Alle Städte** zeigt getrennte Nahrungslager, Produktion, Truppenunterhalt und Netto pro Stunde sowie Schonfrist, Verlustwelle und Erholung je Stadt. Die Prognose gilt bei unveränderten Raten; ein Überschuss versorgt andere Städte nicht automatisch. Direkthilfe öffnet bestehende Bau-, Bürgermeister-, Liefer- und Verlegungsansichten. Lieferhilfe öffnet das Formular mit der betroffenen Stadt als Ziel; die Ausgangsstadt steht ausdrücklich im Formular. Es wird nichts automatisch versendet.
 
-Aktuell: **Spielerschema 18 / Weltschema 4**, neun Forschungen und isometrische Weltkarte mit Windrose. Migration 17 → 18 übernimmt belegbare Zustandsziele und gespeicherte Rückkehr-/Lieferbelege. Ohne Ausbildungsbelege zählt Ausbildung erst ab Aktivierung; Truppenbestände werden nicht als historische Ausbildung gewertet. Aufgaben und dauerhafte Abholbelege überstehen Stadtwechsel, Offline-Abrechnung und Neustarts. Bestehende Abschnitte zu früheren Schemata dokumentieren die Entwicklungsgeschichte. Aktueller Unterhalt betrifft ausschließlich stationierte Truppen nach dem gespeicherten Regelsatz.
+Auftrag 18 führte **Spielerschema 18 / Weltschema 4** ein; aktuell gilt Welt 5 (Bündnisse), neun Forschungen und isometrische Weltkarte mit Windrose. Migration 17 → 18 übernimmt belegbare Zustandsziele und gespeicherte Rückkehr-/Lieferbelege. Ohne Ausbildungsbelege zählt Ausbildung erst ab Aktivierung; Truppenbestände werden nicht als historische Ausbildung gewertet. Aufgaben und dauerhafte Abholbelege überstehen Stadtwechsel, Offline-Abrechnung und Neustarts. Bestehende Abschnitte zu früheren Schemata dokumentieren die Entwicklungsgeschichte. Aktueller Unterhalt betrifft ausschließlich stationierte Truppen nach dem gespeicherten Regelsatz.
 
 Prüfungen und Grenzen: [TASKS_SUPPLY_VALIDATION.md](docs/TASKS_SUPPLY_VALIDATION.md).
 
@@ -185,7 +195,7 @@ Dieser Stand bindet standardmäßig an 127.0.0.1. Konten und getrennte Spielerre
 
 Genau einen Prozess pro Weltverzeichnis starten. Die JSON-Ablage ist für den Prototyp gedacht, nicht für verteilte Serverprozesse. Aufträge werden vor der Erfolgsantwort gespeichert. Produktion wird anhand gespeicherter Zeitstempel nachberechnet. Vor manuellen Änderungen oder Backups den Server stoppen; zum Sichern den jeweiligen `data/<welt>/`-Ordner kopieren. Löschen dieses Ordners setzt die Welt einschließlich Instanz-ID zurück.
 
-Nicht enthalten: Passwortwiederherstellung, Abbruch von Bau-/Forschungsaufträgen, PvP, Eroberung, Bündnisse, Handel oder aktive Föderation. Bei migrierten Altgebäuden ohne Kostennachweis bleibt die frühere Investition ausdrücklich unbekannt und wird nicht aus heutigen Preisen geschätzt. Der Quellcode wird im oben verlinkten Repository entwickelt; es gibt noch keine veröffentlichte Spielinstanz.
+Nicht enthalten: Passwortwiederherstellung, Abbruch von Bau-/Forschungsaufträgen, PvP, Handel oder aktive Föderation. Bei migrierten Altgebäuden ohne Kostennachweis bleibt die frühere Investition ausdrücklich unbekannt und wird nicht aus heutigen Preisen geschätzt. Der Quellcode wird im oben verlinkten Repository entwickelt; es gibt noch keine veröffentlichte Spielinstanz.
 
 Historischer Planungsstand vom 28.09.2026 (inzwischen durch Aufträge 8–11 umgesetzt oder erweitert): NPC-Städte zum Farmen von Nahrung und aufwertbare Generäle mit Truppenführung gehören zum Projektziel. Matrix ist der bevorzugte Ansatz für die Föderation. Lagerwirtschaft, Abriss, Aufklärung, erste Truppen und der Startgeneral sind nun als Prototyp implementiert; Kampf und Beute sind inzwischen implementiert; aktive Föderation bleibt geplant.
 

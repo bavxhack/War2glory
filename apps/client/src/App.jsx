@@ -1,3 +1,5 @@
+import { AllianceEmblem } from './AllianceEmblem.jsx';
+import { AllianceView } from "./AllianceView.jsx";
 import { Drafts } from "./Drafts.jsx";
 import { Activities } from "./Activities.jsx";
 import { TasksView, CitiesView } from "./TasksSupply.jsx";
@@ -286,6 +288,7 @@ const pages = [
   ["generals", "Generäle", "★"],
   ["research", "Forschung", "◇"],
   ["mail", "Postbox", "✉"],
+  ["alliance", "Bündnis", "⚑"],
 ];
 export function App({ transport }) {
   const snapshot = useSyncExternalStore(
@@ -361,6 +364,7 @@ function GameScreen({ transport, snapshot }) {
       return;
     }
     if (dirty) {
+      setMenu(false);
       setIntent(() => () => {
         setDrafts({});
         setView(key);
@@ -452,11 +456,12 @@ function GameScreen({ transport, snapshot }) {
           className={view === key ? "active" : ""}
           onClick={() => navigate(key)}
         >
-          <span aria-hidden="true">{icon}</span>
+          <span aria-hidden="true">{key === "alliance" && state.alliance?.image ? <AllianceEmblem image={state.alliance.image}/> : icon}</span>
           {name}
           {key === "city" && state.tasks?.claimable > 0 && (
             <span className="mail-badge">{state.tasks.claimable}</span>
           )}
+          {key === "alliance" && (state.alliance?.unread + state.alliance?.invitations > 0) && <span className="mail-badge">{state.alliance.unread + state.alliance.invitations}</span>}
           {key === "mail" && state.mailbox.unreadCount > 0 && (
             <span className="mail-badge">{state.mailbox.unreadCount}</span>
           )}
@@ -465,7 +470,7 @@ function GameScreen({ transport, snapshot }) {
     </nav>
   );
   const warn = state.cities.filter((c) => c.inShortage),
-    global = ["generals", "research", "mail"].includes(view);
+    global = ["generals", "research", "mail", "alliance"].includes(view);
   return (
     <Drafts.Provider
       value={{
@@ -739,6 +744,13 @@ function GameScreen({ transport, snapshot }) {
                         prepareLogistics({ ...draft, originCityId: id })
                       }
                     />
+                  )}
+                  {view === "alliance" && (
+                    <AllianceView state={state} transport={transport} connected={snapshot.status === "connected" && !snapshot.reconciling}
+                      revision={snapshot.allianceRevision ?? 0}
+                      onDelivery={city => prepareLogistics({ mode: 'delivery', targetCityId: city.id })}
+                      onMessage={name => { setSource(name); navigate('mail'); }}
+                      onMap={city => { setMapFocus({ x: city.x, y: city.y, key: Date.now() }); navigate('world'); }} />
                   )}
                   {view === "generals" && (
                     <GeneralsView

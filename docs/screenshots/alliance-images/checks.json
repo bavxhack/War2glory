@@ -1,0 +1,27 @@
+{
+  "checks": [
+    "Gründungsformular bei 1440/390/320 px mit Kostenvorschau und ohne horizontalen Seitenüberlauf",
+    "Gründung mit automatischer Vorschau, ausdrücklicher Bestätigung und sichtbarer Stadt",
+    "Bündnisbild: echte Dateiauswahl, geprüfter Upload, Profil und Navigation; SVG lokal abgewiesen ohne neuen Upload",
+    "Als PNG getarntes SVG vom Server abgewiesen; bestehendes Bild bleibt erhalten",
+    "Bündnisbild bereits an der Einladung sichtbar",
+    "Einladung nach Reload/Resume ausdrücklich angenommen",
+    "Offizier lädt ein, ohne Führungsaktion",
+    "Zweiter Tab behält Dateientwurf und meldet Versionskonflikt statt das neuere Bündnisbild zu überschreiben",
+    "Bündnisbild bei Mitgliedern, im Verzeichnis und an Kartenstädten sichtbar; normale Mitglieder ohne Uploadformular",
+    "Chat live in drei Konten/zwei Tabs, HTML als Text",
+    "Eigene Moderation entfernt Text auch im zweiten Tab",
+    "Mitteilungsentwurf behält ursprüngliche Version: Zweittab-Konflikt ohne stille Überschreibung",
+    "Verwaltung bei 1440/390/320 px ohne horizontalen Seitenüberlauf",
+    "Mitgliedsstadt öffnet reguläres Lieferformular; LKW/Ladung gewählt und ausdrücklich gestartet",
+    "Bündnisbild nach echtem Serverneustart weiterhin verfügbar",
+    "Serverneustart mit Wiederverbindung: Chatmoderation und Mitgliedschaften bleiben gespeichert",
+    "Führung übertragen, ehemaliger Anführer tritt aus, private Oberfläche entfernt",
+    "Ausgetretener erhält keine neuen Chattexte",
+    "390px Navigation, Chat, Tastaturfokus und kein horizontaler Seitenüberlauf",
+    "320px Navigation, Chat, Tastaturfokus und kein horizontaler Seitenüberlauf",
+    "Letzte Mitglieder verlassen, letzter Anführer löst auf",
+    "Laufende Lieferung nach Austritt/Auflösung unverändert vorhanden"
+  ],
+  "errors": []
+}
