@@ -16,6 +16,8 @@ Generäle besitzen sichtbare Reiter für Verwaltung/Rekrutierung und getrennte D
 
 ## Lokale Bündnisse (Auftrag 19)
 
+Die Bündnisoberfläche gliedert sich in Übersicht, Mitglieder, Chat, Verwaltung und Entdecken. Die kompakte Übersicht führt bei größeren Bündnissen zur vollständigen Mitgliederliste; interne Bereichswechsel behalten Entwürfe. Gestaltung und tatsächliche Prüfungen vom 26.11.2026: [ALLIANCE_OVERVIEW_VALIDATION.md](docs/ALLIANCE_OVERVIEW_VALIDATION.md).
+
 **Bündnis** ist der achte Hauptbereich (mobil unter „Mehr“). Aus einer ausdrücklich gewählten eigenen Stadt gründen, Kommandanten einladen, Einladung annehmen, intern chatten und Mitgliedsstädte im bestehenden Lieferformular versorgen. Anführer/Offiziere verwalten Einladungen, Beschreibung und interne Mitteilung; nur der Anführer ändert Rollen und überträgt die Führung. Auflösung nur durch den letzten Anführer. Mitgliedschaft gilt für den Kommandanten und alle seine Städte, ohne fremde Eigentumsrechte oder Spielboni.
 
 Welt **5**, Spieler weiterhin **18**. Autoritativer Bündnisbestand im Weltspielstand, gemeinsame Journaltransaktion für Gründung und einmalige Stadtzahlung. Eigene vorläufige Standards: 1000 Holz/1000 Stein, 20 Mitglieder, Einladungen 168 Stunden. `ALLIANCE_CREATE_WOOD`, `ALLIANCE_CREATE_STONE`, `ALLIANCE_MAX_MEMBERS`, `ALLIANCE_INVITE_TTL_HOURS` sind zentral validiert und über Compose konfigurierbar. Bestehende Mitgliederlimits/Einladungstermine bleiben unverändert. Chat letzte 200 Beiträge, Verwaltungsprotokoll letzte 100; normale Wiederholungsbelege 30 Tage, Gründungsbelege dauerhaft. Keine Unterstützungstruppen oder Föderation.

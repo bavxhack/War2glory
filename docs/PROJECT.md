@@ -6,6 +6,8 @@ Ein dauerhaftes Browserstrategiespiel mit eigenständiger Implementierung. Spiel
 
 ## Aktueller Stand: Auftrag 19
 
+Seit 26.11.2026 ist die Bündnisoberfläche als kompakte Übersicht mit eigenen Bereichen für Mitglieder, Chat, Verwaltung und Verzeichnis gegliedert. Entwürfe bleiben beim internen Wechsel erhalten; die Mitgliedervorschau führt zur vollständigen Liste. Backend und Schema 5/18 bleiben unverändert. Nachweise: [ALLIANCE_OVERVIEW_VALIDATION.md](ALLIANCE_OVERVIEW_VALIDATION.md).
+
 Lokale Bündnisse sind implementiert: Gründung mit automatischem Angebot und einmaliger Zahlung aus eigener Stadt, Einladungen/Annahme, eine Mitgliedschaft pro Kommandant, Anführer/Offizier/Mitglied, Führungsübergabe, Austritt/Ausschluss/Auflösung, persistenter interner Chat, Mitteilung und Verwaltungsprotokoll. Acht direkte Hauptbereiche einschließlich mobilem Mehr-Einstieg; die Bedienung aus 18a bleibt erhalten. Mitgliedsstädte verwenden vorhandene Karte/Nachrichten/gewöhnliche Lieferungen. Keine fremden Stadt-/Truppenrechte, Spielboni oder Föderation.
 
 Weltschema 5 enthält den einzigen Bündnisbestand; Spielerschema bleibt 18. Alle älteren Weltmigrationspfade erreichen 5. Gründung/Zahlung/Cooldown/dauerhafter Requestbeleg nutzen gemeinsam das vorhandene Recovery-Journal. Rechte und aktuelle Mitgliedschaften werden bei jeder Aktion erneut geprüft; Verwaltung und Mitteilung haben getrennte Versionen. Vorläufige ENV-Regeln und Nachweise: [ALLIANCES_VALIDATION.md](ALLIANCES_VALIDATION.md). Unterstützung mit fremder Stationierung bleibt separat zu spezifizieren.

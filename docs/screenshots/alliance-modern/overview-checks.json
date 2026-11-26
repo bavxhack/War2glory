@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "Sechs echte Mitglieder: Übersicht zeigt kompakt drei; Alle Mitglieder öffnet vollständige Liste einschließlich sechstem Mitglied.",
+    "Verwaltungsentwurf bleibt beim Bereichswechsel erhalten.",
+    "1440px: alle fünf Bereiche ohne horizontalen Dokumentüberlauf und ohne unnötigen Dialog.",
+    "768px: alle fünf Bereiche ohne horizontalen Dokumentüberlauf und ohne unnötigen Dialog.",
+    "390px: alle fünf Bereiche ohne horizontalen Dokumentüberlauf und ohne unnötigen Dialog.",
+    "320px: alle fünf Bereiche ohne horizontalen Dokumentüberlauf und ohne unnötigen Dialog.",
+    "Eigenes bereits ausgewähltes Verzeichnisprofil öffnet wieder die Übersicht."
+  ],
+  "errors": []
+}

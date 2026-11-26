@@ -624,130 +624,108 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 .game-shell select { max-width:100%; padding:9px; border:1px solid #65755d; border-radius:6px; background:#111a10; color:#f7f2df; font:inherit; }
 .game-shell .main-navigation nav button[aria-current="page"] { background:#d5e59b; color:#172017; }
 
-/* Alliance workspace: shared colors, distinct panels and comfortable form controls. */
-.alliance-view { --alliance-line:#435740; --alliance-muted:#b7c5ae; max-width:1400px; margin-inline:auto; display:grid; gap:24px; overflow-wrap:anywhere; padding-bottom:16px; }
+/* Alliance hub: compact hierarchy, quiet surfaces and persistent section drafts. */
+.alliance-view { --alliance-line:#35403d; --alliance-muted:#a7b5af; --alliance-accent:#c4e4a4; display:grid; gap:20px; width:100%; max-width:1360px; min-width:0; margin-inline:auto; padding:26px; border:1px solid #35423a; border-radius:20px; background:#141c1b; color:#eef2ee; box-shadow:0 12px 36px #09120c24; overflow-wrap:anywhere; }
 .alliance-view *, .alliance-view *::before, .alliance-view *::after { box-sizing:border-box; }
+.alliance-view [hidden] { display:none!important; }
 .alliance-view h2,.alliance-view h3,.alliance-view h4,.alliance-view h5,.alliance-view p { margin:0; }
-.alliance-view h2 { font-size:clamp(26px,3vw,36px); letter-spacing:-.025em; line-height:1.2; margin-block:5px 8px; }
-.alliance-view h3 { font-size:22px; line-height:1.3; }
-.alliance-view h4 { font-size:19px; line-height:1.35; }
-.alliance-view h5 { font-size:17px; }
+.alliance-view h2 { font-size:30px; font-weight:650; letter-spacing:-.04em; line-height:1.2; margin:3px 0 6px; }
+.alliance-view h3 { font-size:21px; font-weight:650; letter-spacing:-.02em; line-height:1.35; }
+.alliance-view h4 { font-size:17px; font-weight:600; letter-spacing:-.015em; line-height:1.4; }
+.alliance-view h5 { font-size:16px; font-weight:600; }
 .alliance-heading,.alliance-section-heading,.alliance-actions,.alliance-form-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .alliance-heading > div,.alliance-section-heading > div { min-width:0; }
-.alliance-heading p,.alliance-help,.alliance-view small,.alliance-empty { color:var(--alliance-muted); line-height:1.6; }
-.alliance-eyebrow { display:block; color:#cfdfa3; font-size:10px; font-weight:800; letter-spacing:.15em; line-height:1.5; margin-bottom:6px; }
-.alliance-tag { border:1px solid #69834f; padding:10px 16px; background:#31452a; border-radius:12px; color:#e3edbd; font-weight:800; letter-spacing:.08em; }
-.alliance-card { min-width:0; border:1px solid var(--alliance-line); border-radius:16px; padding:24px; background:linear-gradient(145deg,#223020,#19231a); box-shadow:0 5px 18px #0a120d26; }
+.alliance-heading p,.alliance-help,.alliance-view small,.alliance-empty { color:var(--alliance-muted); line-height:1.65; }
+.alliance-heading p { font-size:13px; }
+.alliance-eyebrow { display:block; margin-bottom:5px; font-size:10px; font-weight:650; letter-spacing:.12em; line-height:1.5; color:#b9c9b0; }
+.alliance-heading > div > .alliance-eyebrow { display:none; }
+.alliance-card .alliance-section-heading .alliance-eyebrow { display:none; }
+.alliance-tag { padding:7px 10px; border:1px solid #3c4d3e; border-radius:9px; background:#202e23; color:#d2e8bd; font-size:12px; font-weight:600; white-space:nowrap; flex-shrink:0; }
+.alliance-section-tabs { display:flex; align-items:center; gap:4px; max-width:100%; overflow-x:auto; scrollbar-width:thin; padding:4px; background:#101716; border:1px solid #293631; border-radius:12px; }
+.game-shell .alliance-view .alliance-section-tabs button { min-height:42px; padding:10px 16px; flex-shrink:0; border:1px solid transparent; border-radius:8px; background:transparent; color:#aebbaf; font-size:13px; font-weight:500; }
+.game-shell .alliance-view .alliance-section-tabs button[aria-pressed=true] { color:#e5f0dd; background:#2c3c30; border-color:#465d42; box-shadow:0 2px 4px #0002; }
+.alliance-unread { display:inline-flex; align-items:center; justify-content:center; min-width:19px; height:19px; margin-left:7px; padding:0 4px; border-radius:6px; background:#c4e4a4; color:#192617; font-size:10px; font-weight:700; }
+.alliance-card { min-width:0; padding:20px; border:1px solid var(--alliance-line); border-radius:14px; background:#1c2623; box-shadow:0 2px 6px #0000000a; }
 .alliance-section-heading { margin-bottom:18px; }
-.alliance-count { display:grid; place-items:center; min-width:34px; height:34px; border:1px solid #5a704e; border-radius:10px; font-size:14px; color:#d8e6ba; background:#30432b; }
-.alliance-view label { display:grid; gap:8px; margin-block:18px; font-size:13px; font-weight:700; color:#e4ebd7; }
-.game-shell .alliance-view input,.game-shell .alliance-view textarea,.game-shell .alliance-view select { display:block; width:100%; min-width:0; max-width:100%; min-height:48px; padding:13px 14px; border:1px solid #5b7052; border-radius:10px; background:#121e16; color:#f2f4e9; font:inherit; font-size:14px; font-weight:400; line-height:1.55; box-shadow:inset 0 2px 5px #0002; transition:border-color .15s,box-shadow .15s; }
-.game-shell .alliance-view textarea { min-height:116px; resize:vertical; }
-.alliance-view input::placeholder,.alliance-view textarea::placeholder { color:#94a58b; opacity:1; }
-.game-shell .alliance-view :is(input,textarea,select):focus-visible { outline:2px solid #d5e59b; outline-offset:3px; border-color:#c5d89e; box-shadow:0 0 0 5px #c3db8c12; }
-.game-shell .alliance-view button { min-height:44px; margin:0; max-width:100%; white-space:normal; font-size:12px; line-height:1.45; padding:10px 13px; }
-.game-shell .alliance-view button:focus-visible,.alliance-view summary:focus-visible { outline:2px solid #d5e59b; outline-offset:3px; }
-.game-shell .alliance-view .alliance-primary:not(:disabled) { background:#d5e59b; color:#182415; border-color:#d5e59b; font-weight:800; }
-.game-shell .alliance-view .alliance-quiet:not(:disabled) { background:transparent; border-color:#52664b; color:#d7e3c5; }
-.game-shell .alliance-view .alliance-danger:not(:disabled) { background:#3e2b27; border-color:#8c6357; color:#f5cec0; }
+.alliance-count { display:grid; place-items:center; min-width:28px; height:28px; padding:0 8px; border:1px solid #435447; border-radius:8px; color:#d7e4cb; background:#27372b; font-size:12px; font-weight:500; }
+.alliance-view label { display:grid; gap:8px; margin-block:18px; color:#dce5df; font-size:12px; font-weight:550; }
+.game-shell .alliance-view input,.game-shell .alliance-view textarea,.game-shell .alliance-view select { display:block; width:100%; min-width:0; max-width:100%; min-height:46px; padding:12px 14px; border:1px solid #46574d; border-radius:9px; background:#151e1b; color:#f0f4ee; font:inherit; font-size:14px; font-weight:400; line-height:1.55; transition:border-color .15s,box-shadow .15s; }
+.game-shell .alliance-view textarea { min-height:104px; resize:vertical; }
+.alliance-view input::placeholder,.alliance-view textarea::placeholder { color:#879b8c; opacity:1; }
+.game-shell .alliance-view :is(input,textarea,select):focus-visible { outline:2px solid #b4d492; outline-offset:3px; border-color:#99bb7f; box-shadow:0 0 0 5px #b4d4920d; }
+.game-shell .alliance-view button { min-height:44px; max-width:100%; margin:0; padding:9px 12px; border:1px solid #4c6050; border-radius:8px; background:#2a3a2e; color:#dce9d7; font-size:12px; font-weight:500; line-height:1.45; white-space:normal; }
+.game-shell .alliance-view button:disabled { border-color:#35453a; background:#222f26; color:#a5b09f; opacity:.72; }
+.game-shell .alliance-view button:focus-visible,.alliance-view summary:focus-visible { outline:2px solid #c4e4a4; outline-offset:3px; }
+.game-shell .alliance-view .alliance-primary:not(:disabled) { background:#c4e4a4; border-color:#c4e4a4; color:#1b2a16; font-weight:650; }
+.game-shell .alliance-view .alliance-quiet:not(:disabled) { background:transparent; border-color:#3b4e41; color:#c3d3c6; }
+.game-shell .alliance-view .alliance-danger:not(:disabled) { background:#382c29; border-color:#76534a; color:#eebfb0; }
 .game-shell .alliance-view button:not(:disabled):hover { filter:brightness(1.12); }
-.alliance-actions { flex-wrap:wrap; justify-content:flex-start; }
-.alliance-feedback { padding:12px 16px; border:1px solid #5c754b; border-radius:10px; background:#2c422c; color:#e2eccf; }
-.alliance-feedback--warning,.alliance-confirmation { background:#3a3823; border:1px solid #8c8050; }
-.alliance-feedback--error { background:#3e2825; border-color:#95675b; color:#ffdbd1; }
-.alliance-confirmation { padding:20px; border-radius:14px; display:grid; gap:12px; }
-.alliance-profile { display:grid; gap:20px; min-width:0; }
-.alliance-banner { display:flex; align-items:center; gap:24px; padding:28px; border:1px solid #677d4f; border-radius:18px; background:radial-gradient(ellipse at top right,#73834936,transparent 65%),linear-gradient(120deg,#33472c,#1e3021); }
-.alliance-crest { flex-shrink:0; width:84px; min-height:100px; border:1px solid #a6b776; border-radius:15px 15px 30px 30px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; color:#e2eac2; background:linear-gradient(#53663b,#2c3b28); box-shadow:0 4px 15px #101a1080,inset 0 0 0 5px #c1d19612; }
-.alliance-crest > span { font-size:30px; }
-.alliance-crest > strong { font-size:13px; letter-spacing:.08em; }
-.alliance-identity { flex:1; min-width:0; }
-.alliance-identity h3 { font-size:clamp(22px,2.5vw,29px); margin-bottom:10px; }
-.alliance-identity p { color:#d5dfcb; line-height:1.65; margin-bottom:8px; white-space:pre-wrap; }
-.alliance-facts { display:flex; flex-wrap:wrap; gap:24px; margin:0; padding-left:24px; border-left:1px solid #73865d; }
-.alliance-facts dt { color:#bdcbaa; font-size:11px; margin-bottom:5px; }
-.alliance-facts dd { margin:0; font-size:25px; font-weight:800; }
-.alliance-facts dd span { font-size:15px; color:#bacaac; font-weight:400; }
-.alliance-facts dd.alliance-role { font-size:15px; padding-top:7px; }
-.alliance-notice { display:flex; gap:14px; padding:20px 24px; border:1px solid #6c7148; border-left:4px solid #c7cc85; border-radius:12px; background:#373d264d; }
-.alliance-notice h4 { font-size:14px; color:#e1e7b7; margin-bottom:7px; }
-.alliance-notice p { line-height:1.65; font-size:14px; }
-.alliance-notice small { display:block; margin-top:8px; font-size:11px; }
-.alliance-notice-icon { color:#d2d893; font-size:22px; }
-.alliance-community { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:20px; align-items:start; }
-.alliance-community--public { grid-template-columns:minmax(0,1fr); }
-.alliance-member-list { display:grid; gap:14px; }
-.alliance-member { padding:16px; background:#17231a; border:1px solid #41533c; border-radius:12px; }
+.alliance-actions { flex-wrap:wrap; justify-content:flex-start; gap:8px; }
+.alliance-feedback { padding:10px 14px; border:1px solid #486144; border-radius:10px; background:#213225; color:#d6e8cc; font-size:13px; }
+.alliance-feedback--warning,.alliance-confirmation { border:1px solid #807550; background:#363322; }
+.alliance-feedback--error { border-color:#936b60; background:#382926; color:#f7d2c7; }
+.alliance-confirmation { display:grid; gap:12px; padding:20px; border-radius:12px; font-size:14px; }
+.alliance-profile { display:grid; gap:18px; min-width:0; }
+.alliance-banner { display:flex; align-items:center; flex-wrap:wrap; gap:18px; padding:22px; border:1px solid #465b48; border-radius:14px; background:radial-gradient(ellipse at right top,#425a3b25,transparent 65%),#202e26; }
+.alliance-view .alliance-emblem.alliance-crest { width:72px; height:72px; min-height:72px; border:1px solid #69835c; border-radius:16px; box-shadow:0 6px 18px #0002; }
+.alliance-identity { flex:1; min-width:170px; }
+.alliance-identity h3 { margin-bottom:7px; font-size:24px; letter-spacing:-.03em; }
+.alliance-identity p { margin-bottom:7px; color:#bbcbbf; font-size:13px; line-height:1.65; white-space:pre-wrap; }
+.alliance-identity small { font-size:11px; }
+.alliance-facts { display:flex; flex-wrap:wrap; gap:24px; margin:0; padding-left:20px; border-left:1px solid #425c46; }
+.alliance-facts dt { margin-bottom:7px; color:#a8bbab; font-size:11px; }
+.alliance-facts dd { margin:0; font-size:24px; font-weight:600; letter-spacing:-.03em; }
+.alliance-facts dd span { color:#a8bba7; font-size:14px; font-weight:400; }
+.alliance-facts dd.alliance-role { padding-top:5px; font-size:14px; letter-spacing:0; }
+.alliance-notice { display:flex; gap:12px; padding:15px 18px; border:1px solid #4c5840; border-left:3px solid #adbe83; border-radius:10px; background:#252d21; }
+.alliance-notice h4 { margin-bottom:5px; color:#dbe3c2; font-size:12px; font-weight:600; }
+.alliance-notice p { font-size:13px; line-height:1.6; }
+.alliance-notice small { display:block; margin-top:7px; font-size:10px; }
+.alliance-notice-icon { color:#c2cf9b; font-size:18px; }
+.alliance-community { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.12fr); align-items:start; gap:18px; }
+.alliance-community--public,.alliance-community--single { grid-template-columns:minmax(0,1fr); }
+.alliance-member-list { display:grid; gap:12px; }
+.alliance-member { padding:14px; border:1px solid #35493c; border-radius:11px; background:#18231c; }
 .alliance-member-heading { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
-.alliance-member-heading > strong { flex:1; font-size:13px; min-width:100px; }
-.alliance-avatar { display:grid; place-items:center; flex-shrink:0; width:36px; height:36px; border-radius:50%; color:#d8e6b5; background:#3e5134; border:1px solid #60784c; font-size:15px; font-weight:700; }
-.alliance-cities { display:grid; gap:10px; margin-top:14px; }
-.alliance-city { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; padding:12px; border-radius:9px; background:#243223; }
+.alliance-member-heading > strong { flex:1; min-width:100px; font-size:13px; font-weight:600; }
+.alliance-member-role { color:#adbeab; font-size:11px; font-weight:400; }
+.alliance-avatar { display:grid; place-items:center; flex-shrink:0; width:34px; height:34px; border:1px solid #4d6551; border-radius:10px; background:#2b4030; color:#d5e7ce; font-size:13px; font-weight:600; }
+.alliance-cities { display:grid; gap:9px; margin-top:12px; }
+.alliance-city { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:11px 12px; border:1px solid #2d4133; border-radius:8px; background:#203025; }
 .alliance-city > div:first-child { display:grid; gap:3px; }
-.alliance-city strong { font-size:13px; }
-.alliance-city small { font-size:11px; }
-.alliance-member-management { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid #3b4d36; }
+.alliance-city strong { font-size:12px; font-weight:500; }.alliance-city small { font-size:10px; }
+.alliance-member-management { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; padding-top:12px; border-top:1px solid #324638; }
+.game-shell .alliance-view .alliance-member-management button { background:transparent; min-height:44px; padding:8px 10px; font-size:11px; }
 .alliance-view .alliance-help { font-size:12px; }
-.alliance-chat-indicator { color:#cfdea9; border:1px solid #536845; background:#2e4229; border-radius:20px; padding:5px 10px; font-size:10px; white-space:nowrap; }
-.alliance-chat-history { display:grid; gap:12px; margin-top:18px; max-height:560px; overflow-y:auto; overscroll-behavior-y:contain; scrollbar-gutter:stable; padding:3px; }
-.alliance-chat-post { min-width:0; padding:14px; border:1px solid #43553c; border-radius:4px 12px 12px; background:#2a3a29; }
-.alliance-chat-post.is-own { border-color:#72864f; background:#36472d; }
-.alliance-post-heading { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-bottom:10px; }
-.alliance-post-heading strong { font-size:13px; margin-right:auto; }
-.alliance-post-heading time,.alliance-post-heading > span { font-size:10px; color:#b5c6a8; }
-.alliance-chat-post p { font-size:14px; line-height:1.7; }
-.alliance-chat-post .alliance-actions { margin-top:12px; gap:8px; }
-.game-shell .alliance-chat-post button { font-size:10px; padding:7px 10px; }
-.alliance-chat-post.is-removed { background:#1b271d; border-style:dashed; }
-.alliance-chat-post.is-removed .alliance-text { font-style:italic; color:#a5b59b; }
-.alliance-compose { margin-top:20px; padding-top:4px; border-top:1px solid #45583e; }
-.alliance-compose label { margin-block:14px; }
-.alliance-form-footer { flex-wrap:wrap; }
-.alliance-form-footer small { font-size:11px; }
-.alliance-administration > .alliance-section-heading { margin:8px 0 16px; }
-.alliance-admin-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; align-items:start; }
-.alliance-admin-grid .alliance-card { padding:20px; }
-.alliance-admin-grid .alliance-help { margin-top:8px; min-height:58px; }
-.alliance-membership-footer { display:grid; gap:16px; }
-.alliance-log { padding:16px 20px; }
-.alliance-log summary { cursor:pointer; display:list-item; align-content:center; font-size:13px; font-weight:700; }
-.alliance-log p { padding-block:12px; border-top:1px solid #43543e; font-size:12px; line-height:1.6; }
-.alliance-log small { display:block; font-size:11px; }
-.alliance-exit { display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:12px; padding:18px 20px; border:1px solid #665047; border-radius:12px; background:#372a252e; }
-.alliance-exit strong { font-size:13px; }
-.alliance-exit p { margin-top:4px; color:#bbae9f; font-size:12px; }
-.alliance-discovery { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:20px; align-items:start; }
-.alliance-discovery--member { grid-template-columns:minmax(0,1fr); }
-.alliance-founding > .alliance-help { margin-top:10px; }
-.alliance-name-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(90px,.35fr); gap:16px; }
-.alliance-view .alliance-tag-input { text-transform:uppercase; letter-spacing:.1em; }
-.alliance-quote { display:grid; gap:6px; background:#132018; border:1px solid #465d3e; border-radius:12px; padding:18px; margin:20px 0; }
-.alliance-prices { display:flex; flex-wrap:wrap; gap:14px 22px; margin-block:8px; font-size:12px; color:#c7d5b7; }
-.alliance-prices strong { display:block; font-size:21px; color:#e6edce; }
-.alliance-quote small { font-size:11px; }
-.alliance-directory-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:10px; }
-.game-shell .alliance-view .alliance-directory-entry { display:flex; align-items:center; gap:14px; text-align:left; padding:16px; border-radius:12px; background:#1a281c; }
-.game-shell .alliance-view .alliance-directory-entry[aria-pressed="true"] { background:#34492c; border-color:#94ab69; color:#eff4e3; }
-.alliance-directory-entry > span:nth-child(2) { flex:1; min-width:0; }
-.alliance-directory-entry strong,.alliance-directory-entry small { display:block; }
-.alliance-directory-entry strong { font-size:14px; margin-bottom:3px; }
-.alliance-directory-entry small { font-size:11px; font-weight:400; }
-.alliance-directory-tag { display:grid; place-items:center; width:56px; min-height:48px; border-radius:10px; border:1px solid #637d4c; color:#d4e4af; background:#33472b; font-size:11px; font-weight:800; letter-spacing:.05em; flex-shrink:0; }
-.alliance-directory-arrow { color:#b6ca91; font-size:20px; }
-.alliance-empty { padding:20px 0; font-size:13px; }
-.alliance-chat-history .alliance-empty { display:grid; place-items:center; text-align:center; padding:32px 10px; gap:10px; }
-.alliance-empty > span { font-size:30px; color:#aabb8a; }
-.alliance-empty > strong { color:#d8e5c4; }
-.alliance-invitation-list { display:grid; gap:12px; }
-.alliance-invitation { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border:1px solid #566f45; border-radius:12px; padding:18px; background:#2b3c27; }
-.alliance-invitation p { font-size:12px; margin-top:6px; }
-.alliance-invitation small { font-size:11px; }
+.alliance-chat-indicator { padding:5px 8px; border:1px solid #425b45; border-radius:7px; color:#c2d4b6; background:#273a2b; font-size:10px; white-space:nowrap; }
+.alliance-chat-history { display:flex; flex-direction:column; gap:12px; max-height:430px; margin-top:18px; padding:2px; overflow-y:auto; overscroll-behavior-y:contain; scrollbar-gutter:stable; }
+.alliance-chat-post { min-width:0; padding:13px 14px; border:1px solid #3b5041; border-radius:12px 12px 12px 3px; background:#263b2c; }
+.alliance-chat-post.is-own { border-color:#5b754d; border-radius:12px 12px 3px 12px; background:#33482e; }
+.alliance-post-heading { display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; margin-bottom:8px; }
+.alliance-post-heading strong { margin-right:auto; font-size:12px; font-weight:600; }.alliance-post-heading time,.alliance-post-heading > span { color:#adbfab; font-size:10px; }
+.alliance-chat-post p { font-size:13px; line-height:1.7; }.alliance-chat-post .alliance-actions { margin-top:10px; }
+.game-shell .alliance-chat-post button { padding:7px 9px; background:transparent; border-color:#526b51; font-size:10px; }
+.alliance-chat-post.is-removed { border-style:dashed; background:#1c2b20; }.alliance-chat-post.is-removed .alliance-text { color:#abbaa6; font-style:italic; }
+.alliance-compose { margin-top:18px; padding-top:3px; border-top:1px solid #394d3d; }.alliance-compose label { margin-block:14px; }
+.alliance-form-footer { flex-wrap:wrap; }.alliance-form-footer small { font-size:11px; }
+.alliance-administration > .alliance-section-heading { margin:2px 0 16px; }.alliance-admin-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:16px; }
+.alliance-admin-grid .alliance-card { padding:22px; }.alliance-admin-grid .alliance-help { margin-top:8px; min-height:46px; }
+.alliance-membership-footer { display:grid; gap:14px; }
+.alliance-log { padding:14px 18px; }.alliance-log summary { display:list-item; min-height:44px; align-content:center; cursor:pointer; font-size:12px; font-weight:500; }
+.alliance-log p { padding-block:12px; border-top:1px solid #344b39; font-size:12px; line-height:1.6; }.alliance-log small { display:block; font-size:10px; }
+.alliance-exit { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:16px 18px; border:1px solid #4b3d36; border-radius:10px; background:#26231f; }.alliance-exit strong { font-size:12px; font-weight:500; }.alliance-exit p { margin-top:4px; color:#b8afa3; font-size:11px; }
+.alliance-discovery { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); align-items:start; gap:18px; }.alliance-discovery--member { grid-template-columns:minmax(0,1fr); }
+.alliance-founding > .alliance-help { margin-top:9px; }.alliance-name-fields { display:grid; grid-template-columns:minmax(0,1fr) 100px; gap:14px; }.alliance-view .alliance-tag-input { text-transform:uppercase; letter-spacing:.08em; }
+.alliance-quote { display:grid; gap:6px; margin:20px 0; padding:16px; border:1px solid #435b43; border-radius:10px; background:#17251b; }.alliance-prices { display:flex; flex-wrap:wrap; gap:14px 22px; margin-block:7px; color:#bacbb1; font-size:11px; }.alliance-prices strong { display:block; color:#e3edd7; font-size:22px; font-weight:600; }.alliance-quote small { font-size:10px; }
+.alliance-directory-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr)); gap:12px; }
+.game-shell .alliance-view .alliance-directory-entry { display:flex; align-items:center; gap:14px; padding:16px; border:1px solid #3d5443; border-radius:11px; background:#1a2a20; text-align:left; }.game-shell .alliance-view .alliance-directory-entry[aria-pressed=true] { border-color:#769665; background:#2d442e; color:#f0f5e9; }
+.alliance-directory-entry > span:nth-child(2) { flex:1; min-width:0; }.alliance-directory-entry strong,.alliance-directory-entry small { display:block; }.alliance-directory-entry strong { margin-bottom:4px; font-size:14px; font-weight:600; }.alliance-directory-entry small { font-size:11px; font-weight:400; }.alliance-directory-arrow { color:#b4cb9e; font-size:19px; }
+.alliance-empty { padding:20px 0; font-size:13px; }.alliance-chat-history .alliance-empty { display:grid; place-items:center; gap:9px; padding:28px 10px; text-align:center; }.alliance-empty > span { color:#b2c99d; font-size:28px; }.alliance-empty > strong { color:#d6e5ca; font-weight:500; }
+.alliance-invitation-list { display:grid; gap:12px; }.alliance-invitation { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; padding:16px; border:1px solid #506e48; border-radius:10px; background:#2b3e2a; }.alliance-invitation p { margin-top:5px; font-size:12px; }.alliance-invitation small { font-size:10px; }
 .alliance-text { white-space:pre-wrap; overflow-wrap:anywhere; }
-@media(max-width:1100px) { .alliance-community { grid-template-columns:minmax(0,1fr); } .alliance-admin-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .alliance-admin-grid > :first-child { grid-column:1 / -1; } .alliance-banner { flex-wrap:wrap; } .alliance-facts { padding:0; border:0; } }
-@media(max-width:650px) { .alliance-view { gap:16px; } .alliance-card { padding:18px; border-radius:12px; } .alliance-banner { padding:20px; gap:16px; } .alliance-crest { width:64px; min-height:80px; } .alliance-crest > span { font-size:24px; } .alliance-identity { flex-basis:calc(100% - 80px); } .alliance-identity h3 { font-size:21px; } .alliance-identity p { font-size:13px; } .alliance-facts { width:100%; padding-top:14px; border-top:1px solid #5b714b; gap:32px; } .alliance-notice { padding:16px; } .alliance-admin-grid,.alliance-discovery { grid-template-columns:minmax(0,1fr); } .alliance-admin-grid > :first-child { grid-column:auto; } .alliance-admin-grid .alliance-help { min-height:0; } .alliance-member { padding:12px; } .alliance-city .alliance-actions { width:100%; } .alliance-member-management { gap:6px; } .game-shell .alliance-view button { font-size:11px; padding:10px 11px; } .alliance-name-fields { gap:10px; grid-template-columns:minmax(0,1fr) 82px; } .alliance-chat-indicator { display:none; } .alliance-form-footer { align-items:stretch; flex-direction:column; } .alliance-view .alliance-form-footer button { width:100%; } .alliance-chat-history { max-height:440px; } }
+@media(max-width:1050px) { .alliance-community { grid-template-columns:minmax(0,1fr); }.alliance-facts { padding:0; border:0; }.alliance-banner { gap:16px; } }
+@media(max-width:650px) { .alliance-view { padding:16px 12px; gap:16px; border-radius:14px; }.alliance-heading { align-items:flex-start; }.alliance-view h2 { font-size:26px; }.alliance-heading p { max-width:200px; font-size:12px; }.alliance-heading .alliance-tag { padding:7px; font-size:10px; }.alliance-heading .alliance-tag .alliance-emblem { width:20px; height:20px; }.alliance-section-tabs { margin-inline:-2px; }.game-shell .alliance-view .alliance-section-tabs button { min-height:44px; padding:10px 12px; font-size:12px; }.alliance-card { padding:16px; border-radius:11px; }.alliance-banner { padding:18px 16px; }.alliance-view .alliance-emblem.alliance-crest { width:56px; height:56px; min-height:56px; border-radius:12px; }.alliance-identity { flex-basis:calc(100% - 76px); min-width:0; }.alliance-identity h3 { font-size:20px; }.alliance-identity p { font-size:12px; }.alliance-facts { width:100%; padding-top:14px; border-top:1px solid #3e5843; gap:32px; }.alliance-notice { padding:14px; }.alliance-admin-grid,.alliance-discovery { grid-template-columns:minmax(0,1fr); }.alliance-admin-grid .alliance-card { padding:18px; }.alliance-admin-grid .alliance-help { min-height:0; }.alliance-member { padding:12px; }.alliance-member-heading { gap:8px; }.alliance-city .alliance-actions { width:100%; }.game-shell .alliance-view button { padding:10px; font-size:11px; }.alliance-name-fields { grid-template-columns:minmax(0,1fr) 80px; gap:10px; }.game-shell .alliance-view :is(input,textarea,select) { font-size:16px; }.alliance-chat-indicator { display:none; }.alliance-form-footer { flex-direction:column; align-items:stretch; }.alliance-form-footer button { width:100%; }.alliance-chat-history { max-height:380px; } }
 @media(prefers-reduced-motion:reduce) { .game-shell .alliance-view :is(input,textarea,select) { transition:none; } }
-.alliance-tag { white-space:nowrap; flex-shrink:0; }
-@media(max-width:650px) { .alliance-name-fields { grid-template-columns:minmax(0,1fr) 90px; } .game-shell .alliance-view :is(input,textarea,select) { font-size:16px; } }
 
 .alliance-emblem { display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; width:32px; height:32px; overflow:hidden; border:1px solid #7a905b; border-radius:8px; background:#2f4329; color:#e2eac2; vertical-align:middle; }
 .alliance-emblem img { display:block; width:100%; height:100%; object-fit:cover; }
@@ -780,3 +758,11 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 .build-catalog .building-option .building-option-reason { margin-top:8px; color:#efd09e; }
 .mission-dialog.build-catalog .building-option > button { grid-column:1 / -1; align-self:start; justify-self:stretch; width:100%; min-width:0; min-height:44px; height:auto; margin:0; padding:11px 12px; white-space:normal; overflow-wrap:anywhere; line-height:1.5; box-sizing:border-box; }
 @media(max-width:560px) { .build-catalog .building-option { grid-template-columns:64px minmax(0,1fr); padding:14px; gap:12px; } .mission-dialog.build-catalog .building-option > .building-art { width:64px; height:48px; } }
+
+.alliance-view .alliance-feedback:not(.alliance-feedback--error):not(.alliance-feedback--warning) { padding:0; border:0; background:transparent; font-size:12px; color:#b6cfa4; }
+
+.game-shell .alliance-view .alliance-all-members { width:100%; margin-top:14px; background:transparent; }
+
+.alliance-heading .alliance-emblem-fallback small { display:none; }
+.alliance-view .alliance-empty > svg { width:28px; height:28px; color:#a9c39b; }
+.alliance-members .alliance-section-heading .alliance-help { margin-top:4px; font-size:11px; }
